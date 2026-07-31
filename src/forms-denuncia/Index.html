@@ -30,6 +30,7 @@
     </div>
   </header>
 
+  <!-- LOADERS E ALERTAS -->
   <div id="global-loader" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
     <div class="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center max-w-sm mx-4 text-center">
       <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-16 w-16 mb-4"></div>
@@ -51,15 +52,12 @@
         <i class="fa-solid fa-circle-xmark text-2xl"></i>
         <h3 class="text-lg font-black uppercase text-gray-800">Anular / Cancelar Registro</h3>
       </div>
-      <p class="text-xs text-gray-600 mb-4 font-semibold">Este registro será alterado para <strong class="text-red-600">CANCELADO</strong> no banco de dados. A linha permanecerá salva para fins de auditoria.</p>
-      
+      <p class="text-xs text-gray-600 mb-4 font-semibold">Este registro será alterado para <strong class="text-red-600">CANCELADO</strong> no banco de dados.</p>
       <input type="hidden" id="modal_cancel_id">
-      
       <div class="mb-5">
         <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Motivo do Cancelamento *</label>
-        <textarea id="modal_cancel_motivo" rows="3" required class="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-red-500 outline-none" placeholder="Informe detalhadamente por que este lançamento está sendo anulado..."></textarea>
+        <textarea id="modal_cancel_motivo" rows="3" required class="w-full border border-gray-300 p-3 rounded-lg text-sm focus:ring-red-500 outline-none" placeholder="Informe o motivo..."></textarea>
       </div>
-
       <div class="flex gap-3">
         <button type="button" onclick="fecharModalCancelamento()" class="w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2.5 rounded-xl font-bold text-sm">Voltar</button>
         <button type="button" onclick="confirmarAnulacaoRegistro()" class="w-1/2 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl font-bold text-sm">Confirmar Anulação</button>
@@ -68,14 +66,14 @@
   </div>
 
   <main class="max-w-5xl mx-auto p-4 md:p-8">
-    
     <section id="tela-bloqueada" class="hidden bg-white rounded-2xl shadow-xl p-8 text-center max-w-md mx-auto my-12">
       <div class="text-red-500 text-6xl mb-4"><i class="fa-solid fa-circle-exclamation"></i></div>
       <h2 class="text-2xl font-black text-gray-800 mb-2">Acesso Restrito</h2>
-      <p class="text-gray-600 mb-6 text-sm">Painel exclusivo de uso corporativo pela área de Gestão de Pessoas.</p>
+      <p class="text-gray-600 mb-6 text-sm">Painel exclusivo de uso corporativo. Seu acesso de visualização está bloqueado.</p>
       <div class="bg-gray-100 p-3 rounded-lg text-xs font-mono text-gray-500 break-all" id="bloqueio-email"></div>
     </section>
 
+    <!-- TELA INICIAL -->
     <section id="tela-inicio" class="hidden space-y-6">
       <div class="text-center py-6">
         <h2 class="text-3xl font-black text-gray-800 mb-2" id="boas-vindas-titulo">Carregando painel... 👋</h2>
@@ -99,19 +97,16 @@
           <h3 class="text-base font-bold text-gray-800 mb-2">Registrar Apuração</h3>
           <p class="text-gray-500 text-xs">Criar relatório, classificar e enviar desdobramento ao gerente.</p>
         </button>
-
         <button id="card-btn-rascunhos" type="button" onclick="irParaRascunhos()" class="bg-white rounded-2xl shadow-md border-2 border-indigo-100 hover:border-indigo-600 p-6 text-center hover:shadow-xl group flex flex-col items-center transition-all">
           <div class="bg-indigo-100 text-indigo-600 h-14 w-16 rounded-full flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-solid fa-folder-open"></i></div>
           <h3 class="text-base font-bold text-gray-800 mb-2">Casos Pendentes / Comitê</h3>
           <p class="text-gray-500 text-xs">Acessar e concluir seus relatórios salvos sob análise de comitê.</p>
         </button>
-
         <button id="card-btn-gerenciador" type="button" onclick="irParaGerenciadorCasos()" class="bg-white rounded-2xl shadow-md border-2 border-teal-100 hover:border-teal-600 p-6 text-center hover:shadow-xl group flex flex-col items-center transition-all">
           <div class="bg-teal-100 text-teal-600 h-14 w-16 rounded-full flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-solid fa-list-check"></i></div>
           <h3 class="text-base font-bold text-gray-800 mb-2" id="lbl-meus-registros">Meus Registros & Editar</h3>
           <p class="text-gray-500 text-xs" id="lbl-meus-registros-desc">Consultar, editar in-place ou anular seus registros já finalizados.</p>
         </button>
-
         <button id="card-btn-clima" type="button" onclick="irParaIntervencao()" class="bg-white rounded-2xl shadow-md border-2 border-orange-100 hover:border-[#FF5A00] p-6 text-center hover:shadow-xl group flex flex-col items-center transition-all">
           <div class="bg-orange-100 text-[#FF5A00] h-14 w-16 rounded-full flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform"><i class="fa-solid fa-chart-line"></i></div>
           <h3 class="text-base font-bold text-gray-800 mb-2">Acompanhamento Clima</h3>
@@ -130,6 +125,104 @@
       </div>
     </section>
 
+    <!-- TELA CASOS PENDENTES / RASCUNHOS COMITÊ -->
+    <section id="tela-rascunhos" class="hidden space-y-6">
+      <div class="flex items-center justify-between border-b pb-4">
+        <h2 class="text-2xl font-black text-gray-800"><i class="fa-solid fa-folder-open text-indigo-600 mr-2"></i> Casos Pendentes / Análise de Comitê</h2>
+        <button type="button" onclick="voltarAoInicio()" class="text-gray-500 font-bold hover:text-gray-700"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border p-6">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-indigo-50 border-b text-xs font-black text-indigo-900 uppercase">
+                <th class="p-3">ID Rascunho</th>
+                <th class="p-3">Data</th>
+                <th class="p-3">Filial</th>
+                <th class="p-3">Status / Conclusão</th>
+                <th class="p-3">Envolvidos</th>
+                <th class="p-3 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="lista-rascunhos-body"></tbody>
+          </table>
+        </div>
+        <div id="msg-rascunhos-vazio" class="hidden text-center py-12">
+          <i class="fa-solid fa-folder-open text-4xl text-gray-300 mb-3"></i>
+          <p class="text-gray-500 text-sm font-bold">Nenhum rascunho ou caso pendente de comitê encontrado.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TELA MEUS REGISTROS & GERENCIADOR -->
+    <section id="tela-gerenciador-casos" class="hidden space-y-6">
+      <div class="flex items-center justify-between border-b pb-4">
+        <h2 class="text-2xl font-black text-gray-800"><i class="fa-solid fa-list-check text-teal-600 mr-2"></i> Pesquisa de Registros Corporativos</h2>
+        <button type="button" onclick="voltarAoInicio()" class="text-gray-500 font-bold hover:text-gray-700"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
+        <div class="flex flex-col md:flex-row justify-between gap-4 items-center">
+          <div class="relative w-full md:w-80">
+            <i class="fa-solid fa-search absolute left-3 top-3.5 text-gray-400 text-sm"></i>
+            <input type="text" id="filtro-gerenciador" oninput="filtrarTabelaGerenciador()" class="w-full pl-9 pr-4 py-2.5 border rounded-xl text-xs font-semibold focus:ring-teal-500 outline-none" placeholder="Filtrar por Filial, ID, Resumo ou Tipo...">
+          </div>
+          <p class="text-xs text-gray-500 font-bold">Exibindo registros permitidos para seu perfil de visualização</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-teal-50 border-b text-xs font-black text-teal-900 uppercase">
+                <th class="p-3">Tipo</th>
+                <th class="p-3">ID</th>
+                <th class="p-3">Data</th>
+                <th class="p-3">Filial</th>
+                <th class="p-3">Status</th>
+                <th class="p-3">Resumo / Detalhes</th>
+                <th class="p-3 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="lista-gerenciador-body"></tbody>
+          </table>
+        </div>
+        <div id="msg-gerenciador-vazio" class="hidden text-center py-12">
+          <i class="fa-solid fa-inbox text-4xl text-gray-300 mb-3"></i>
+          <p class="text-gray-500 text-sm font-bold">Nenhum registro localizado no banco de dados.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tela-aprovacao-desligamentos" class="hidden space-y-6">
+      <div class="flex items-center justify-between border-b pb-4">
+        <h2 class="text-2xl font-black text-red-800 uppercase"><i class="fa-solid fa-file-signature mr-2"></i> Pareceres de Desligamento Pendentes</h2>
+        <button type="button" onclick="voltarAoInicio()" class="text-gray-500 font-bold hover:text-gray-700"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
+        <p class="text-xs text-gray-500 font-bold mb-4">Colaboradores aguardando o envio do seu parecer (Diretor ou Regional OP):</p>
+        <div class="grid grid-cols-1 gap-4" id="lista-desligamentos-pendentes">
+          <!-- preenchido via javascript -->
+        </div>
+        <div id="msg-sem-pendencias" class="hidden text-center py-8">
+          <i class="fa-solid fa-check-circle text-4xl text-green-400 mb-2"></i>
+          <p class="text-gray-500 font-bold">Tudo limpo! Não há desligamentos aguardando sua ação no momento.</p>
+        </div>
+      </div>
+
+      <!-- MODAL PARA EMISSAO DE PARECER -->
+      <div id="bloco-emissao-parecer" class="hidden bg-red-50 border-2 border-red-300 p-6 rounded-2xl shadow-inner space-y-4">
+        <h3 class="font-black text-red-800 uppercase">Emitir Parecer de Liderança</h3>
+        <p class="text-sm font-medium text-gray-700" id="lbl-parecer-nome">Preenchendo parecer para: </p>
+        <input type="hidden" id="parecer_id_desligamento">
+        <textarea id="texto_parecer_lideranca" rows="5" class="w-full border p-4 rounded-xl text-sm outline-none focus:ring-red-500" placeholder="Redija de forma clara o seu parecer de aprovação ou considerações formais..."></textarea>
+        <div class="flex gap-4">
+          <button type="button" onclick="cancelarEmissaoParecer()" class="w-1/3 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 rounded-xl font-bold transition">Cancelar</button>
+          <button type="button" onclick="salvarParecerDesligamentoLideranca()" class="w-2/3 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition flex justify-center items-center gap-2">
+            <i class="fa-solid fa-check-double"></i> Confirmar e Assinar Parecer
+          </button>
+        </div>
+      </div>
+    </section>
+
     <section id="tela-resposta-gerente" class="hidden space-y-6">
       <div class="bg-white rounded-2xl p-6 shadow-md border-t-8 border-[#FF5A00] space-y-6">
         <div class="flex items-center gap-4 border-b pb-4">
@@ -141,20 +234,16 @@
             <p class="text-xs text-gray-500 font-semibold">Prezado(a) Gestor(a), confirme o recebimento e registre as ações adotadas em sua unidade.</p>
           </div>
         </div>
-
         <div class="bg-orange-50 border-l-4 border-[#FF5A00] p-4 rounded-r-xl space-y-2">
           <p class="text-xs font-bold text-orange-900 uppercase"><i class="fa-solid fa-bullhorn mr-1"></i> Diretrizes GP Enviadas para a Filial <span id="gerente-display-filial" class="font-black text-gray-900"></span></p>
           <p id="gerente-display-texto" class="text-sm text-gray-800 italic bg-white p-3 rounded-lg border border-orange-200 font-medium"></p>
         </div>
-
         <form id="form-resposta-gerente" onsubmit="salvarRespostaGerenteFinal(event)" class="space-y-4">
           <input type="hidden" id="gerente_id_feedback">
-          
           <div>
             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Ações Adotadas e Considerações da Gerência *</label>
-            <textarea id="gerente_consideracoes" required rows="4" class="w-full border p-3 rounded-xl focus:ring-[#FF5A00] outline-none text-sm" placeholder="Descreva de forma clara e detalhada quais alinhamentos, reuniões ou ações corretivas foram executadas em loja..."></textarea>
+            <textarea id="gerente_consideracoes" required rows="4" class="w-full border p-3 rounded-xl focus:ring-[#FF5A00] outline-none text-sm" placeholder="Descreva de forma clara e detalhada quais alinhamentos foram executados..."></textarea>
           </div>
-
           <div class="border-2 border-dashed border-orange-300 bg-orange-50/50 p-4 rounded-xl text-center transition-all" id="drop-zone-gerente">
             <i class="fa-solid fa-cloud-arrow-up text-3xl text-[#FF5A00] mb-2"></i>
             <p class="text-xs font-bold text-gray-700 uppercase mb-1">Anexar Comprovantes / Fotos (Opcional)</p>
@@ -165,18 +254,14 @@
             </button>
             <div id="lista-gerente-preview" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4"></div>
           </div>
-
-          <div class="bg-gray-50 p-4 rounded-xl border text-xs text-gray-600 leading-relaxed font-semibold">
-            <p><i class="fa-solid fa-file-contract text-[#FF5A00] mr-1"></i> Ao confirmar, um <strong>Termo de Ciente Eletrônico (PDF)</strong> será emitido e arquivado no Drive Corporativo do GP com sua assinatura eletrônica.</p>
-          </div>
-
           <button type="submit" class="w-full bg-[#FF5A00] hover:bg-orange-600 text-white py-4 rounded-xl font-bold shadow-lg transition text-sm uppercase">
-            <i class="fa-solid fa-[#FF5A00] fa-check-double mr-1"></i> Dar Ciente e Enviar Plano de Ação
+            <i class="fa-solid fa-check-double mr-1"></i> Dar Ciente e Enviar Plano de Ação
           </button>
         </form>
       </div>
     </section>
 
+    <!-- TELA NOVA APURAÇÃO COMPLETA / EDIÇÃO -->
     <section id="tela-nova-apuracao" class="hidden space-y-6">
       <div class="flex items-center justify-between border-b pb-4">
         <h2 class="text-2xl font-black text-gray-800" id="titulo-tela-apuracao"><i class="fa-solid fa-shield-halved text-[#0086FF] mr-2"></i> Relatório de Apuração</h2>
@@ -240,7 +325,6 @@
 
         <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
           <h3 class="text-lg font-bold border-b pb-2 text-blue-700"><i class="fa-solid fa-users"></i> Identificação dos Denunciados (Até 3)</h3>
-          
           <div class="grid grid-cols-1 gap-6">
             <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
               <h4 class="text-xs font-black text-gray-700 uppercase mb-2">Denunciado 1</h4>
@@ -262,7 +346,6 @@
                 </div>
               </div>
             </div>
-
             <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
               <h4 class="text-xs font-black text-gray-700 uppercase mb-2">Denunciado 2 (Opcional)</h4>
               <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -283,7 +366,6 @@
                 </div>
               </div>
             </div>
-
             <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
               <h4 class="text-xs font-black text-gray-700 uppercase mb-2">Denunciado 3 (Opcional)</h4>
               <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -311,11 +393,11 @@
           <h3 class="text-lg font-bold border-b pb-2 text-blue-700">Diagnóstico e Constatações</h3>
           <div>
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Resumo da Denúncia *</label>
-            <textarea id="ap_resumo" required rows="3" class="w-full border p-3 rounded-lg focus:ring-[#0086FF] outline-none text-sm"></textarea>
+            <textarea id="ap_resumo" required rows="4" class="w-full border p-3 rounded-lg focus:ring-[#0086FF] outline-none text-sm"></textarea>
           </div>
           <div>
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Diagnóstico Apurado *</label>
-            <textarea id="ap_diagnostico" required rows="4" class="w-full border p-3 rounded-lg focus:ring-[#0086FF] outline-none text-sm"></textarea>
+            <textarea id="ap_diagnostico" required rows="6" class="w-full border p-3 rounded-lg focus:ring-[#0086FF] outline-none text-sm"></textarea>
           </div>
         </div>
 
@@ -337,31 +419,28 @@
               <input type="url" id="ap_anexo" placeholder="https://drive.google.com/..." class="w-full border p-3 rounded-lg focus:ring-[#0086FF] outline-none">
             </div>
           </div>
-
           <div class="border-2 border-dashed border-blue-300 bg-blue-50/50 p-4 rounded-xl text-center transition-all" id="drop-zone-evidencias">
             <i class="fa-solid fa-cloud-arrow-up text-3xl text-blue-500 mb-2"></i>
             <p class="text-xs font-bold text-gray-700 uppercase mb-1">Anexar Prints / Evidências Adicionais</p>
-            <p class="text-[11px] text-gray-500 font-semibold mb-3">Cole com <kbd class="bg-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-800">Ctrl + V</kbd> (prints da área de transferência) ou arraste arquivos aqui</p>
+            <p class="text-[11px] text-gray-500 font-semibold mb-3">Cole com <kbd class="bg-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-800">Ctrl + V</kbd> ou arraste arquivos aqui</p>
             <input type="file" id="input_evidencias_coladas" multiple accept="image/*,application/pdf" class="hidden" onchange="tratarArquivosSelecionados(this.files)">
-            <button type="button" onclick="document.getElementById('input_evidencias_coladas').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-sm transition btn-busca">
+            <button type="button" onclick="document.getElementById('input_evidencias_coladas').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-sm transition">
               <i class="fa-solid fa-paperclip mr-1"></i> Selecionar Arquivos
             </button>
             <div id="lista-evidencias-preview" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4"></div>
           </div>
-
           <div>
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Justificativa *</label>
             <textarea id="ap_justificativa" required rows="3" class="w-full border p-3 rounded-lg focus:ring-[#0086FF] outline-none text-sm"></textarea>
           </div>
           <div>
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Plano de Ação Aplicado *</label>
-            <textarea id="ap_tratativa" required rows="3" class="w-full border p-3 rounded-lg focus:ring-[#0086FF] outline-none text-sm"></textarea>
+            <textarea id="ap_tratativa" required rows="4" class="w-full border p-3 rounded-lg focus:ring-[#0086FF] outline-none text-sm"></textarea>
           </div>
         </div>
 
         <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
           <h3 class="text-lg font-bold border-b pb-2 text-blue-700">Desdobramento e Liderança</h3>
-          
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Enviar Feedback de Clima ao Gerente? *</label>
@@ -370,11 +449,9 @@
                 <option value="sim">Sim, enviar diretrizes para Ciência</option>
               </select>
             </div>
-            
             <div id="ap_feedback_gerente_block" class="hidden bg-red-50 border-2 border-red-300 p-4 rounded-xl shadow-inner mt-2">
-              <label class="block text-xs font-black text-red-700 uppercase mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Feedback Estruturado (Atenção: Irá direto para o e-mail do Gerente) *</label>
-              <textarea id="ap_feedback_texto" rows="3" class="w-full border border-red-200 p-3 rounded-lg focus:ring-red-500 outline-none text-sm"></textarea>
-              
+              <label class="block text-xs font-black text-red-700 uppercase mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Feedback Estruturado *</label>
+              <textarea id="ap_feedback_texto" rows="5" class="w-full border border-red-200 p-3 rounded-lg focus:ring-red-500 outline-none text-sm"></textarea>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
                 <div>
                   <label class="block text-xs font-bold text-red-700 uppercase mb-1">ID do Gerente *</label>
@@ -390,7 +467,6 @@
               </div>
             </div>
           </div>
-          
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
             <div>
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Agendar Intervenção de Monitoramento? *</label>
@@ -416,11 +492,9 @@
           <button type="button" onclick="gravarComiteRascunho('pessoal')" class="bg-gray-600 hover:bg-gray-700 text-white py-4 rounded-xl font-bold transition shadow-md flex items-center justify-center gap-2">
             <i class="fa-solid fa-floppy-disk"></i> Salvar Rascunho (Pessoal)
           </button>
-          
           <button type="button" onclick="gravarComiteRascunho('comite')" class="bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold transition shadow-md flex items-center justify-center gap-2">
             <i class="fa-solid fa-paper-plane"></i> Enviar p/ Análise Comitê
           </button>
-          
           <button type="submit" class="bg-[#0086FF] hover:bg-blue-600 text-white py-4 rounded-xl font-bold transition shadow-md flex items-center justify-center gap-2">
             <i class="fa-solid fa-check-double"></i> Concluir & Finalizar Apuração
           </button>
@@ -428,101 +502,7 @@
       </form>
     </section>
 
-    <section id="tela-rascunhos" class="hidden space-y-6">
-      <div class="flex items-center justify-between border-b pb-4">
-        <h2 class="text-2xl font-black text-gray-800"><i class="fa-solid fa-folder-open text-indigo-600 mr-2"></i> Casos Pendentes / Análise de Comitê</h2>
-        <button type="button" onclick="voltarAoInicio()" class="text-gray-500 font-bold hover:text-gray-700"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
-      </div>
-      <div class="bg-white rounded-2xl shadow-sm border p-6">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-indigo-50 border-b text-xs font-black text-indigo-900 uppercase">
-                <th class="p-3">ID Rascunho</th>
-                <th class="p-3">Data</th>
-                <th class="p-3">Filial</th>
-                <th class="p-3">Status / Conclusão</th>
-                <th class="p-3">Envolvidos</th>
-                <th class="p-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="lista-rascunhos-body"></tbody>
-          </table>
-        </div>
-        <div id="msg-rascunhos-vazio" class="hidden text-center py-12">
-          <i class="fa-solid fa-folder-open text-4xl text-gray-300 mb-3"></i>
-          <p class="text-gray-500 text-sm font-bold">Nenhum rascunho ou caso pendente de comitê encontrado.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="tela-gerenciador-casos" class="hidden space-y-6">
-      <div class="flex items-center justify-between border-b pb-4">
-        <h2 class="text-2xl font-black text-gray-800"><i class="fa-solid fa-list-check text-teal-600 mr-2"></i> Pesquisa de Registros Corporativos</h2>
-        <button type="button" onclick="voltarAoInicio()" class="text-gray-500 font-bold hover:text-gray-700"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
-      </div>
-      <div class="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
-        <div class="flex flex-col md:flex-row justify-between gap-4 items-center">
-          <div class="relative w-full md:w-80">
-            <i class="fa-solid fa-search absolute left-3 top-3.5 text-gray-400 text-sm"></i>
-            <input type="text" id="filtro-gerenciador" oninput="filtrarTabelaGerenciador()" class="w-full pl-9 pr-4 py-2.5 border rounded-xl text-xs font-semibold focus:ring-teal-500 outline-none" placeholder="Filtrar por Filial, ID, Resumo ou Tipo...">
-          </div>
-          <p class="text-xs text-gray-500 font-bold">Exibindo registros permitidos para seu perfil de visualização</p>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="bg-teal-50 border-b text-xs font-black text-teal-900 uppercase">
-                <th class="p-3">Tipo</th>
-                <th class="p-3">ID</th>
-                <th class="p-3">Data</th>
-                <th class="p-3">Filial</th>
-                <th class="p-3">Status</th>
-                <th class="p-3">Resumo / Detalhes</th>
-                <th class="p-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="lista-gerenciador-body"></tbody>
-          </table>
-        </div>
-        <div id="msg-gerenciador-vazio" class="hidden text-center py-12">
-          <i class="fa-solid fa-inbox text-4xl text-gray-300 mb-3"></i>
-          <p class="text-gray-500 text-sm font-bold">Nenhum registro localizado no banco de dados.</p>
-        </div>
-      </div>
-    </section>
-
-    <section id="tela-aprovacao-desligamentos" class="hidden space-y-6">
-      <div class="flex items-center justify-between border-b pb-4">
-        <h2 class="text-2xl font-black text-red-800 uppercase"><i class="fa-solid fa-file-signature mr-2"></i> Pareceres de Desligamento Pendentes</h2>
-        <button type="button" onclick="voltarAoInicio()" class="text-gray-500 font-bold hover:text-gray-700"><i class="fa-solid fa-arrow-left"></i> Voltar</button>
-      </div>
-
-      <div class="bg-white rounded-2xl shadow-sm border p-6 space-y-4">
-        <p class="text-xs text-gray-500 font-bold mb-4">Colaboradores aguardando o envio do seu parecer (Diretor ou Regional OP):</p>
-        <div class="grid grid-cols-1 gap-4" id="lista-desligamentos-pendentes">
-          <!-- preenchido via javascript -->
-        </div>
-        <div id="msg-sem-pendencias" class="hidden text-center py-8">
-          <i class="fa-solid fa-check-circle text-4xl text-green-400 mb-2"></i>
-          <p class="text-gray-500 font-bold">Tudo limpo! Não há desligamentos aguardando sua ação no momento.</p>
-        </div>
-      </div>
-
-      <div id="bloco-emissao-parecer" class="hidden bg-red-50 border-2 border-red-300 p-6 rounded-2xl shadow-inner space-y-4">
-        <h3 class="font-black text-red-800 uppercase">Emitir Parecer de Liderança</h3>
-        <p class="text-sm font-medium text-gray-700" id="lbl-parecer-nome">Preenchendo parecer para: </p>
-        <input type="hidden" id="parecer_id_desligamento">
-        <textarea id="texto_parecer_lideranca" rows="5" class="w-full border p-4 rounded-xl text-sm outline-none focus:ring-red-500" placeholder="Redija de forma clara o seu parecer de aprovação ou considerações formais..."></textarea>
-        <div class="flex gap-4">
-          <button type="button" onclick="cancelarEmissaoParecer()" class="w-1/3 bg-gray-300 hover:bg-gray-400 text-gray-800 py-3 rounded-xl font-bold transition">Cancelar</button>
-          <button type="button" onclick="salvarParecerDesligamentoLideranca()" class="w-2/3 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold transition flex justify-center items-center gap-2">
-            <i class="fa-solid fa-check-double"></i> Confirmar e Assinar Parecer
-          </button>
-        </div>
-      </div>
-    </section>
-
+    <!-- TELA ACOMPANHAMENTO DE CLIMA & FEEDBACKS -->
     <section id="tela-intervencao" class="hidden space-y-6">
       <div class="flex items-center justify-between border-b pb-4">
         <h2 class="text-2xl font-black text-gray-800" id="titulo-tela-intervencao"><i class="fa-solid fa-chart-line text-[#FF5A00] mr-2"></i> Acompanhamento de Clima & Feedbacks</h2>
@@ -544,11 +524,10 @@
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Filial *</label>
             <input type="number" id="int_filial" class="w-full border p-3 rounded-lg focus:ring-[#FF5A00] outline-none font-semibold" placeholder="Digite o número da filial...">
           </div>
-          <button type="button" onclick="buscarLinhaDoTempoClima()" class="bg-[#FF5A00] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#e04f00] transition flex items-center gap-2 btn-busca">
+          <button type="button" onclick="buscarLinhaDoTempoClima()" class="bg-[#FF5A00] text-white px-6 py-3 rounded-lg font-bold hover:bg-[#e04f00] transition flex items-center gap-2">
             <i class="fa-solid fa-search"></i> Consultar Histórico & Opções
           </button>
         </div>
-
         <div id="bloco-gerente-seletor" class="hidden bg-orange-50/80 border-2 border-orange-200 p-5 rounded-2xl space-y-3 mt-4">
           <div class="flex items-center justify-between border-b border-orange-200 pb-2">
             <h3 class="text-xs font-black text-orange-900 uppercase flex items-center gap-2">
@@ -557,9 +536,7 @@
             </h3>
             <span class="text-[11px] bg-green-100 text-green-800 font-bold px-2.5 py-1 rounded-full"><i class="fa-solid fa-circle-check mr-1"></i> Unidade Localizada</span>
           </div>
-
           <p class="text-xs text-gray-600 font-semibold">Como os gestores mudam periodicamente de loja, confirme ou selecione abaixo qual Gerente estava à frente da unidade neste momento:</p>
-
           <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
             <div class="md:col-span-2">
               <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Opções de Liderança da Filial</label>
@@ -568,7 +545,6 @@
                 <option value="outro">➕ Outro Gestor / Buscar por ID de Colaborador (DADOS_ATIVOS)</option>
               </select>
             </div>
-
             <div>
               <label class="block text-[11px] font-bold text-gray-700 uppercase mb-1">Gestor Confirmado *</label>
               <div class="flex gap-1">
@@ -578,26 +554,21 @@
             </div>
           </div>
         </div>
-
         <div id="wrapper-linha-tempo" class="hidden space-y-3 pt-4 border-t">
           <h3 class="text-sm font-black text-gray-700 uppercase flex items-center gap-2">
             <i class="fa-solid fa-clock-rotate-left text-[#FF5A00]"></i> Linha do Tempo e Histórico do Clima (Filial <span id="display-filial-timeline"></span>)
           </h3>
           <div id="container-linha-tempo" class="space-y-3 max-h-80 overflow-y-auto pr-2"></div>
         </div>
-
         <div id="wrapper-selecao-caso" class="hidden space-y-2 border-t pt-4">
           <label class="block text-xs font-bold text-gray-500 uppercase">Selecione o Contexto para Registrar Novo Feedback:</label>
           <div id="container-casos" class="grid gap-2"></div>
         </div>
       </div>
-
       <form id="form-intervencao" onsubmit="salvarIntervencao(event)" class="hidden space-y-6">
         <input type="hidden" id="int_id_edicao">
-
         <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
           <h3 class="text-lg font-bold border-b pb-2 text-orange-600"><i class="fa-solid fa-user-group"></i> Colaboradores Orientados / Envolvidos (Até 3)</h3>
-          
           <div class="grid grid-cols-1 gap-4">
             <div class="bg-orange-50/50 p-3 rounded-xl border border-orange-100">
               <h4 class="text-xs font-black text-orange-800 uppercase mb-2">Colaborador 1</h4>
@@ -619,7 +590,6 @@
                 </div>
               </div>
             </div>
-
             <div class="bg-orange-50/50 p-3 rounded-xl border border-orange-100">
               <h4 class="text-xs font-black text-orange-800 uppercase mb-2">Colaborador 2 (Opcional)</h4>
               <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -640,7 +610,6 @@
                 </div>
               </div>
             </div>
-
             <div class="bg-orange-50/50 p-3 rounded-xl border border-orange-100">
               <h4 class="text-xs font-black text-orange-800 uppercase mb-2">Colaborador 3 (Opcional)</h4>
               <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -663,7 +632,6 @@
             </div>
           </div>
         </div>
-
         <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
           <h3 class="text-lg font-bold border-b pb-2">Acompanhamento e Clima</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -687,46 +655,13 @@
             <input type="date" id="int_proxima_data" class="w-full border p-3 rounded-lg focus:ring-[#FF5A00] outline-none">
           </div>
         </div>
-
-        <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
-          <h3 class="text-lg font-bold border-b pb-2">Desdobramento com a Liderança</h3>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Enviar Feedback de Clima ao Gerente? *</label>
-              <select id="int_enviar_feedback" onchange="toggleFeedbackGerente(this.value, 'int')" class="w-full border p-3 rounded-lg focus:ring-[#FF5A00] outline-none font-semibold">
-                <option value="nao">Não necessita</option>
-                <option value="sim">Sim, enviar diretrizes para Ciência</option>
-              </select>
-            </div>
-            
-            <div id="int_feedback_gerente_block" class="hidden bg-red-50 border-2 border-red-300 p-4 rounded-xl shadow-inner mt-2">
-              <label class="block text-xs font-black text-red-700 uppercase mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Feedback Estruturado (Atenção: Irá direto para o e-mail do Gerente) *</label>
-              <textarea id="int_feedback_texto" rows="3" class="w-full border border-red-200 p-3 rounded-lg focus:ring-red-500 outline-none text-sm"></textarea>
-              
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
-                <div>
-                  <label class="block text-xs font-bold text-red-700 uppercase mb-1">ID do Gerente *</label>
-                  <div class="flex gap-2">
-                    <input type="text" id="int_gerente_id" class="w-full border border-red-200 p-3 rounded-lg outline-none font-bold">
-                    <button type="button" onclick="buscarDadosIDGerente('int')" class="bg-red-500 text-white px-3 rounded-lg font-bold btn-busca"><i class="fa-solid fa-search"></i></button>
-                  </div>
-                </div>
-                <div class="md:col-span-2">
-                  <label class="block text-xs font-bold text-red-700 uppercase mb-1">Nome do Gerente</label>
-                  <input type="text" id="int_gerente_nome" disabled class="w-full bg-white border border-red-200 p-3 rounded-lg text-gray-800 font-semibold shadow-inner">
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div id="botoes-salvar-int">
-          <button type="submit" class="w-full bg-[#FF5A00] text-white py-4 rounded-xl font-bold">Registrar Desenvolvimento / Feedback</button>
+          <button type="submit" class="w-full bg-[#FF5A00] text-white py-4 rounded-xl font-bold shadow-md transition">Registrar Desenvolvimento / Feedback</button>
         </div>
       </form>
     </section>
 
+    <!-- TELA DESLIGAMENTO -->
     <section id="tela-novo-desligamento" class="hidden space-y-6">
       <div class="flex items-center justify-between border-b pb-4">
         <h2 class="text-2xl font-black text-gray-800" id="titulo-tela-desligamento"><i class="fa-solid fa-user-minus text-[#0086FF] mr-2"></i> Registrar Desligamento</h2>
@@ -744,7 +679,6 @@
 
       <form id="form-desligamento" onsubmit="salvarDesligamento(event)" class="space-y-6">
         <input type="hidden" id="des_id_edicao">
-        
         <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
@@ -754,10 +688,9 @@
             </div>
             <div class="md:col-span-3">
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Regional</label>
-              <input type="text" id="des_regional" disabled class="w-full bg-gray-100 border p-3 rounded-lg text-gray-500">
+              <input type="text" id="des_regional" disabled class="w-full bg-gray-100 border p-3 rounded-lg text-gray-500 font-semibold">
             </div>
           </div>
-          
           <div class="bg-gray-50 border border-gray-200 p-4 rounded-xl">
             <h4 class="text-sm font-bold text-gray-700 mb-3 border-b pb-2"><i class="fa-solid fa-address-card"></i> Identificação do Colaborador</h4>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -785,17 +718,15 @@
             </div>
           </div>
         </div>
-
         <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
           <div>
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Resultados e Performance *</label>
             <textarea id="des_resultados" required rows="3" class="w-full border p-3 rounded-lg focus:ring-[#0086FF] outline-none text-sm"></textarea>
           </div>
-          
           <div class="border-2 border-dashed border-blue-300 bg-blue-50/50 p-4 rounded-xl text-center transition-all" id="drop-zone-desligamento">
             <i class="fa-solid fa-cloud-arrow-up text-3xl text-blue-500 mb-2"></i>
             <p class="text-xs font-bold text-gray-700 uppercase mb-1">Anexar Comprovantes / Prints de Resultados</p>
-            <p class="text-[11px] text-gray-500 font-semibold mb-3">Cole com <kbd class="bg-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-800">Ctrl + V</kbd> ou arraste imagens/PDFs aqui</p>
+            <p class="text-[11px] text-gray-500 font-semibold mb-3">Cole com <kbd class="bg-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-800">Ctrl + V</kbd> ou arraste arquivos aqui</p>
             <input type="file" id="des_arquivos_resultados" multiple accept="image/*,application/pdf" class="hidden" onchange="tratarArquivosDesligamento(this.files)">
             <button type="button" onclick="document.getElementById('des_arquivos_resultados').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-sm transition btn-busca">
               <i class="fa-solid fa-paperclip mr-1"></i> Selecionar Arquivos
@@ -803,7 +734,6 @@
             <div id="lista-desligamento-preview" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4"></div>
           </div>
         </div>
-
         <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
           <div>
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Justificativa *</label>
@@ -818,22 +748,22 @@
             <textarea id="des_parecer_coordenador" required rows="3" class="w-full border p-3 rounded-lg focus:ring-[#0086FF] outline-none text-sm"></textarea>
           </div>
         </div>
-
         <div id="botoes-salvar-des">
-          <button type="submit" class="w-full bg-[#0086FF] text-white py-4 rounded-xl font-bold">Disparar Dossiê de Desligamento</button>
+          <button type="submit" class="w-full bg-[#0086FF] text-white py-4 rounded-xl font-bold transition shadow-md">Disparar Dossiê de Desligamento</button>
         </div>
       </form>
     </section>
 
+    <!-- SUCESSO -->
     <section id="tela-sucesso" class="hidden bg-white rounded-2xl shadow-xl p-8 text-center max-w-md mx-auto my-12">
       <div class="text-green-500 text-6xl mb-4"><i class="fa-solid fa-circle-check"></i></div>
       <h2 class="text-2xl font-black text-gray-800 mb-2">Concluído!</h2>
       <p id="sucesso-msg" class="text-gray-600 mb-6 text-sm"></p>
       <div id="sucesso-doc-wrapper" class="hidden mb-6">
-        <a id="sucesso-doc-link" href="" target="_blank" class="bg-[#0086FF] text-white px-6 py-2.5 rounded-lg text-xs font-bold inline-block">Abrir Relatório Docs</a>
+        <a id="sucesso-doc-link" href="" target="_blank" rel="noopener noreferrer" class="bg-[#0086FF] text-white px-6 py-2.5 rounded-lg text-xs font-bold inline-block">Abrir Relatório Docs</a>
       </div>
       <div class="flex flex-col gap-3">
-        <button id="btn-voltar-inicio" type="button" onclick="voltarAoInicio()" class="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-bold">Voltar ao Início</button>
+        <button id="btn-voltar-inicio" type="button" onclick="voltarAoInicio()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold transition">Voltar ao Início</button>
         <p id="msg-fechar-janela" class="hidden text-gray-500 text-sm font-bold mt-2">Processo finalizado. Você já pode fechar esta aba/janela com segurança.</p>
       </div>
     </section>
@@ -856,11 +786,11 @@
     var ID_DESLIGAMENTO_REQ = '';
 
     try {
-      PAGE_REQ = "<?= page ?>" !== "<\?= page ?>" ? "<?= page ?>" : 'inicio';
-      ACTION_REQ = "<?= action ?>" !== "<\?= action ?>" ? "<?= action ?>" : '';
-      EDIT_ID_REQ = "<?= editId ?>" !== "<\?= editId ?>" ? "<?= editId ?>" : '';
-      ID_FEEDBACK_REQ = "<?= idFeedback ?>" !== "<\?= idFeedback ?>" ? "<?= idFeedback ?>" : '';
-      ID_DESLIGAMENTO_REQ = "<?= idDesligamento ?>" !== "<\?= idDesligamento ?>" ? "<?= idDesligamento ?>" : '';
+      PAGE_REQ = "<?= page ?>".indexOf("<") === -1 ? "<?= page ?>" : 'inicio';
+      ACTION_REQ = "<?= action ?>".indexOf("<") === -1 ? "<?= action ?>" : '';
+      EDIT_ID_REQ = "<?= editId ?>".indexOf("<") === -1 ? "<?= editId ?>" : '';
+      ID_FEEDBACK_REQ = "<?= idFeedback ?>".indexOf("<") === -1 ? "<?= idFeedback ?>" : '';
+      ID_DESLIGAMENTO_REQ = "<?= idDesligamento ?>".indexOf("<") === -1 ? "<?= idDesligamento ?>" : '';
     } catch(e) {}
 
     function getEl(id) { return document.getElementById(id); }
@@ -894,17 +824,11 @@
         };
         runner.withSuccessHandler(function(res){ if (onSuccess) onSuccess(res); }).withFailureHandler(handleFailure)[methodName].apply(runner, args);
       } else {
-        console.warn("[MOCK MODE] Executando '" + methodName + "' localmente.");
+        console.warn("[MOCK MODE] Executando localmente.");
         setTimeout(function() {
-          if (methodName === 'obterSessaoInicial') onSuccess({ autorizado: true, usuario: { nome: "Desenvolvedor", apelido: "Dev", email: "dev@teste.com", role: "GP" } });
-          else if (methodName === 'obterContatosPorFilial') onSuccess({ regional: 'Regional Mock', coordenador: 'Coord Mock', gerenteLoja: '122158 - DIOGO VILLAR', gerenteIdAtivo: '122158', gerenteNomeAtivo: 'DIOGO VILLAR', filial_normalizada: normalizarFilialIdFront(args[0]) });
-          else if (methodName === 'buscarHistoricoCompletoClima') onSuccess([]);
-          else if (methodName === 'buscarCasosRecentesPorFilial') onSuccess([]);
-          else if (methodName === 'buscarColaboradorAtivo') onSuccess({ nome: "GERENTE TESTE", cargo: "GERENTE LOJA", tempo: "5 Anos", filial: "100" });
-          else if (methodName === 'buscarDadosFeedbackGerente') onSuccess({ id: args[0], filial: '100', feedback: 'Diretrizes de acompanhamento de clima e liderança...' });
+          if (methodName === 'obterSessaoInicial') onSuccess({ autorizado: true, usuario: { nome: "Dev", role: "GP", apelido: "Dev", email: "dev@teste.com" } });
           else if (methodName === 'listarTodosRegistrosUsuario') onSuccess([]);
-          else if (methodName === 'listarDesligamentosPendentesLideranca') onSuccess([]);
-          else onSuccess({ sucesso: true, link: '#' });
+          else onSuccess({ sucesso: true });
         }, 500);
       }
     }
@@ -943,14 +867,6 @@
     });
 
     window.onload = function() {
-      var safetyTimer = setTimeout(function() {
-        var loader = getEl('global-loader');
-        if (loader && !loader.classList.contains('hidden')) {
-          hideEl('global-loader');
-          mostrarAlerta("O servidor demorou mais que o esperado para responder. Tente recarregar a página.");
-        }
-      }, 10000);
-
       var setupDrag = function(elemId, handlerFunc) {
         var dz = getEl(elemId);
         if (dz) {
@@ -970,6 +886,14 @@
       setupDrag('drop-zone-desligamento', tratarArquivosDesligamento);
       setupDrag('drop-zone-gerente', tratarArquivosGerente);
 
+      var safetyTimer = setTimeout(function() {
+        var loader = getEl('global-loader');
+        if (loader && !loader.classList.contains('hidden')) {
+          hideEl('global-loader');
+          mostrarAlerta("O servidor demorou mais que o esperado para responder. Tente recarregar a página.");
+        }
+      }, 15000);
+
       runBackend('obterSessaoInicial', [PAGE_REQ], function(sessao) {
         clearTimeout(safetyTimer);
         hideEl('global-loader');
@@ -979,7 +903,7 @@
           var bloq = getEl('bloqueio-email');
           if (bloq) bloq.textContent = 'Email conectado: ' + (sessao ? sessao.email : 'N/A');
           if (sessao && sessao.usuario && sessao.usuario.role === 'GERENTE_LOJA' && PAGE_REQ !== 'gerente') {
-             mostrarAlerta("Prezado Gerente, seu acesso ao painel principal não é permitido. Utilize apenas os links enviados por e-mail para responder aos Planos de Ação.");
+             mostrarAlerta("Prezado Gerente, seu acesso ao painel corporativo não é permitido. Utilize apenas os links enviados por e-mail para responder aos Planos de Ação.");
           }
           return;
         }
@@ -1011,23 +935,23 @@
 
     function aplicarRestricoesVisuaisPorPerfil(user) {
        if (user.role === 'COMPLIANCE') {
-          hideEl('card-btn-apuracao');
-          hideEl('card-btn-rascunhos');
-          hideEl('wrapper-btn-desligamento');
-          var lbl = getEl('lbl-meus-registros');
-          if (lbl) lbl.textContent = "Consulta Corporativa";
-          var lblDesc = getEl('lbl-meus-registros-desc');
-          if (lblDesc) lblDesc.textContent = "Acesso de visualização de todos os registros (Somente Leitura).";
+         hideEl('card-btn-apuracao');
+         hideEl('card-btn-rascunhos');
+         hideEl('wrapper-btn-desligamento');
+         var lbl = getEl('lbl-meus-registros');
+         if (lbl) lbl.textContent = "Consulta Corporativa";
+         var lblDesc = getEl('lbl-meus-registros-desc');
+         if (lblDesc) lblDesc.textContent = "Acesso de visualização de todos os registros (Somente Leitura).";
        } 
        else if (user.role === 'LIDERANCA') {
-          hideEl('card-btn-apuracao');
-          hideEl('card-btn-rascunhos');
-          hideEl('wrapper-btn-desligamento');
-          showEl('wrapper-btn-lideranca');
-          var lbl = getEl('lbl-meus-registros');
-          if (lbl) lbl.textContent = "Painel da Regional";
-          var lblDesc = getEl('lbl-meus-registros-desc');
-          if (lblDesc) lblDesc.textContent = "Consultar histórico de apurações e clima da sua regional/diretoria.";
+         hideEl('card-btn-apuracao');
+         hideEl('card-btn-rascunhos');
+         hideEl('wrapper-btn-desligamento');
+         showEl('wrapper-btn-lideranca'); 
+         var lbl = getEl('lbl-meus-registros');
+         if (lbl) lbl.textContent = "Painel da Regional";
+         var lblDesc = getEl('lbl-meus-registros-desc');
+         if (lblDesc) lblDesc.textContent = "Consultar histórico de apurações e clima da sua regional/diretoria.";
        }
     }
 
@@ -1059,159 +983,114 @@
        }
     }
 
-    function tratarArquivosSelecionados(files) {
+    function processarArquivos(files, arrayDestino, containerId) {
       if (!files || files.length === 0) return;
-      Array.from(files).forEach(function(file) {
+      Array.from(files).forEach(function(f) {
         var reader = new FileReader();
-        reader.onload = function(evt) {
-          ARQUIVOS_EVIDENCIAS_PASTED.push({
-            nome: file.name || ("Print_Colado_" + (ARQUIVOS_EVIDENCIAS_PASTED.length + 1) + ".png"),
-            dados: evt.target.result
-          });
-          renderizarListaPreview(ARQUIVOS_EVIDENCIAS_PASTED, 'lista-evidencias-preview');
+        reader.onload = function(e) {
+          arrayDestino.push({ nome: f.name || ("Print_Colado_" + (arrayDestino.length + 1) + ".png"), dados: e.target.result });
+          renderizarListaPreview(arrayDestino, containerId);
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(f);
       });
     }
 
-    function tratarArquivosDesligamento(files) {
-      if (!files || files.length === 0) return;
-      Array.from(files).forEach(function(file) {
-        var reader = new FileReader();
-        reader.onload = function(evt) {
-          ARQUIVOS_DESLIGAMENTO_PASTED.push({
-            nome: file.name || ("Resultado_Colado_" + (ARQUIVOS_DESLIGAMENTO_PASTED.length + 1) + ".png"),
-            dados: evt.target.result
-          });
-          renderizarListaPreview(ARQUIVOS_DESLIGAMENTO_PASTED, 'lista-desligamento-preview');
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-
-    function tratarArquivosGerente(files) {
-      if (!files || files.length === 0) return;
-      Array.from(files).forEach(function(file) {
-        var reader = new FileReader();
-        reader.onload = function(evt) {
-          ARQUIVOS_GERENTE_PASTED.push({
-            nome: file.name || ("Comprovante_Colado_" + (ARQUIVOS_GERENTE_PASTED.length + 1) + ".png"),
-            dados: evt.target.result
-          });
-          renderizarListaPreview(ARQUIVOS_GERENTE_PASTED, 'lista-gerente-preview');
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-
-    function renderizarListaPreview(arr, containerId) {
+    function renderizarListaPreview(array, containerId) {
       var container = getEl(containerId);
       if (!container) return;
       container.innerHTML = '';
-      arr.forEach(function(arq, idx) {
-        var card = document.createElement('div');
-        card.className = "bg-white border rounded-lg p-2 text-center shadow-sm relative group";
-        
-        if (arq.dados && arq.dados.startsWith('data:image')) {
-          var img = document.createElement('img');
-          img.src = arq.dados;
-          img.className = "h-16 w-full object-cover rounded mb-1";
-          card.appendChild(img);
-        } else {
-          var icon = document.createElement('i');
-          icon.className = "fa-solid fa-file-pdf text-2xl text-red-500 my-2 block";
-          card.appendChild(icon);
-        }
-
-        var lbl = document.createElement('p');
-        lbl.className = "text-[10px] font-bold text-gray-700 truncate";
-        lbl.textContent = arq.nome;
-        card.appendChild(lbl);
-
-        var btnRemove = document.createElement('button');
-        btnRemove.type = 'button';
-        btnRemove.className = "absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow";
-        btnRemove.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-        btnRemove.onclick = function() {
-          arr.splice(idx, 1);
-          renderizarListaPreview(arr, containerId);
-        };
-        card.appendChild(btnRemove);
-        container.appendChild(card);
+      array.forEach(function(arq, idx) {
+         var div = document.createElement('div');
+         div.className = "text-[10px] truncate bg-gray-200 text-gray-700 font-semibold p-1.5 rounded flex justify-between items-center group relative";
+         
+         var imgPrev = '';
+         if (arq.dados && arq.dados.startsWith('data:image')) {
+            imgPrev = '<img src="' + arq.dados + '" class="w-6 h-6 object-cover rounded mr-2 inline-block">';
+         }
+         
+         div.innerHTML = '<div class="flex items-center truncate">' + imgPrev + '<span class="truncate">' + arq.nome + '</span></div><button type="button" class="text-red-500 hover:text-red-700 ml-2" onclick="removerArquivo(\'' + containerId + '\', ' + idx + ')"><i class="fa-solid fa-trash"></i></button>';
+         container.appendChild(div);
       });
     }
 
-    function buscarDadosIDGerente(contexto) {
-      var idInput = getEl(contexto + '_gerente_id');
-      var nomeInput = getEl(contexto + '_gerente_nome');
-      if (!idInput || !idInput.value) {
-        mostrarAlerta("Por favor, digite o ID do Gerente antes de pesquisar.");
-        return;
-      }
-      showEl('global-loader');
-      setVal('loader-msg', "Consultando Gerente na base de ativos...");
+    function removerArquivo(containerId, idx) {
+      if (containerId === 'lista-evidencias-preview') { ARQUIVOS_EVIDENCIAS_PASTED.splice(idx, 1); renderizarListaPreview(ARQUIVOS_EVIDENCIAS_PASTED, containerId); }
+      else if (containerId === 'lista-desligamento-preview') { ARQUIVOS_DESLIGAMENTO_PASTED.splice(idx, 1); renderizarListaPreview(ARQUIVOS_DESLIGAMENTO_PASTED, containerId); }
+      else if (containerId === 'lista-gerente-preview') { ARQUIVOS_GERENTE_PASTED.splice(idx, 1); renderizarListaPreview(ARQUIVOS_GERENTE_PASTED, containerId); }
+    }
 
-      runBackend('buscarColaboradorAtivo', [idInput.value], function(dados) {
-        hideEl('global-loader');
-        if (dados && dados.nome) {
-          if (nomeInput) {
-            nomeInput.value = dados.nome;
-            nomeInput.setAttribute('disabled', 'disabled');
+    function tratarArquivosSelecionados(files) { processarArquivos(files, ARQUIVOS_EVIDENCIAS_PASTED, 'lista-evidencias-preview'); }
+    function tratarArquivosDesligamento(files) { processarArquivos(files, ARQUIVOS_DESLIGAMENTO_PASTED, 'lista-desligamento-preview'); }
+    function tratarArquivosGerente(files) { processarArquivos(files, ARQUIVOS_GERENTE_PASTED, 'lista-gerente-preview'); }
+
+    function buscarDenunciado(idx) {
+       var id = getEl('ap_den_id_' + idx) ? getEl('ap_den_id_' + idx).value : '';
+       if (!id) return;
+       showEl('global-loader'); setVal('loader-msg', 'Buscando cadastro...');
+       runBackend('buscarColaboradorAtivo', [id], function(res) {
+          hideEl('global-loader');
+          if (res) { setVal('ap_den_nome_' + idx, res.nome); setVal('ap_den_filial_' + idx, res.filial); } 
+          else mostrarAlerta('Colaborador não encontrado. Preencha manualmente.');
+       });
+    }
+
+    function buscarColaboradorFeedback(idx) {
+       var id = getEl('int_colab_id_' + idx) ? getEl('int_colab_id_' + idx).value : '';
+       if (!id) return;
+       showEl('global-loader'); setVal('loader-msg', 'Buscando cadastro...');
+       runBackend('buscarColaboradorAtivo', [id], function(res) {
+          hideEl('global-loader');
+          if (res) { setVal('int_colab_nome_' + idx, res.nome); setVal('int_colab_filial_' + idx, res.filial); } 
+          else mostrarAlerta('Não encontrado. Preencha manualmente.');
+       });
+    }
+
+    function buscarDadosID() {
+       var id = getEl('des_id_colaborador') ? getEl('des_id_colaborador').value : '';
+       if (!id) return;
+       showEl('global-loader'); setVal('loader-msg', 'Buscando cadastro...');
+       runBackend('buscarColaboradorAtivo', [id], function(res) {
+          hideEl('global-loader');
+          if (res) { 
+             setVal('des_colaborador', res.nome); 
+             setVal('des_cargo', res.cargo);
+             setVal('des_tempo', res.tempo);
+          } 
+          else mostrarAlerta('Colaborador não encontrado. Preencha manualmente.');
+       });
+    }
+
+    function buscarDadosIDGerente(prefix) {
+       var id = getEl(prefix + '_gerente_id') ? getEl(prefix + '_gerente_id').value : '';
+       if (!id) return;
+       showEl('global-loader'); setVal('loader-msg', 'Buscando gerente...');
+       runBackend('buscarColaboradorAtivo', [id], function(res) {
+          hideEl('global-loader');
+          if (res) { setVal(prefix + '_gerente_nome', res.nome); } 
+          else mostrarAlerta('Gerente não encontrado.');
+       });
+    }
+
+    function autocompletarContatos(inputFilialId, feedbackId, inputRegId) {
+      var rawFilial = getEl(inputFilialId) ? getEl(inputFilialId).value : '';
+      var fb = getEl(feedbackId);
+      var reg = getEl(inputRegId);
+      if (!rawFilial) { if(fb) fb.textContent = ''; if(reg) reg.value = ''; return; }
+      var normalizedFilial = normalizarFilialIdFront(rawFilial);
+      if (fb) { fb.className = "text-xs font-bold mt-1 block text-blue-600"; fb.textContent = "🔍 Buscando..."; }
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function() {
+        runBackend('obterContatosPorFilial', [normalizedFilial], function(c) {
+          if (c) {
+            if (reg) reg.value = c.regional + ' / ' + c.diretoria;
+            if (fb) { fb.className = "text-xs font-bold mt-1 block text-green-600"; fb.textContent = "✅ Unidade localizada (F. " + normalizedFilial + ")."; }
+          } else {
+            if (reg) reg.value = '';
+            if (fb) { fb.className = "text-xs font-bold mt-1 block text-amber-600"; fb.textContent = "⚠️ Filial não encontrada."; }
           }
-        } else {
-          mostrarAlerta("Atenção: ID de Gerente não localizado em DADOS_ATIVOS. Digite o Nome do Gerente manualmente.");
-          if (nomeInput) {
-            nomeInput.removeAttribute('disabled');
-            nomeInput.value = '';
-            nomeInput.focus();
-          }
-        }
-      });
-    }
-
-    function carregarTelaRespostaGerente(idFeedback) {
-      if (!idFeedback) return;
-      showEl('global-loader');
-      setVal('loader-msg', "Carregando diretrizes de clima para ciente...");
-
-      runBackend('buscarDadosFeedbackGerente', [idFeedback], function(dados) {
-        hideEl('global-loader');
-        if (dados && dados.erro) {
-          mostrarAlerta(dados.erro);
-          exibirTela('tela-bloqueada');
-          return;
-        }
-        setVal('gerente_id_feedback', dados.id);
-        var filialEl = getEl('gerente-display-filial');
-        var textoEl = getEl('gerente-display-texto');
-        if (filialEl) filialEl.textContent = dados.filial;
-        if (textoEl) textoEl.textContent = '"' + dados.feedback + '"';
-        exibirTela('tela-resposta-gerente');
-      });
-    }
-
-    function salvarRespostaGerenteFinal(e) {
-      e.preventDefault();
-      var idFeedback = getEl('gerente_id_feedback') ? getEl('gerente_id_feedback').value : '';
-      var consideracoes = getEl('gerente_consideracoes') ? getEl('gerente_consideracoes').value : '';
-
-      if (!consideracoes) {
-        mostrarAlerta("Por favor, informe suas considerações e plano de ação.");
-        return;
-      }
-
-      showEl('global-loader');
-      setVal('loader-msg', "Emitindo Termo de Ciente e salvando no Drive...");
-
-      runBackend('processarRespostaGerente', [idFeedback, consideracoes, ARQUIVOS_GERENTE_PASTED], function(res) {
-        hideEl('global-loader');
-        if (res && res.sucesso) {
-          finalizar("Ciente registrado e Termo de Ação gerado com sucesso!");
-          showEl('msg-fechar-janela');
-        } else {
-          mostrarAlerta(res ? res.erro : "Falha ao registrar ciente.");
-        }
-      });
+        });
+      }, 500);
     }
 
     function exibirTela(id) {
@@ -1246,96 +1125,8 @@
         if (n) n.setAttribute('disabled', 'disabled');
         if (f) f.setAttribute('disabled', 'disabled');
       });
-      
+
       exibirTela('tela-nova-apuracao'); 
-    }
-
-    function irParaRascunhos() {
-      showEl('global-loader');
-      setVal('loader-msg', "Carregando casos pendentes / rascunhos...");
-
-      runBackend('buscarRascunhosApuracoes', [], function(lista) {
-        hideEl('global-loader');
-        exibirTela('tela-rascunhos');
-        
-        var body = getEl('lista-rascunhos-body');
-        if (!body) return;
-        body.innerHTML = '';
-        
-        if (lista && lista.length > 0) {
-          hideEl('msg-rascunhos-vazio');
-          lista.forEach(function(r) {
-            var tr = document.createElement('tr');
-            tr.className = "border-b hover:bg-gray-50 text-xs text-gray-700 font-medium";
-            
-            var tdId = document.createElement('td');
-            tdId.className = "p-3 font-bold text-indigo-600";
-            tdId.textContent = r.idRascunho;
-            
-            var tdData = document.createElement('td');
-            tdData.className = "p-3";
-            tdData.textContent = r.dataRegistro;
-            
-            var tdFilial = document.createElement('td');
-            tdFilial.className = "p-3 font-semibold";
-            tdFilial.textContent = r.filial;
-
-            var tdStatus = document.createElement('td');
-            tdStatus.className = "p-3 font-bold";
-            var spanSt = document.createElement('span');
-            if (r.conclusao === 'Sob Análise Comitê') {
-              spanSt.className = "bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-[10px]";
-            } else {
-              spanSt.className = "bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-[10px]";
-            }
-            spanSt.textContent = r.conclusao;
-            tdStatus.appendChild(spanSt);
-            
-            var tdDenunciados = document.createElement('td');
-            tdDenunciados.className = "p-3 italic";
-            tdDenunciados.textContent = r.denunciados.map(function(d){ return d.nome; }).filter(function(n){ return n; }).join(', ') || 'N/A';
-            
-            var tdAcoes = document.createElement('td');
-            tdAcoes.className = "p-3 text-right flex justify-end gap-2";
-            
-            var btnRetomar = document.createElement('button');
-            btnRetomar.className = "bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1";
-            btnRetomar.innerHTML = '<i class="fa-solid fa-edit"></i> Retomar';
-            btnRetomar.onclick = function() { retomarRascunhoForm(r); };
-            
-            var btnAnular = document.createElement('button');
-            btnAnular.className = "bg-red-500 hover:bg-red-600 text-white px-2 py-1.5 rounded-lg transition flex items-center gap-1 font-bold";
-            btnAnular.innerHTML = '<i class="fa-solid fa-ban"></i> Anular';
-            btnAnular.onclick = function() { abrirModalAnulacaoDirect(r.idRascunho); };
-            
-            tdAcoes.appendChild(btnRetomar);
-            tdAcoes.appendChild(btnAnular);
-            
-            tr.appendChild(tdId);
-            tr.appendChild(tdData);
-            tr.appendChild(tdFilial);
-            tr.appendChild(tdStatus);
-            tr.appendChild(tdDenunciados);
-            tr.appendChild(tdAcoes);
-            
-            body.appendChild(tr);
-          });
-        } else {
-          showEl('msg-rascunhos-vazio');
-        }
-      });
-    }
-
-    function irParaGerenciadorCasos() {
-      showEl('global-loader');
-      setVal('loader-msg', "Carregando histórico de lançamentos...");
-
-      runBackend('listarTodosRegistrosUsuario', [], function(lista) {
-        hideEl('global-loader');
-        LISTA_GERENCIADOR_CACHE = lista || [];
-        renderizarTabelaGerenciador(LISTA_GERENCIADOR_CACHE);
-        exibirTela('tela-gerenciador-casos');
-      });
     }
 
     function irParaIntervencao() {
@@ -1343,6 +1134,12 @@
       setVal('int_id_edicao', '');
       setVal('int_gerente_alvo_id', '');
       setVal('int_gerente_alvo_nome', '');
+      
+      [1, 2, 3].forEach(function(idx) {
+        setVal('int_colab_id_' + idx, '');
+        setVal('int_colab_nome_' + idx, '');
+        setVal('int_colab_filial_' + idx, '');
+      });
 
       hideEl('form-intervencao');
       hideEl('wrapper-selecao-caso');
@@ -1350,13 +1147,6 @@
       hideEl('bloco-gerente-seletor');
       hideEl('btn-cancelar-intervencao-topo');
       travarCamposParaLeitura('int', false);
-      
-      [1, 2, 3].forEach(function(i) {
-        setVal('int_colab_id_' + i, '');
-        setVal('int_colab_nome_' + i, '');
-        setVal('int_colab_filial_' + i, '');
-      });
-
       exibirTela('tela-intervencao');
     }
 
@@ -1374,9 +1164,317 @@
       exibirTela('tela-novo-desligamento'); 
     }
 
+    function irParaRascunhos() {
+      showEl('global-loader');
+      setVal('loader-msg', "Carregando casos pendentes / rascunhos...");
+      runBackend('buscarRascunhosApuracoes', [], function(lista) {
+        hideEl('global-loader');
+        exibirTela('tela-rascunhos');
+        var body = getEl('lista-rascunhos-body');
+        if (!body) return;
+        body.innerHTML = '';
+        if (lista && lista.length > 0) {
+          hideEl('msg-rascunhos-vazio');
+          lista.forEach(function(r) {
+            var tr = document.createElement('tr');
+            tr.className = "border-b hover:bg-gray-50 text-xs text-gray-700 font-medium";
+            tr.innerHTML = '<td class="p-3 font-bold text-indigo-600">' + r.idRascunho + '</td><td class="p-3">' + r.dataRegistro + '</td><td class="p-3 font-semibold">' + r.filial + '</td><td class="p-3 font-bold"><span class="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-[10px]">' + r.conclusao + '</span></td><td class="p-3 italic">' + (r.denunciados.map(function(d){ return d.nome; }).filter(function(n){ return n; }).join(', ') || 'N/A') + '</td><td class="p-3 text-right flex justify-end gap-2"><button type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1 btn-retomar"><i class="fa-solid fa-edit"></i> Retomar</button></td>';
+            tr.querySelector('.btn-retomar').onclick = function() { retomarRascunhoForm(r); };
+            body.appendChild(tr);
+          });
+        } else {
+          showEl('msg-rascunhos-vazio');
+        }
+      });
+    }
+
+    function retomarRascunhoForm(r) {
+      irParaNovaApuracao();
+      setVal('ap_id_rascunho', r.idRascunho);
+      setVal('ap_filial', r.filial);
+      setVal('ap_origem', r.origem);
+      setVal('ap_resumo', r.resumo);
+      setVal('ap_diagnostico', r.diagnostico);
+      setVal('ap_conclusao', r.conclusao);
+      setVal('ap_justificativa', r.justificativa);
+      setVal('ap_tratativa', r.tratativa);
+      autocompletarContatos('ap_filial', 'ap_feedback_filial', 'ap_regional');
+      exibirTela('tela-nova-apuracao');
+    }
+
+    function irParaAprovacaoDesligamentos() {
+      showEl('global-loader');
+      setVal('loader-msg', "Buscando dossiês pendentes...");
+      hideEl('bloco-emissao-parecer');
+
+      runBackend('listarDesligamentosPendentesLideranca', [], function(lista) {
+        hideEl('global-loader');
+        var container = getEl('lista-desligamentos-pendentes');
+        container.innerHTML = '';
+        
+        if (!lista || lista.length === 0) {
+           hideEl('lista-desligamentos-pendentes');
+           showEl('msg-sem-pendencias');
+        } else {
+           showEl('lista-desligamentos-pendentes');
+           hideEl('msg-sem-pendencias');
+
+           lista.forEach(function(d) {
+             var div = document.createElement('div');
+             div.className = "bg-gray-50 border-2 border-gray-200 p-4 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4 hover:border-red-400 transition";
+             div.innerHTML = '<div class="flex-1"><p class="text-xs font-bold text-gray-500 uppercase mb-1">Filial ' + d.filial + ' | Data: ' + d.data + '</p><p class="text-sm font-black text-gray-800">' + d.nome + '</p><p class="text-xs text-gray-600 font-semibold">' + d.cargo + '</p></div><div class="flex gap-2"><a href="' + d.linkDoc + '" target="_blank" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-file-pdf mr-1"></i> Ler Relatório</a><button type="button" onclick="abrirPainelParecer(\'' + d.id + '\', \'' + d.nome + '\')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md whitespace-nowrap"><i class="fa-solid fa-pen mr-1"></i> Inserir Parecer</button></div>';
+             container.appendChild(div);
+           });
+        }
+        exibirTela('tela-aprovacao-desligamentos');
+      });
+    }
+
+    function abrirPainelParecer(id, nome) {
+       setVal('parecer_id_desligamento', id);
+       setVal('texto_parecer_lideranca', '');
+       var lbl = getEl('lbl-parecer-nome');
+       if (lbl) lbl.textContent = "Preenchendo parecer para: " + nome;
+       showEl('bloco-emissao-parecer');
+       getEl('texto_parecer_lideranca').focus();
+    }
+
+    function cancelarEmissaoParecer() { hideEl('bloco-emissao-parecer'); }
+
+    function salvarParecerDesligamentoLideranca() {
+       var id = getEl('parecer_id_desligamento') ? getEl('parecer_id_desligamento').value : '';
+       var texto = getEl('texto_parecer_lideranca') ? getEl('texto_parecer_lideranca').value : '';
+       
+       if (!texto) { mostrarAlerta("Por favor, preencha o seu parecer."); return; }
+
+       showEl('global-loader');
+       setVal('loader-msg', "Salvando parecer e vinculando ao Dossiê...");
+       runBackend('salvarParecerDesligamentoLideranca', [id, texto], function(res) {
+          hideEl('global-loader');
+          if (res && res.sucesso) {
+             mostrarAlerta("Parecer inserido e aprovado com sucesso!");
+             irParaAprovacaoDesligamentos();
+          } else {
+             mostrarAlerta(res ? (res.erro || "Falha ao gravar parecer.") : "Erro de Conexão");
+          }
+       });
+    }
+
+    function irParaGerenciadorCasos() {
+      showEl('global-loader');
+      setVal('loader-msg', "Carregando histórico de lançamentos...");
+      runBackend('listarTodosRegistrosUsuario', [], function(lista) {
+        hideEl('global-loader');
+        LISTA_GERENCIADOR_CACHE = lista || [];
+        renderizarTabelaGerenciador(LISTA_GERENCIADOR_CACHE);
+        exibirTela('tela-gerenciador-casos');
+      });
+    }
+
+    function filtrarTabelaGerenciador() {
+      var termo = normalizarFilialIdFront(getEl('filtro-gerenciador') ? getEl('filtro-gerenciador').value : '').toLowerCase();
+      var filtrados = LISTA_GERENCIADOR_CACHE.filter(function(r) { 
+        return r.id.toLowerCase().includes(termo) || r.filial.toLowerCase().includes(termo) || r.resumo.toLowerCase().includes(termo) || r.tipoLabel.toLowerCase().includes(termo);
+      });
+      renderizarTabelaGerenciador(filtrados);
+    }
+
+    function renderizarTabelaGerenciador(lista) {
+      var body = getEl('lista-gerenciador-body');
+      if (!body) return;
+      body.innerHTML = '';
+
+      if (lista && lista.length > 0) {
+        hideEl('msg-gerenciador-vazio');
+        lista.forEach(function(reg) {
+          var tr = document.createElement('tr');
+          tr.className = "border-b hover:bg-gray-50 text-xs text-gray-700 font-medium";
+
+          var tdTipo = document.createElement('td');
+          tdTipo.className = "p-3 font-bold";
+          var badgeTipo = document.createElement('span');
+          badgeTipo.className = reg.tipo === 'apuracao' ? "bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-[10px]" : (reg.tipo === 'desligamento' ? "bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-[10px]" : "bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-[10px]");
+          badgeTipo.textContent = reg.tipoLabel;
+          tdTipo.appendChild(badgeTipo);
+
+          var tdId = document.createElement('td');
+          tdId.className = "p-3 font-mono font-bold text-gray-800";
+          tdId.textContent = reg.id;
+
+          var tdData = document.createElement('td');
+          tdData.className = "p-3";
+          tdData.textContent = reg.data;
+
+          var tdFilial = document.createElement('td');
+          tdFilial.className = "p-3 font-semibold";
+          tdFilial.textContent = reg.filial;
+
+          var tdStatus = document.createElement('td');
+          tdStatus.className = "p-3 font-bold";
+          var spanSt = document.createElement('span');
+          spanSt.className = reg.status === 'CANCELADO' ? "bg-red-100 text-red-800 px-2 py-1 rounded-full text-[10px]" : "bg-green-100 text-green-800 px-2 py-1 rounded-full text-[10px]";
+          spanSt.textContent = reg.status;
+          tdStatus.appendChild(spanSt);
+
+          var tdResumo = document.createElement('td');
+          tdResumo.className = "p-3 truncate max-w-xs italic";
+          tdResumo.textContent = reg.resumo;
+
+          var tdAcoes = document.createElement('td');
+          tdAcoes.className = "p-3 text-right flex justify-end gap-2";
+
+          if (reg.status !== 'CANCELADO') {
+            var btnEditar = document.createElement('button');
+            var icone = (DADOS_USUARIO.role === 'COMPLIANCE' || DADOS_USUARIO.role === 'LIDERANCA') ? '<i class="fa-solid fa-eye"></i> Visualizar' : '<i class="fa-solid fa-pen-to-square"></i> Editar';
+            
+            btnEditar.className = "bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1";
+            btnEditar.innerHTML = icone;
+            btnEditar.onclick = function() { carregarEdicaoIntegrada(reg.id); };
+            tdAcoes.appendChild(btnEditar);
+
+            if (DADOS_USUARIO.role === 'GP' || DADOS_USUARIO.role === 'MASTER') {
+              var btnAnular = document.createElement('button');
+              btnAnular.className = "bg-red-500 hover:bg-red-600 text-white px-2.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1";
+              btnAnular.innerHTML = '<i class="fa-solid fa-ban"></i> Anular';
+              btnAnular.onclick = function() { abrirModalAnulacaoDirect(reg.id); };
+              tdAcoes.appendChild(btnAnular);
+            }
+          } else {
+            var spanInativo = document.createElement('span');
+            spanInativo.className = "text-gray-400 italic text-[11px]";
+            spanInativo.textContent = "Anulado";
+            tdAcoes.appendChild(spanInativo);
+          }
+
+          tr.appendChild(tdTipo);
+          tr.appendChild(tdId);
+          tr.appendChild(tdData);
+          tr.appendChild(tdFilial);
+          tr.appendChild(tdStatus);
+          tr.appendChild(tdResumo);
+          tr.appendChild(tdAcoes);
+          body.appendChild(tr);
+        });
+      } else {
+        showEl('msg-gerenciador-vazio');
+      }
+    }
+
+    function carregarEdicaoIntegrada(id) {
+      showEl('global-loader');
+      setVal('loader-msg', "Carregando dados do registro...");
+      
+      runBackend('buscarRegistroParaEdicao', [id], function(res) {
+        hideEl('global-loader');
+        if (res && res.erro) { mostrarAlerta(res.erro); voltarAoInicio(); return; }
+
+        if (res.tipo === 'apuracao') {
+          irParaNovaApuracao();
+          travarCamposParaLeitura('ap', res.somenteLeitura);
+
+          setVal('ap_id_edicao', res.id);
+          setVal('ap_filial', res.filial);
+          setVal('ap_origem', res.origem);
+          setVal('ap_nota_antes', res.notaHumorAntes);
+          setVal('ap_data_recebimento', res.dataRecebimento);
+          setVal('ap_data_finalizacao', res.dataFinalizacao);
+          setVal('ap_resumo', res.resumo);
+          setVal('ap_diagnostico', res.diagnostico);
+          setVal('ap_conclusao', res.conclusao);
+          setVal('ap_justificativa', res.justificativa);
+          setVal('ap_tratativa', res.tratativa);
+          
+          res.denunciados.forEach(function(d, idx) {
+            var i = idx + 1;
+            setVal('ap_den_id_' + i, d.id);
+            setVal('ap_den_nome_' + i, d.nome);
+            setVal('ap_den_filial_' + i, d.filial);
+            if (d.nome && !res.somenteLeitura) {
+              var nEl = getEl('ap_den_nome_' + i);
+              var fEl = getEl('ap_den_filial_' + i);
+              if (nEl) nEl.removeAttribute('disabled');
+              if (fEl) fEl.removeAttribute('disabled');
+            }
+          });
+
+          setVal('ap_enviar_feedback', res.enviarFeedbackGerente);
+          toggleFeedbackGerente(res.enviarFeedbackGerente, 'ap');
+          if (res.enviarFeedbackGerente === 'sim') {
+            setVal('ap_feedback_texto', res.feedbackGerenteText);
+            setVal('ap_gerente_id', res.gerenteId);
+            setVal('ap_gerente_nome', res.gerenteNome);
+          }
+
+          setVal('ap_agendar_intervencao', res.agendarIntervencao);
+          toggleBlockAgenda(res.agendarIntervencao === 'sim');
+          if (res.agendarIntervencao === 'sim') {
+            setVal('ap_detalhes_intervencao', res.detalhesIntervencao);
+          }
+
+          var tAp = getEl('titulo-tela-apuracao');
+          if (tAp) tAp.innerHTML = '<i class="fa-solid fa-file-lines text-[#0086FF] mr-2"></i> Relatório Apuração (ID: ' + res.id + ')';
+          if (!res.somenteLeitura) showEl('btn-cancelar-apuracao-topo');
+          
+          autocompletarContatos('ap_filial', 'ap_feedback_filial', 'ap_regional');
+          exibirTela('tela-nova-apuracao');
+
+        } else if (res.tipo === 'desligamento') {
+          irParaDesligamento();
+          travarCamposParaLeitura('des', res.somenteLeitura);
+
+          setVal('des_id_edicao', res.id);
+          setVal('des_filial', res.filial);
+          setVal('des_id_colaborador', res.colaboradorId);
+          setVal('des_colaborador', res.colaboradorNome);
+          setVal('des_cargo', res.colaboradorCargo);
+          setVal('des_tempo', res.tempoEmpresa);
+          setVal('des_resultados', res.resultados);
+          setVal('des_justificativa', res.justificativa);
+          setVal('des_evidencias', res.evidencias);
+          setVal('des_parecer_coordenador', res.parecerCoordenador);
+
+          var tDes = getEl('titulo-tela-desligamento');
+          if (tDes) tDes.innerHTML = '<i class="fa-solid fa-file-lines text-[#0086FF] mr-2"></i> Relatório Desligamento (ID: ' + res.id + ')';
+          if (!res.somenteLeitura) showEl('btn-cancelar-desligamento-topo');
+          autocompletarContatos('des_filial', 'des_feedback_filial', 'des_regional');
+          exibirTela('tela-novo-desligamento');
+        } else if (res.tipo === 'intervencao') {
+          irParaIntervencao();
+          travarCamposParaLeitura('int', res.somenteLeitura);
+          
+          setVal('int_id_edicao', res.id);
+          setVal('int_filial', res.filial);
+          setVal('int_nota_depois', res.notaHumorDepois);
+          setVal('int_status_evolucao', res.statusEvolucao);
+          setVal('int_detalhes', res.detalhes);
+          setVal('int_proxima_data', res.novaDataProgramada);
+
+          res.colaboradores.forEach(function(c, idx) {
+            var i = idx + 1;
+            setVal('int_colab_id_' + i, c.id);
+            setVal('int_colab_nome_' + i, c.nome);
+            setVal('int_colab_filial_' + i, c.filial);
+            if (c.nome && !res.somenteLeitura) {
+              var nEl = getEl('int_colab_nome_' + i);
+              var fEl = getEl('int_colab_filial_' + i);
+              if (nEl) nEl.removeAttribute('disabled');
+              if (fEl) fEl.removeAttribute('disabled');
+            }
+          });
+
+          CASO_SELECIONADO = { linkDoc: res.linkDoc };
+          showEl('form-intervencao');
+          var tInt = getEl('titulo-tela-intervencao');
+          if (tInt) tInt.innerHTML = '<i class="fa-solid fa-pen-to-square text-[#FF5A00] mr-2"></i> Editar Feedback (ID: ' + res.id + ')';
+          if (!res.somenteLeitura) showEl('btn-cancelar-intervencao-topo');
+          exibirTela('tela-intervencao');
+        }
+      });
+    }
+
     function buscarLinhaDoTempoClima() {
       var rawFilial = getEl('int_filial') ? getEl('int_filial').value : '';
-      if (!rawFilial) return;
+      if (!rawFilial) { mostrarAlerta('Preencha a filial primeiro.'); return; }
       
       showEl('global-loader');
       setVal('loader-msg', "Consultando linha do tempo e dados da filial...");
@@ -1389,7 +1487,22 @@
       var badgeDisp = getEl('display-filial-gerente-badge');
       if (badgeDisp) badgeDisp.textContent = 'F. ' + normalizedFilial;
 
-      showEl('bloco-gerente-seletor');
+      // TRAVA FRONTEND RIGOROSA: Apenas Coord, DiretorRH, GTGP/GP ou Master tem acesso aos botões de Novo Cadastro
+      var cargo = DADOS_USUARIO && DADOS_USUARIO.cargo ? DADOS_USUARIO.cargo.toLowerCase() : '';
+      var podeLancarClima = false;
+      
+      if (DADOS_USUARIO && DADOS_USUARIO.role === 'MASTER') podeLancarClima = true;
+      else if (cargo.includes('coord') || cargo.includes('diretor rh') || cargo.includes('diretorrh') || cargo.includes('gtgp') || cargo.includes('gp')) {
+         if (DADOS_USUARIO && DADOS_USUARIO.role !== 'LIDERANCA' && DADOS_USUARIO.role !== 'COMPLIANCE' && DADOS_USUARIO.role !== 'GERENTE_LOJA') {
+            podeLancarClima = true;
+         }
+      }
+      
+      if (podeLancarClima) {
+         showEl('bloco-gerente-seletor');
+      } else {
+         hideEl('bloco-gerente-seletor');
+      }
 
       runBackend('obterContatosPorFilial', [normalizedFilial], function(contatos) {
         var optAtual = getEl('opt-gerente-atual');
@@ -1419,6 +1532,15 @@
         showEl('wrapper-linha-tempo');
 
         if (eventos && eventos.length > 0 && containerLT) {
+          if (eventos[0].erro) {
+             var erroP = document.createElement('p');
+             erroP.className = "text-red-500 font-bold p-3 bg-red-50 rounded-xl border border-red-200 text-sm";
+             erroP.innerHTML = "<i class='fa-solid fa-triangle-exclamation'></i> " + eventos[0].erro;
+             containerLT.appendChild(erroP);
+             hideEl('wrapper-selecao-caso');
+             return;
+          }
+
           eventos.forEach(function(ev) {
             var card = document.createElement('div');
             card.className = ev.tipo === 'PAI' ? "bg-blue-50 border-l-4 border-[#0086FF] p-3 rounded-r-xl shadow-sm text-xs space-y-1" : "bg-orange-50 border-l-4 border-[#FF5A00] p-3 rounded-r-xl shadow-sm text-xs space-y-1";
@@ -1480,7 +1602,9 @@
           containerLT.appendChild(empty);
         }
 
-        buscarCasosFilial();
+        if (podeLancarClima) {
+           buscarCasosFilial();
+        }
       });
     }
 
@@ -1506,7 +1630,23 @@
         if (!container) return;
         
         container.innerHTML = '';
-        showEl('wrapper-selecao-caso');
+
+        // TRAVA FRONTEND RIGOROSA: Apenas Coord, DiretorRH, GTGP/GP ou Master
+        var cargo = DADOS_USUARIO && DADOS_USUARIO.cargo ? DADOS_USUARIO.cargo.toLowerCase() : '';
+        var podeLancarClima = false;
+        
+        if (DADOS_USUARIO && DADOS_USUARIO.role === 'MASTER') podeLancarClima = true;
+        else if (cargo.includes('coord') || cargo.includes('diretor rh') || cargo.includes('diretorrh') || cargo.includes('gtgp') || cargo.includes('gp')) {
+           if (DADOS_USUARIO && DADOS_USUARIO.role !== 'LIDERANCA' && DADOS_USUARIO.role !== 'COMPLIANCE' && DADOS_USUARIO.role !== 'GERENTE_LOJA') {
+              podeLancarClima = true;
+           }
+        }
+        
+        if (podeLancarClima) {
+           showEl('wrapper-selecao-caso');
+        } else {
+           hideEl('wrapper-selecao-caso');
+        }
         
         var divAvulso = document.createElement('div');
         divAvulso.className = "bg-orange-100 border-2 border-orange-400 p-3 rounded-lg cursor-pointer hover:bg-orange-200 transition mb-2 flex items-center gap-2";
@@ -1525,7 +1665,7 @@
         };
         container.appendChild(divAvulso);
 
-        if (lista && lista.length > 0) {
+        if (lista && lista.length > 0 && !lista[0].erro) {
           lista.forEach(function(c) {
             var div = document.createElement('div');
             div.className = "bg-gray-100 border-2 p-3 rounded-lg cursor-pointer hover:border-[#FF5A00]";
@@ -1541,6 +1681,51 @@
             };
             container.appendChild(div);
           });
+        }
+      });
+    }
+
+    function carregarTelaRespostaGerente(idFeedback) {
+      if (!idFeedback) return;
+      showEl('global-loader');
+      setVal('loader-msg', "Carregando diretrizes de clima para ciente...");
+
+      runBackend('buscarDadosFeedbackGerente', [idFeedback], function(dados) {
+        hideEl('global-loader');
+        if (dados && dados.erro) {
+          mostrarAlerta(dados.erro);
+          exibirTela('tela-bloqueada');
+          return;
+        }
+        setVal('gerente_id_feedback', dados.id);
+        var filialEl = getEl('gerente-display-filial');
+        var textoEl = getEl('gerente-display-texto');
+        if (filialEl) filialEl.textContent = dados.filial;
+        if (textoEl) textoEl.textContent = '"' + dados.feedback + '"';
+        exibirTela('tela-resposta-gerente');
+      });
+    }
+
+    function salvarRespostaGerenteFinal(e) {
+      e.preventDefault();
+      var idFeedback = getEl('gerente_id_feedback') ? getEl('gerente_id_feedback').value : '';
+      var consideracoes = getEl('gerente_consideracoes') ? getEl('gerente_consideracoes').value : '';
+
+      if (!consideracoes) {
+        mostrarAlerta("Por favor, informe suas considerações e plano de ação.");
+        return;
+      }
+
+      showEl('global-loader');
+      setVal('loader-msg', "Emitindo Termo de Ciente e salvando no Drive...");
+
+      runBackend('processarRespostaGerente', [idFeedback, consideracoes, ARQUIVOS_GERENTE_PASTED], function(res) {
+        hideEl('global-loader');
+        if (res && res.sucesso) {
+          finalizar("Ciente registrado e Termo de Ação gerado com sucesso!");
+          showEl('msg-fechar-janela');
+        } else {
+          mostrarAlerta(res ? res.erro : "Falha ao registrar ciente.");
         }
       });
     }
@@ -1624,8 +1809,7 @@
         status_evolucao: getEl('int_status_evolucao') ? getEl('int_status_evolucao').value : '',
         detalhes_intervencao: getEl('int_detalhes') ? getEl('int_detalhes').value : '',
         data_intervencao: getEl('int_proxima_data') ? getEl('int_proxima_data').value : '',
-        enviar_feedback_gerente: getEl('int_enviar_feedback') ? getEl('int_enviar_feedback').value : 'nao',
-        feedback_gerente: getEl('int_feedback_texto') ? getEl('int_feedback_texto').value : '',
+        enviar_feedback_gerente: 'nao', 
         gerente_alvo_id: getEl('int_gerente_alvo_id') ? getEl('int_gerente_alvo_id').value : '',
         gerente_alvo_nome: getEl('int_gerente_alvo_nome') ? getEl('int_gerente_alvo_nome').value : '',
         colaboradores: [
@@ -1635,7 +1819,12 @@
         ]
       };
       runBackend('processarNovaIntervencao', [dados], function(res) {
-        finalizar('Feedback de Desenvolvimento Registrado com Sucesso.');
+        if (res && res.sucesso) {
+          finalizar('Feedback de Desenvolvimento Registrado com Sucesso.');
+        } else {
+          hideEl('global-loader');
+          mostrarAlerta(res ? res.erro : 'Falha ao salvar clima.');
+        }
       });
     }
 
@@ -1669,241 +1858,12 @@
       });
     }
 
-    function renderizarTabelaGerenciador(lista) {
-      var body = getEl('lista-gerenciador-body');
-      if (!body) return;
-      body.innerHTML = '';
-
-      if (lista && lista.length > 0) {
-        hideEl('msg-gerenciador-vazio');
-        lista.forEach(function(reg) {
-          var tr = document.createElement('tr');
-          tr.className = "border-b hover:bg-gray-50 text-xs text-gray-700 font-medium";
-
-          var tdTipo = document.createElement('td');
-          tdTipo.className = "p-3 font-bold";
-          var badgeTipo = document.createElement('span');
-          badgeTipo.className = reg.tipo === 'apuracao' ? "bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-[10px]" : (reg.tipo === 'desligamento' ? "bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-[10px]" : "bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-[10px]");
-          badgeTipo.textContent = reg.tipoLabel;
-          tdTipo.appendChild(badgeTipo);
-
-          var tdId = document.createElement('td');
-          tdId.className = "p-3 font-mono font-bold text-gray-800";
-          tdId.textContent = reg.id;
-
-          var tdData = document.createElement('td');
-          tdData.className = "p-3";
-          tdData.textContent = reg.data;
-
-          var tdFilial = document.createElement('td');
-          tdFilial.className = "p-3 font-semibold";
-          tdFilial.textContent = reg.filial;
-
-          var tdStatus = document.createElement('td');
-          tdStatus.className = "p-3 font-bold";
-          var spanSt = document.createElement('span');
-          if (reg.status === 'CANCELADO') {
-            spanSt.className = "bg-red-100 text-red-800 px-2 py-1 rounded-full text-[10px]";
-          } else {
-            spanSt.className = "bg-green-100 text-green-800 px-2 py-1 rounded-full text-[10px]";
-          }
-          spanSt.textContent = reg.status;
-          tdStatus.appendChild(spanSt);
-
-          var tdResumo = document.createElement('td');
-          tdResumo.className = "p-3 truncate max-w-xs italic";
-          tdResumo.textContent = reg.resumo;
-
-          var tdAcoes = document.createElement('td');
-          tdAcoes.className = "p-3 text-right flex justify-end gap-2";
-
-          if (reg.status !== 'CANCELADO') {
-            var btnEditar = document.createElement('button');
-            var icone = (DADOS_USUARIO && (DADOS_USUARIO.role === 'COMPLIANCE' || DADOS_USUARIO.role === 'LIDERANCA')) ? '<i class="fa-solid fa-eye"></i> Visualizar' : '<i class="fa-solid fa-pen-to-square"></i> Editar';
-            
-            btnEditar.className = "bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1";
-            btnEditar.innerHTML = icone;
-            btnEditar.onclick = function() { carregarEdicaoIntegrada(reg.id); };
-
-            tdAcoes.appendChild(btnEditar);
-
-            if (DADOS_USUARIO && (DADOS_USUARIO.role === 'GP' || DADOS_USUARIO.role === 'MASTER')) {
-              var btnAnular = document.createElement('button');
-              btnAnular.className = "bg-red-500 hover:bg-red-600 text-white px-2.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1";
-              btnAnular.innerHTML = '<i class="fa-solid fa-ban"></i> Anular';
-              btnAnular.onclick = function() { abrirModalAnulacaoDirect(reg.id); };
-              tdAcoes.appendChild(btnAnular);
-            }
-          } else {
-            var spanInativo = document.createElement('span');
-            spanInativo.className = "text-gray-400 italic text-[11px]";
-            spanInativo.textContent = "Registro Anulado";
-            tdAcoes.appendChild(spanInativo);
-          }
-
-          tr.appendChild(tdTipo);
-          tr.appendChild(tdId);
-          tr.appendChild(tdData);
-          tr.appendChild(tdFilial);
-          tr.appendChild(tdStatus);
-          tr.appendChild(tdResumo);
-          tr.appendChild(tdAcoes);
-
-          body.appendChild(tr);
-        });
-      } else {
-        showEl('msg-gerenciador-vazio');
-      }
-    }
-
-    function filtrarTabelaGerenciador() {
-      var termo = normalizarFilialIdFront(getEl('filtro-gerenciador') ? getEl('filtro-gerenciador').value : '').toLowerCase();
-      var filtrados = LISTA_GERENCIADOR_CACHE.filter(function(r) { 
-        return r.id.toLowerCase().includes(termo) || 
-               r.filial.toLowerCase().includes(termo) || 
-               r.resumo.toLowerCase().includes(termo) ||
-               r.tipoLabel.toLowerCase().includes(termo);
-      });
-      renderizarTabelaGerenciador(filtrados);
-    }
-
-    function carregarEdicaoIntegrada(id) {
-      showEl('global-loader');
-      setVal('loader-msg', "Carregando dados do registro...");
-      
-      runBackend('buscarRegistroParaEdicao', [id], function(res) {
-        hideEl('global-loader');
-        
-        if (res && res.erro) {
-          mostrarAlerta(res.erro);
-          voltarAoInicio();
-          return;
-        }
-
-        if (res.tipo === 'apuracao') {
-          irParaNovaApuracao();
-          travarCamposParaLeitura('ap', res.somenteLeitura);
-
-          setVal('ap_id_edicao', res.id);
-          setVal('ap_filial', res.filial);
-          setVal('ap_origem', res.origem);
-          setVal('ap_nota_antes', res.notaHumorAntes);
-          setVal('ap_data_recebimento', res.dataRecebimento);
-          setVal('ap_data_finalizacao', res.dataFinalizacao);
-          setVal('ap_resumo', res.resumo);
-          setVal('ap_diagnostico', res.diagnostico);
-          setVal('ap_conclusao', res.conclusao);
-          setVal('ap_justificativa', res.justificativa);
-          setVal('ap_tratativa', res.tratativa);
-          
-          res.denunciados.forEach(function(d, idx) {
-            var i = idx + 1;
-            setVal('ap_den_id_' + i, d.id);
-            setVal('ap_den_nome_' + i, d.nome);
-            setVal('ap_den_filial_' + i, d.filial);
-            if (d.nome && !res.somenteLeitura) {
-              var nEl = getEl('ap_den_nome_' + i);
-              var fEl = getEl('ap_den_filial_' + i);
-              if (nEl) nEl.removeAttribute('disabled');
-              if (fEl) fEl.removeAttribute('disabled');
-            }
-          });
-
-          setVal('ap_enviar_feedback', res.enviarFeedbackGerente);
-          toggleFeedbackGerente(res.enviarFeedbackGerente, 'ap');
-          if (res.enviarFeedbackGerente === 'sim') {
-            setVal('ap_feedback_texto', res.feedbackGerenteText);
-            setVal('ap_gerente_id', res.gerenteId);
-            setVal('ap_gerente_nome', res.gerenteNome);
-          }
-
-          setVal('ap_agendar_intervencao', res.agendarIntervencao);
-          toggleBlockAgenda(res.agendarIntervencao === 'sim');
-          if (res.agendarIntervencao === 'sim') {
-            setVal('ap_detalhes_intervencao', res.detalhesIntervencao);
-          }
-
-          var tAp = getEl('titulo-tela-apuracao');
-          if (tAp) tAp.innerHTML = '<i class="fa-solid fa-pen-to-square text-[#0086FF] mr-2"></i> Editar Apuração (ID: ' + res.id + ')';
-          if (!res.somenteLeitura) showEl('btn-cancelar-apuracao-topo');
-          
-          autocompletarContatos('ap_filial', 'ap_feedback_filial', 'ap_regional');
-          exibirTela('tela-nova-apuracao');
-
-        } else if (res.tipo === 'desligamento') {
-          irParaDesligamento();
-          travarCamposParaLeitura('des', res.somenteLeitura);
-
-          setVal('des_id_edicao', res.id);
-          setVal('des_filial', res.filial);
-          setVal('des_id_colaborador', res.colaboradorId);
-          setVal('des_colaborador', res.colaboradorNome);
-          setVal('des_cargo', res.colaboradorCargo);
-          setVal('des_tempo', res.tempoEmpresa);
-          setVal('des_resultados', res.resultados);
-          setVal('des_justificativa', res.justificativa);
-          setVal('des_evidencias', res.evidencias);
-          setVal('des_parecer_coordenador', res.parecerCoordenador);
-
-          var tDes = getEl('titulo-tela-desligamento');
-          if (tDes) tDes.innerHTML = '<i class="fa-solid fa-pen-to-square text-[#0086FF] mr-2"></i> Editar Desligamento (ID: ' + res.id + ')';
-          if (!res.somenteLeitura) showEl('btn-cancelar-desligamento-topo');
-          autocompletarContatos('des_filial', 'des_feedback_filial', 'des_regional');
-          exibirTela('tela-novo-desligamento');
-
-        } else if (res.tipo === 'intervencao') {
-          irParaIntervencao();
-          travarCamposParaLeitura('int', res.somenteLeitura);
-
-          setVal('int_id_edicao', res.id);
-          setVal('int_filial', res.filial);
-          setVal('int_nota_depois', res.notaHumorDepois);
-          setVal('int_status_evolucao', res.statusEvolucao);
-          setVal('int_detalhes', res.detalhes);
-          setVal('int_proxima_data', res.novaDataProgramada);
-
-          res.colaboradores.forEach(function(c, idx) {
-            var i = idx + 1;
-            setVal('int_colab_id_' + i, c.id);
-            setVal('int_colab_nome_' + i, c.nome);
-            setVal('int_colab_filial_' + i, c.filial);
-            if (c.nome && !res.somenteLeitura) {
-              var nEl = getEl('int_colab_nome_' + i);
-              var fEl = getEl('int_colab_filial_' + i);
-              if (nEl) nEl.removeAttribute('disabled');
-              if (fEl) fEl.removeAttribute('disabled');
-            }
-          });
-
-          CASO_SELECIONADO = { linkDoc: res.linkDoc };
-          showEl('form-intervencao');
-          var tInt = getEl('titulo-tela-intervencao');
-          if (tInt) tInt.innerHTML = '<i class="fa-solid fa-pen-to-square text-[#FF5A00] mr-2"></i> Editar Feedback (ID: ' + res.id + ')';
-          if (!res.somenteLeitura) showEl('btn-cancelar-intervencao-topo');
-          exibirTela('tela-intervencao');
-        }
-      });
-    }
-
-    function retomarRascunhoForm(r) {
-      irParaNovaApuracao();
-      setVal('ap_id_rascunho', r.idRascunho);
-      setVal('ap_filial', r.filial);
-      setVal('ap_origem', r.origem);
-      setVal('ap_resumo', r.resumo);
-      setVal('ap_diagnostico', r.diagnostico);
-      setVal('ap_conclusao', r.conclusao);
-      setVal('ap_justificativa', r.justificativa);
-      setVal('ap_tratativa', r.tratativa);
-      autocompletarContatos('ap_filial', 'ap_feedback_filial', 'ap_regional');
-      exibirTela('tela-nova-apuracao');
-    }
-
     function abrirModalAnulacaoForm(type) {
       var id = '';
       if (type === 'ap') id = (getEl('ap_id_edicao') ? getEl('ap_id_edicao').value : '') || (getEl('ap_id_rascunho') ? getEl('ap_id_rascunho').value : '');
       else if (type === 'des') id = getEl('des_id_edicao') ? getEl('des_id_edicao').value : '';
       else if (type === 'int') id = getEl('int_id_edicao') ? getEl('int_id_edicao').value : '';
+      
       if (!id) { mostrarAlerta("Não há um registro para anulação neste formulário."); return; }
       abrirModalAnulacaoDirect(id);
     }
@@ -1931,110 +1891,11 @@
       setVal('loader-msg', "Processando anulação lógica...");
 
       runBackend('cancelarRegistroProcesso', [{ id: id, motivo: motivo }], function(res) {
-        if (res.sucesso) {
+        if (res && res.sucesso) {
           finalizar("O registro " + id + " foi alterado para CANCELADO com sucesso.");
         } else {
           hideEl('global-loader');
-          mostrarAlerta(res.erro || "Falha ao anular registro.");
-        }
-      });
-    }
-
-    function autocompletarContatos(inputFilialId, feedbackId, inputRegId) {
-      var rawFilial = getEl(inputFilialId) ? getEl(inputFilialId).value : '';
-      var fb = getEl(feedbackId);
-      var reg = getEl(inputRegId);
-      if (!rawFilial) { if(fb) fb.textContent = ''; if(reg) reg.value = ''; return; }
-      
-      var normalizedFilial = normalizarFilialIdFront(rawFilial);
-      
-      if (fb) {
-        fb.className = "text-xs font-bold mt-1 block text-blue-600";
-        fb.textContent = "🔍 Buscando...";
-      }
-
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(function() {
-        runBackend('obterContatosPorFilial', [normalizedFilial], function(c) {
-          if (c) {
-            if (reg) reg.value = c.regional + ' / ' + c.diretoria;
-            if (fb) {
-              fb.className = "text-xs font-bold mt-1 block text-green-600";
-              fb.textContent = "✅ Unidade localizada (F. " + normalizedFilial + ").";
-            }
-          } else {
-            if (reg) reg.value = '';
-            if (fb) {
-              fb.className = "text-xs font-bold mt-1 block text-amber-600";
-              fb.textContent = "⚠️ Filial " + normalizedFilial + " não encontrada.";
-            }
-          }
-        });
-      }, 500);
-    }
-
-    function buscarDenunciado(index) {
-      var id = getEl('ap_den_id_' + index) ? getEl('ap_den_id_' + index).value : '';
-      if (!id) return;
-      showEl('global-loader');
-      setVal('loader-msg', "Buscando colaborador na base ativa...");
-      
-      runBackend('buscarColaboradorAtivo', [id], function(dados) {
-        hideEl('global-loader');
-        var inputNome = getEl('ap_den_nome_' + index);
-        var inputFilial = getEl('ap_den_filial_' + index);
-        
-        if (dados) {
-          if (inputNome) { inputNome.value = dados.nome; inputNome.setAttribute('disabled', 'disabled'); }
-          if (inputFilial) { inputFilial.value = dados.filial; inputFilial.setAttribute('disabled', 'disabled'); }
-        } else {
-          mostrarAlerta("Atenção: Colaborador não localizado. Digite o Nome e a Filial manualmente.");
-          if (inputNome) { inputNome.removeAttribute('disabled'); inputNome.value = ''; inputNome.focus(); }
-          if (inputFilial) { inputFilial.removeAttribute('disabled'); inputFilial.value = ''; }
-        }
-      });
-    }
-
-    function buscarColaboradorFeedback(index) {
-      var id = getEl('int_colab_id_' + index) ? getEl('int_colab_id_' + index).value : '';
-      if (!id) return;
-      showEl('global-loader');
-      setVal('loader-msg', "Buscando colaborador na base ativa...");
-      
-      runBackend('buscarColaboradorAtivo', [id], function(dados) {
-        hideEl('global-loader');
-        var inputNome = getEl('int_colab_nome_' + index);
-        var inputFilial = getEl('int_colab_filial_' + index);
-        
-        if (dados) {
-          if (inputNome) { inputNome.value = dados.nome; inputNome.setAttribute('disabled', 'disabled'); }
-          if (inputFilial) { inputFilial.value = dados.filial; inputFilial.setAttribute('disabled', 'disabled'); }
-        } else {
-          mostrarAlerta("Atenção: Colaborador não localizado. Digite o Nome e a Filial manualmente.");
-          if (inputNome) { inputNome.removeAttribute('disabled'); inputNome.value = ''; inputNome.focus(); }
-          if (inputFilial) { inputFilial.removeAttribute('disabled'); inputFilial.value = ''; }
-        }
-      });
-    }
-
-    function buscarDadosID() {
-      var id = getEl('des_id_colaborador') ? getEl('des_id_colaborador').value : '';
-      if (!id) return;
-      showEl('global-loader');
-      setVal('loader-msg', "Buscando base de ativos...");
-      
-      runBackend('buscarColaboradorAtivo', [id], function(dados) {
-        hideEl('global-loader');
-        if (dados) {
-          setVal('des_colaborador', dados.nome);
-          setVal('des_cargo', dados.cargo);
-          setVal('des_tempo', dados.tempo);
-        } else {
-          mostrarAlerta("Atenção: ID não encontrado na base de ativos. Preencha os campos manualmente.");
-          var c = getEl('des_colaborador'), cg = getEl('des_cargo'), t = getEl('des_tempo');
-          if (c) c.removeAttribute('disabled');
-          if (cg) cg.removeAttribute('disabled');
-          if (t) t.removeAttribute('disabled');
+          mostrarAlerta(res ? res.erro : "Falha ao anular registro.");
         }
       });
     }
@@ -2079,64 +1940,6 @@
         if (el) el.classList.add('hidden'); 
         if (input) input.removeAttribute('required'); 
       }
-    }
-
-    function irParaAprovacaoDesligamentos() {
-      showEl('global-loader');
-      setVal('loader-msg', "Buscando dossiês pendentes...");
-      hideEl('bloco-emissao-parecer');
-
-      runBackend('listarDesligamentosPendentesLideranca', [], function(lista) {
-        hideEl('global-loader');
-        var container = getEl('lista-desligamentos-pendentes');
-        container.innerHTML = '';
-        
-        if (!lista || lista.length === 0) {
-           hideEl('lista-desligamentos-pendentes');
-           showEl('msg-sem-pendencias');
-        } else {
-           showEl('lista-desligamentos-pendentes');
-           hideEl('msg-sem-pendencias');
-
-           lista.forEach(function(d) {
-             var div = document.createElement('div');
-             div.className = "bg-gray-50 border-2 border-gray-200 p-4 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4 hover:border-red-400 transition";
-             div.innerHTML = '<div><p class="text-xs font-bold text-gray-500 uppercase mb-1">Filial ' + d.filial + ' | Data: ' + d.data + '</p><p class="text-sm font-black text-gray-800">' + d.nome + '</p><p class="text-xs text-gray-600 font-semibold">' + d.cargo + '</p></div><div class="flex gap-2"><a href="' + d.linkDoc + '" target="_blank" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-file-pdf mr-1"></i> Ler Relatório</a><button type="button" onclick="abrirPainelParecer(\'' + d.id + '\', \'' + d.nome + '\')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md"><i class="fa-solid fa-pen mr-1"></i> Inserir Parecer</button></div>';
-             container.appendChild(div);
-           });
-        }
-        exibirTela('tela-aprovacao-desligamentos');
-      });
-    }
-
-    function abrirPainelParecer(id, nome) {
-       setVal('parecer_id_desligamento', id);
-       setVal('texto_parecer_lideranca', '');
-       var lbl = getEl('lbl-parecer-nome');
-       if (lbl) lbl.textContent = "Preenchendo parecer para: " + nome;
-       showEl('bloco-emissao-parecer');
-       getEl('texto_parecer_lideranca').focus();
-    }
-
-    function cancelarEmissaoParecer() { hideEl('bloco-emissao-parecer'); }
-
-    function salvarParecerDesligamentoLideranca() {
-       var id = getEl('parecer_id_desligamento') ? getEl('parecer_id_desligamento').value : '';
-       var texto = getEl('texto_parecer_lideranca') ? getEl('texto_parecer_lideranca').value : '';
-       
-       if (!texto) { mostrarAlerta("Por favor, preencha o seu parecer."); return; }
-
-       showEl('global-loader');
-       setVal('loader-msg', "Salvando parecer e vinculando ao Dossiê...");
-       runBackend('salvarParecerDesligamentoLideranca', [id, texto], function(res) {
-          hideEl('global-loader');
-          if (res.sucesso) {
-             mostrarAlerta("Parecer inserido e aprovado com sucesso!");
-             irParaAprovacaoDesligamentos();
-          } else {
-             mostrarAlerta(res.erro || "Falha ao gravar parecer.");
-          }
-       });
     }
 
     function finalizar(msg, link) {

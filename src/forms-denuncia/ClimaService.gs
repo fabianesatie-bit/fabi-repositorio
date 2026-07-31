@@ -139,7 +139,24 @@ function processarNovaIntervencao(dados) {
   try {
     lock.waitLock(15000);
     var emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
+    var userObj = obterUsuarioLogado(emailLogado);
     
+    // TRAVA ABSOLUTA DE GRAVAÇÃO: Apenas GTGP, Coordenadores e Diretor RH (e Master)
+    var cargoNorm = userObj.cargo ? userObj.cargo.toLowerCase() : '';
+    var ehPermitido = false;
+    
+    if (userObj.role === 'MASTER') {
+        ehPermitido = true;
+    } else if (cargoNorm.includes('coord') || cargoNorm.includes('diretor rh') || cargoNorm.includes('diretorrh') || cargoNorm.includes('gtgp') || cargoNorm.includes('gp')) {
+        if (userObj.role !== 'LIDERANCA' && userObj.role !== 'COMPLIANCE' && userObj.role !== 'GERENTE_LOJA') {
+            ehPermitido = true;
+        }
+    }
+
+    if (!ehPermitido) {
+        return { sucesso: false, erro: 'Acesso Negado: Apenas a gestão do GP (Coordenadores, Diretor RH e GTGP) possui permissão para lançar ou editar feedbacks de clima.' };
+    }
+
     var filial = normalizarFilialId(dados.filial);
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName('Intervencoes_Feedback') || ss.insertSheet('Intervencoes_Feedback');
