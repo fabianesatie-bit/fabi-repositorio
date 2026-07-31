@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard de Auditoria - GP 360</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+      :root { 
+          --main-bg: #0f172a; 
+          --card-bg: #1e293b; 
+          --text-main: #f8fafc; 
+          --text-muted: #94a3b8; 
+          --accent: #3b82f6; 
+          --accent-hover: #2563eb; 
+      }
+      body { 
+          background-color: var(--main-bg); 
+          color: var(--text-main); 
+          font-family: 'Inter', system-ui, sans-serif; 
+          margin: 0; 
+          display: flex; 
+          flex-direction: column; 
+          height: 100vh; 
+          overflow: hidden; 
+      }
+      
+      .topbar { 
+          background-color: var(--card-bg); 
+          height: 60px; 
+          display: flex; 
+          align-items: center; 
+          padding: 0 20px; 
+          justify-content: space-between; 
+          border-bottom: 1px solid #334155; 
+      }
+      .brand { 
+          font-size: 18px; 
+          font-weight: bold; 
+          color: var(--text-main); 
+          display: flex; 
+          align-items: center; 
+          gap: 10px; 
+      }
+
+      /* Navegação em Abas Modernas */
+      .tabs-container {
+          display: flex;
+          background-color: #0f172a;
+          padding: 0 20px;
+          border-bottom: 1px solid #334155;
+      }
+      .tab-btn {
+          padding: 15px 20px;
+          color: var(--text-muted);
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          border-bottom: 3px solid transparent;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+      }
+      .tab-btn:hover { color: #cbd5e1; }
+      .tab-btn.active {
+          color: var(--accent);
+          border-bottom-color: var(--accent);
+      }
+      
+      .content-wrapper { 
+          flex: 1; 
+          padding: 20px; 
+          overflow-y: auto; 
+      }
+      
+      .grid-kpi { 
+          display: grid; 
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+          gap: 20px; 
+          margin-bottom: 20px; 
+      }
+      .grid-charts { 
+          display: grid; 
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); 
+          gap: 20px; 
+          margin-bottom: 20px; 
+      }
+      
+      .card { 
+          background-color: var(--card-bg); 
+          border-radius: 12px; 
+          padding: 20px; 
+          border: 1px solid #334155; 
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+      }
+      .card-header { 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          margin-bottom: 15px; 
+          border-bottom: 1px solid #334155; 
+          padding-bottom: 10px; 
+      }
+      .card-title { 
+          margin: 0; 
+          font-size: 16px; 
+          color: var(--text-main); 
+          font-weight: 600; 
+      }
+      
+      .kpi-value { 
+          font-size: 32px; 
+          font-weight: bold; 
+          color: var(--accent); 
+          margin-top: 10px; 
+      }
+      .kpi-label { 
+          font-size: 13px; 
+          color: var(--text-muted); 
+          text-transform: uppercase; 
+          letter-spacing: 1px; 
+      }
+
+      .table-wrapper { 
+          overflow-x: auto; 
+          max-height: 400px; 
+      }
+      .data-table { 
+          width: 100%; 
+          border-collapse: collapse; 
+          font-size: 13px; 
+          text-align: left; 
+      }
+      .data-table th { 
+          position: sticky; 
+          top: 0; 
+          background-color: #0f172a; 
+          color: var(--text-muted); 
+          padding: 12px; 
+          border-bottom: 1px solid #334155; 
+          font-weight: 600; 
+          z-index: 10;
+      }
+      .data-table td { 
+          padding: 12px; 
+          border-bottom: 1px solid #334155; 
+          color: #cbd5e1; 
+      }
+      .data-table tbody tr:hover { 
+          background-color: #334155; 
+      }
+
+      .badge { 
+          padding: 4px 8px; 
+          border-radius: 12px; 
+          font-size: 11px; 
+          font-weight: bold; 
+          background: #3b82f620; 
+          color: #60a5fa; 
+          border: 1px solid #3b82f640;
+      }
+      
+      .loading-screen { 
+          position: fixed; 
+          top: 0; 
+          left: 0; 
+          width: 100%; 
+          height: 100%; 
+          background: rgba(15, 23, 42, 0.9); 
+          display: flex; 
+          flex-direction: column; 
+          align-items: center; 
+          justify-content: center; 
+          z-index: 9999; 
+          backdrop-filter: blur(5px);
+      }
+      .spinner { 
+          border: 4px solid #1e293b; 
+          border-top: 4px solid var(--accent); 
+          border-radius: 50%; 
+          width: 50px; 
+          height: 50px; 
+          animation: spin 1s linear infinite; 
+          margin-bottom: 20px; 
+      }
+      @keyframes spin { 
+          0% { transform: rotate(0deg); } 
+          100% { transform: rotate(360deg); } 
+      }
+
+      .ranking-list { list-style: none; padding: 0; margin: 0; }
+      .ranking-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #334155; font-size: 14px;}
+      .ranking-item:last-child { border-bottom: none; }
+      
+      ::-webkit-scrollbar { width: 8px; height: 8px; }
+      ::-webkit-scrollbar-track { background: var(--main-bg); }
+      ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body>
+
+  <!-- TELA DE CARREGAMENTO -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="spinner"></div>
+    <h2 style="color:var(--text-main); font-weight:400; margin:0;" id="loading-text">Conectando ao banco de logs...</h2>
+    <p style="color:#ef4444; font-size:14px; margin-top:15px; display:none;" id="erro-texto"></p>
+  </div>
+
+  <div class="topbar">
+    <div class="brand">
+      <i class="fa-solid fa-shield-halved" style="color:var(--accent);"></i>
+      Central de Auditoria GP 360
+    </div>
+    <div style="font-size: 13px; color: var(--text-muted);" id="user-info">
+      Carregando...
+    </div>
+  </div>
+
+  <!-- NAVEGAÇÃO DE ABAS (Single Page App) -->
+  <div class="tabs-container">
+      <div class="tab-btn active" id="tab-portal" onclick="mudarModulo('AUDITORIA', 'tab-portal')">
+          <i class="fa-solid fa-desktop"></i> Portal Web GP360
+      </div>
+      <div class="tab-btn" id="tab-sidebar" onclick="mudarModulo('AUDITORIA_SIDEBAR', 'tab-sidebar')">
+          <i class="fa-solid fa-sidebar"></i> Visão Geral Sidebar
+      </div>
+  </div>
+
+  <div class="content-wrapper" id="main-content" style="display:none;">
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+       <div>
+          <h2 style="margin:0; font-size:20px;" id="titulo-modulo">Auditoria de Acessos</h2>
+          <p style="margin:5px 0 0 0; font-size:13px; color:var(--text-muted);">Monitoramento de tráfego, cliques e interações da equipe.</p>
+       </div>
+       <button onclick="carregarDados()" class="bg-[#1e293b] hover:bg-[#334155] border border-slate-700 text-slate-100 px-4 py-2 rounded-lg transition-all">
+          <i class="fa-solid fa-rotate-right mr-1.5"></i> Atualizar
+       </button>
+    </div>
+
+    <!-- PAINEL DE FILTROS DINÂMICOS COM DATA -->
+    <div class="card mb-5">
+       <div class="flex flex-col gap-4">
+          <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+             <div class="flex items-center gap-2">
+                <i class="fa-solid fa-filter text-blue-500"></i>
+                <span class="text-sm font-semibold text-slate-200">Filtros Cruzados</span>
+             </div>
+             <div class="flex flex-wrap items-end gap-4 w-full xl:w-auto">
+                
+                <!-- Filtro de Data -->
+                <div class="flex flex-col">
+                   <label class="text-[10px] uppercase font-bold text-slate-400 mb-1">Data Início</label>
+                   <input type="date" id="filtro-data-inicio" onchange="processarMudancaFiltro()" class="bg-[#0f172a] text-slate-100 border border-slate-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-blue-500 h-[34px]">
+                </div>
+                <div class="flex flex-col">
+                   <label class="text-[10px] uppercase font-bold text-slate-400 mb-1">Data Fim</label>
+                   <input type="date" id="filtro-data-fim" onchange="processarMudancaFiltro()" class="bg-[#0f172a] text-slate-100 border border-slate-700 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-blue-500 h-[34px]">
+                </div>
+
+                <!-- Filtro Usuário -->
+                <div class="flex flex-col min-w-[200px]">
+                   <label class="text-[10px] uppercase font-bold text-slate-400 mb-1">Usuário</label>
+                   <div class="flex gap-1">
+                      <select id="filtro-usuario" onchange="processarMudancaFiltro()" class="bg-[#0f172a] text-slate-100 border border-slate-700 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-blue-500 h-[34px] w-full">
+                         <option value="todos">Todos</option>
+                      </select>
+                      <select id="modo-usuario" onchange="processarMudancaFiltro()" class="bg-[#0f172a] text-slate-100 border border-slate-700 rounded-lg px-1 py-1 text-xs focus:outline-none focus:border-blue-500 h-[34px] cursor-pointer" title="Inversor">
+                         <option value="incluir" selected>=</option>
+                         <option value="excluir">≠</option>
+                      </select>
+                   </div>
+                </div>
+
+                <!-- Filtro Evento -->
+                <div class="flex flex-col min-w-[150px]">
+                   <label class="text-[10px] uppercase font-bold text-slate-400 mb-1">Evento/Ação</label>
+                   <select id="filtro-evento" onchange="processarMudancaFiltro()" class="bg-[#0f172a] text-slate-100 border border-slate-700 rounded-lg px-3 py-1 text-xs focus:outline-none focus:border-blue-500 h-[34px] w-full">
+                      <option value="todos">Todos</option>
+                   </select>
+                </div>
+
+                <!-- Reset -->
+                <button onclick="resetarFiltros()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs h-[34px] transition-all flex items-center gap-1.5">
+                   <i class="fa-solid fa-xmark"></i> Limpar
+                </button>
+             </div>
+          </div>
+          
+          <div class="flex flex-wrap items-center gap-5 border-t border-slate-800 pt-3.5 w-full">
+             <label class="flex items-center gap-2.5 text-xs text-slate-300 cursor-pointer hover:text-white transition-colors">
+                <input type="checkbox" id="chk-ignorar-me" onchange="processarMudancaFiltro()" class="rounded bg-slate-900 border-slate-700 text-blue-500 w-4 h-4 cursor-pointer">
+                <span>Ignorar minhas ações (<span id="meu-usuario-display" class="font-semibold text-blue-400">me</span>)</span>
+             </label>
+             <label class="flex items-center gap-2.5 text-xs text-slate-300 cursor-pointer hover:text-white transition-colors">
+                <input type="checkbox" id="chk-ignorar-admins" onchange="processarMudancaFiltro()" class="rounded bg-slate-900 border-slate-700 text-blue-500 w-4 h-4 cursor-pointer">
+                <span>Ocultar Equipe de Desenvolvimento (Dev/Admin)</span>
+             </label>
+          </div>
+       </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="grid-kpi">
+      <div class="card">
+         <div class="kpi-label"><i class="fa-solid fa-satellite-dish"></i> Ocorrências Filtradas</div>
+         <div class="kpi-value" id="kpi-total">0</div>
+      </div>
+      <div class="card">
+         <div class="kpi-label"><i class="fa-solid fa-users"></i> Usuários Engajados</div>
+         <div class="kpi-value" id="kpi-users" style="color: #10b981;">0</div>
+      </div>
+    </div>
+
+    <!-- GRÁFICOS -->
+    <div class="grid-charts">
+       <!-- Gráfico de Evolução (Novo) -->
+       <div class="card" style="grid-column: 1 / -1;">
+          <div class="card-header"><h3 class="card-title"><i class="fa-solid fa-chart-line"></i> Evolução de Uso (Acessos/Cliques por Dia)</h3></div>
+          <div style="height: 300px; width: 100%;">
+             <canvas id="chartEvolucao"></canvas>
+          </div>
+       </div>
+
+       <div class="card">
+          <div class="card-header"><h3 class="card-title"><i class="fa-solid fa-chart-pie"></i> Distribuição de Eventos</h3></div>
+          <div style="height: 250px; display:flex; justify-content:center;">
+             <canvas id="chartEventos"></canvas>
+          </div>
+       </div>
+
+       <div class="card">
+          <div class="card-header"><h3 class="card-title"><i class="fa-solid fa-ranking-star"></i> Ranking Top 10 (Volume de Interações)</h3></div>
+          <div style="height: 250px; overflow-y: auto;" class="pr-2">
+             <ul class="ranking-list" id="ranking-container"></ul>
+          </div>
+       </div>
+    </div>
+
+    <!-- TABELA DE LOGS -->
+    <div class="card">
+       <div class="card-header">
+          <h3 class="card-title"><i class="fa-solid fa-list"></i> Tabela de Logs (Últimos 200 do filtro)</h3>
+       </div>
+       <div class="table-wrapper">
+          <table class="data-table">
+             <thead>
+                <tr>
+                   <th>Data / Hora</th>
+                   <th>Usuário</th>
+                   <th>Tipo / Ação</th>
+                   <th>Detalhe do Evento</th>
+                </tr>
+             </thead>
+             <tbody id="tabela-logs-body">
+                <!-- DOM Seguro Injetado Aqui -->
+             </tbody>
+          </table>
+       </div>
+    </div>
+
+  </div>
+
+  <script>
+    let chartEvObj = null;
+    let chartEvolucaoObj = null;
+    let DADOS_MEMORIA_GLOBAL = null; 
+    let MODULO_ATUAL = 'AUDITORIA'; // Controle da aba de banco do Sheets
+
+    window.onload = function() {
+       carregarDados();
+    };
+
+    function escapeHTML(str) {
+        if (!str) return '';
+        return str.replace(/[&<>'"]/g, 
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
+    }
+
+    function mudarModulo(nomeAbaDb, idBtn) {
+        if(MODULO_ATUAL === nomeAbaDb) return;
+        MODULO_ATUAL = nomeAbaDb;
+        
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(idBtn).classList.add('active');
+        
+        let titulo = nomeAbaDb === 'AUDITORIA' ? 'Auditoria - Portal Web GP360' : 'Auditoria - Visão Geral Sidebar';
+        document.getElementById('titulo-modulo').innerText = titulo;
+        
+        // Resetamos os filtros e buscamos nova carga no backend
+        resetarFiltrosFront();
+        carregarDados();
+    }
+
+    function resetarFiltrosFront() {
+        document.getElementById('filtro-usuario').innerHTML = '<option value="todos">Todos</option>';
+        document.getElementById('filtro-evento').innerHTML = '<option value="todos">Todos</option>';
+        document.getElementById('filtro-data-inicio').value = '';
+        document.getElementById('filtro-data-fim').value = '';
+    }
+
+    function carregarDados() {
+       document.getElementById('loading-screen').style.display = 'flex';
+       document.getElementById('main-content').style.display = 'none';
+       document.getElementById('erro-texto').style.display = 'none';
+
+       if (typeof google === 'undefined') {
+           document.getElementById('loading-text').innerText = "Modo de Preview do Simulador.";
+           return;
+       }
+
+       google.script.run.withSuccessHandler(function(res) {
+          if (res.erro) {
+             document.getElementById('loading-screen').querySelector('.spinner').style.display = 'none';
+             let errEl = document.getElementById('erro-texto');
+             errEl.style.display = 'block';
+             errEl.innerHTML = "<i class='fa-solid fa-triangle-exclamation'></i> " + escapeHTML(res.erro);
+             if(res.bloqueio) document.getElementById('loading-text').innerText = "Acesso Interceptado";
+             return;
+          }
+
+          document.getElementById('loading-screen').style.display = 'none';
+          document.getElementById('main-content').style.display = 'block';
+          document.getElementById('user-info').innerHTML = '<i class="fa-solid fa-user-shield"></i> ' + escapeHTML(res.usuarioLogado);
+          
+          DADOS_MEMORIA_GLOBAL = res;
+
+          const meuUserFull = res.usuarioLogado || '';
+          document.getElementById('meu-usuario-display').textContent = meuUserFull.includes('@') ? meuUserFull.split('@')[0] : meuUserFull;
+
+          popularCamposDeFiltro(res.logsBrutos);
+          renderizarSistemaComFiltros();
+
+       }).obterDadosAuditoria(MODULO_ATUAL);
+    }
+
+    function popularCamposDeFiltro(logs) {
+        const selectUsuario = document.getElementById('filtro-usuario');
+        const selectEvento = document.getElementById('filtro-evento');
+
+        const usuarioSelecionado = selectUsuario.value;
+        const eventoSelecionado = selectEvento.value;
+
+        selectUsuario.innerHTML = '<option value="todos">Todos</option>';
+        selectEvento.innerHTML = '<option value="todos">Todos</option>';
+
+        let usuariosSet = new Set();
+        let eventosSet = new Set();
+        let datasSet = [];
+
+        logs.forEach(log => {
+            if (log.usuario) usuariosSet.add(log.usuario);
+            if (log.evento) eventosSet.add(log.evento);
+            if (log.dataIso && log.dataIso !== "0000-00-00") datasSet.push(log.dataIso);
+        });
+
+        // Configuração automática de Data Inicial e Final baseada no payload recebido
+        if(datasSet.length > 0 && !document.getElementById('filtro-data-inicio').value) {
+            datasSet.sort();
+            document.getElementById('filtro-data-inicio').value = datasSet[0];
+            document.getElementById('filtro-data-fim').value = datasSet[datasSet.length - 1];
+        }
+
+        Array.from(usuariosSet).sort().forEach(user => {
+            let opt = document.createElement('option'); opt.value = user; opt.textContent = user;
+            selectUsuario.appendChild(opt);
+        });
+
+        Array.from(eventosSet).sort().forEach(evt => {
+            let opt = document.createElement('option'); opt.value = evt; opt.textContent = evt;
+            selectEvento.appendChild(opt);
+        });
+
+        if (Array.from(usuariosSet).includes(usuarioSelecionado)) selectUsuario.value = usuarioSelecionado;
+        if (Array.from(eventosSet).includes(eventoSelecionado)) selectEvento.value = eventoSelecionado;
+    }
+
+    function processarMudancaFiltro() {
+        renderizarSistemaComFiltros();
+    }
+
+    function resetarFiltros() {
+        document.getElementById('filtro-usuario').value = "todos";
+        document.getElementById('modo-usuario').value = "incluir";
+        document.getElementById('filtro-evento').value = "todos";
+        document.getElementById('chk-ignorar-me').checked = false;
+        document.getElementById('chk-ignorar-admins').checked = false;
+        
+        if(DADOS_MEMORIA_GLOBAL && DADOS_MEMORIA_GLOBAL.logsBrutos) {
+            let ds = DADOS_MEMORIA_GLOBAL.logsBrutos.filter(x => x.dataIso !== "0000-00-00").map(x => x.dataIso).sort();
+            if(ds.length > 0) {
+                document.getElementById('filtro-data-inicio').value = ds[0];
+                document.getElementById('filtro-data-fim').value = ds[ds.length - 1];
+            }
+        }
+        renderizarSistemaComFiltros();
+    }
+
+    function renderizarSistemaComFiltros() {
+        if (!DADOS_MEMORIA_GLOBAL || !DADOS_MEMORIA_GLOBAL.logsBrutos) return;
+
+        const userFiltro = document.getElementById('filtro-usuario').value;
+        const modoUsuario = document.getElementById('modo-usuario').value;
+        const eventoFiltro = document.getElementById('filtro-evento').value;
+        const ignorarMeuUsuario = document.getElementById('chk-ignorar-me').checked;
+        const ignorarAdmins = document.getElementById('chk-ignorar-admins').checked;
+        
+        const dtInicio = document.getElementById('filtro-data-inicio').value;
+        const dtFim = document.getElementById('filtro-data-fim').value;
+
+        const meuUserFull = DADOS_MEMORIA_GLOBAL.usuarioLogado || '';
+        const meuUserStripped = meuUserFull.includes('@') ? meuUserFull.split('@')[0] : meuUserFull;
+        const listaAdmins = ['tarcisio.maniglia', 'seu.email', 'admin', 'desenvolvedor', 'dev'];
+
+        let logsFiltrados = DADOS_MEMORIA_GLOBAL.logsBrutos.filter(log => {
+            let matchUser = true;
+            if (userFiltro !== "todos") {
+                matchUser = modoUsuario === "incluir" ? (log.usuario === userFiltro) : (log.usuario !== userFiltro);
+            }
+
+            const matchEvento = (eventoFiltro === "todos" || log.evento === eventoFiltro);
+
+            let matchData = true;
+            if (dtInicio && log.dataIso < dtInicio) matchData = false;
+            if (dtFim && log.dataIso > dtFim) matchData = false;
+
+            if (ignorarMeuUsuario && log.usuario === meuUserStripped) return false;
+
+            if (ignorarAdmins) {
+                if (log.usuario === meuUserStripped || listaAdmins.includes(log.usuario) || log.usuario.toLowerCase().includes('admin')) {
+                    return false;
+                }
+            }
+
+            return matchUser && matchEvento && matchData;
+        });
+
+        // Atualização dos Painéis KPI
+        document.getElementById('kpi-total').innerText = logsFiltrados.length;
+        document.getElementById('kpi-users').innerText = new Set(logsFiltrados.map(l => l.usuario)).size;
+
+        let contagemEventos = {};
+        let contagemUsuarios = {};
+        let agregacaoData = {};
+
+        logsFiltrados.forEach(log => {
+            contagemEventos[log.evento] = (contagemEventos[log.evento] || 0) + 1;
+            contagemUsuarios[log.usuario] = (contagemUsuarios[log.usuario] || 0) + 1;
+            if(log.dataIso !== "0000-00-00") {
+                agregacaoData[log.dataIso] = (agregacaoData[log.dataIso] || 0) + 1;
+            }
+        });
+
+        let dgEventos = { labels: [], data: [] };
+        Object.entries(contagemEventos).sort((a, b) => b[1] - a[1]).forEach(item => {
+            dgEventos.labels.push(item[0]); dgEventos.data.push(item[1]);
+        });
+
+        let ranking = Object.entries(contagemUsuarios).sort((a, b) => b[1] - a[1]).slice(0, 10).map(i => ({ email: i[0], acessos: i[1] }));
+
+        renderizarGraficoEvolucao(agregacaoData);
+        renderizarGraficoEventos(dgEventos);
+        renderizarRanking(ranking);
+        renderizarTabela(logsFiltrados);
+    }
+
+    function renderizarGraficoEvolucao(agregacaoData) {
+        if (chartEvolucaoObj) chartEvolucaoObj.destroy();
+        
+        let chavesOrdenadas = Object.keys(agregacaoData).sort();
+        let labels = chavesOrdenadas.map(d => { let p = d.split('-'); return p[2]+'/'+p[1]; }); // Format DD/MM
+        let dados = chavesOrdenadas.map(d => agregacaoData[d]);
+
+        let ctx = document.getElementById('chartEvolucao').getContext('2d');
+        chartEvolucaoObj = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Cliques/Ações',
+                    data: dados,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+                    y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: '#334155', borderDash: [5, 5] } }
+                }
+            }
+        });
+    }
+
+    function renderizarGraficoEventos(dados) {
+       if (chartEvObj) chartEvObj.destroy();
+       let ctx = document.getElementById('chartEventos').getContext('2d');
+       
+       chartEvObj = new Chart(ctx, {
+           type: 'doughnut',
+           data: {
+               labels: dados.labels,
+               datasets: [{
+                   data: dados.data,
+                   backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#64748b', '#06b6d4'],
+                   borderWidth: 0
+               }]
+           },
+           options: {
+               responsive: true, maintainAspectRatio: false,
+               plugins: { legend: { position: 'right', labels: { color: '#cbd5e1', font: {size: 10} } } }
+           }
+       });
+    }
+
+    function renderizarRanking(ranking) {
+       const container = document.getElementById('ranking-container');
+       container.innerHTML = '';
+       
+       if (ranking.length === 0) {
+           container.innerHTML = '<li style="text-align:center; color:#64748b; padding:10px;">Sem dados</li>'; return;
+       }
+
+       ranking.forEach((item, index) => {
+           let li = document.createElement('li'); li.className = 'ranking-item';
+           
+           let pos = document.createElement('span'); 
+           pos.style.color = index < 3 ? '#fbbf24' : '#64748b'; 
+           pos.style.width = '20px'; pos.style.fontWeight = 'bold'; pos.textContent = (index+1)+'º';
+           
+           let spanEmail = document.createElement('span');
+           spanEmail.style.color = '#e2e8f0'; spanEmail.style.fontWeight = '500'; spanEmail.style.flex = "1";
+           spanEmail.textContent = item.email;
+
+           let spanAcessos = document.createElement('span');
+           spanAcessos.className = "badge"; spanAcessos.textContent = `${item.acessos}`;
+
+           li.appendChild(pos); li.appendChild(spanEmail); li.appendChild(spanAcessos);
+           container.appendChild(li);
+       });
+    }
+
+    function renderizarTabela(logs) {
+       const tbody = document.getElementById('tabela-logs-body');
+       tbody.innerHTML = '';
+
+       if (logs.length === 0) {
+           tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding: 20px;">Nenhum registro para estes filtros.</td></tr>';
+           return;
+       }
+
+       // Proteção de memória: Renderiza no máximo os 200 mais recentes na DOM
+       let limitados = logs.slice(0, 200);
+
+       limitados.forEach(log => {
+           let tr = document.createElement('tr');
+           
+           let tdData = document.createElement('td'); tdData.style.whiteSpace = 'nowrap'; tdData.textContent = log.data;
+           let tdUsuario = document.createElement('td'); tdUsuario.style.color = '#3b82f6'; tdUsuario.textContent = log.usuario;
+           
+           let tdEvento = document.createElement('td');
+           let badge = document.createElement('span'); badge.className = 'badge';
+           if (log.evento === "Acesso Negado") { badge.style.background = '#ef444420'; badge.style.color = '#f87171'; badge.style.borderColor = '#ef444440'; }
+           badge.textContent = log.evento;
+           tdEvento.appendChild(badge);
+
+           let tdDetalhe = document.createElement('td'); tdDetalhe.textContent = log.detalhe;
+
+           tr.appendChild(tdData); tr.appendChild(tdUsuario); tr.appendChild(tdEvento); tr.appendChild(tdDetalhe);
+           tbody.appendChild(tr);
+       });
+    }
+  </script>
+</body>
+</html>
