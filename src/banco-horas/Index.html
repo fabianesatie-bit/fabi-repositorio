@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  
+  <div id="error-box" style="display:none; padding: 20px; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; margin: 20px; border-radius: 5px; font-family: sans-serif;"></div>
+  
+  <div id="root"></div>
+
+  <script>
+    window.addEventListener('error', function(e) {
+      var errBox = document.getElementById('error-box');
+      if(errBox) {
+        errBox.style.display = 'block';
+        errBox.innerHTML = '<b>Falha no Carregamento:</b><br/>' + e.message + '<br/><small>Linha: ' + e.lineno + '</small>';
+      }
+    });
+  </script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // API Wrapper Segura contra falhas do ambiente local
+    const API = {
+      getRegionais: function(onSuccess, onError) {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onError).getRegionaisPortal();
+        } else {
+          setTimeout(() => onSuccess(['ARACAJÚ (Mock)', 'SÃO PAULO (Mock)', 'VALE (Mock)']), 500);
+        }
+      },
+      getColaboradores: function(tipo, param, onSuccess, onError) {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onError).getColaboradoresPortal(tipo, param);
+        } else {
+          setTimeout(() => onSuccess([
+            { id: '211989', filial: '0732', regional: 'ARACAJÚ', nome: 'LUCIANO DE JESUS', horas: 15.23, dataAgendada: null },
+            { id: '372746', filial: '1045', regional: 'VALE', nome: 'DAVI SOUZA', horas: 6.2, dataAgendada: '25/07/2026' }
+          ]), 500);
+        }
+      },
+      dispararEmails: function(reg, onSuccess, onError) {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onError).dispararParaGerentes(reg);
+        } else {
+          setTimeout(() => onSuccess({ count: 2 }), 1000);
+        }
+      },
+      salvarFolgas: function(filial, agendamentos, onSuccess, onError) {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run.withSuccessHandler(onSuccess).withFailureHandler(onError).salvarFolgasPortal(filial, agendamentos);
+        } else {
+          setTimeout(() => onSuccess(), 1000);
+        }
+      },
+      getLocation: function(callback) {
+        if (typeof google !== 'undefined' && google.script && google.script.url) {
+          google.script.url.getLocation(callback);
+        } else {
+          setTimeout(() => callback({ parameter: {} }), 100);
+        }
+      }
+    };
+
+    const Icons = {
+      Mail: () => <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>,
+      Alert: () => <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>,
+      Check: () => <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>,
+      Calendar: () => <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+    };
+
+    function App() {
+      const [view, setView] = useState('carregando');
+      const [filial, setFilial] = useState('');
+      const [regionais, setRegionais] = useState([]);
+      const [regionalSelecionada, setRegionalSelecionada] = useState('');
+      const [dadosTabela, setDadosTabela] = useState([]);
+      const [datasAgendadas, setDatasAgendadas] = useState({});
+      const [loading, setLoading] = useState(false);
+      const [mensagem, setMensagem] = useState({ tipo: '', texto: '' });
+
+      const carregarDadosTabela = (tipo, parametro) => {
+        setLoading(true);
+        API.getColaboradores(
+          tipo, 
+          parametro,
+          (dados) => { setDadosTabela(dados); setLoading(false); },
+          (err) => { console.error(err); alert("Erro ao sincronizar colaboradores."); setLoading(false); }
+        );
+      };
+
+      useEffect(() => {
+        let isMounted = true;
+        API.getLocation(function(location) {
+          if (!isMounted) return;
+          const params = location.parameter || {};
+          
+          if (params.view === 'gerente' && params.filial) {
+            setView('gerente');
+            setFilial(params.filial);
+            carregarDadosTabela('gerente', params.filial);
+          } else {
+            setView('login');
+            API.getRegionais(
+              (regs) => { if(isMounted) setRegionais(regs); },
+              (err) => { console.error(err); }
+            );
+          }
+        });
+        return () => { isMounted = false; };
+      }, []);
+
+      const handleLoginCoord = (e) => {
+        e.preventDefault();
+        if(!regionalSelecionada) return;
+        setView('coordenador');
+        carregarDadosTabela('coord', regionalSelecionada);
+      };
+
+      const dispararEmails = () => {
+        setLoading(true);
+        API.dispararEmails(
+          regionalSelecionada,
+          (res) => {
+            setLoading(false);
+            setMensagem({ tipo: 'success', texto: `${res.count} filiais notificadas com sucesso!` });
+            setTimeout(() => setMensagem({tipo: '', texto: ''}), 5000);
+          },
+          (err) => { setLoading(false); alert("Erro ao processar envio."); }
+        );
+      };
+
+      const salvarFolgaGerente = (idColab, nomeColab) => {
+        const dataEscolhida = datasAgendadas[idColab];
+        if (!dataEscolhida) {
+          alert('Por favor, selecione uma data válida.');
+          return;
+        }
+
+        setLoading(true);
+        const agendamento = [{ id: idColab, nome: nomeColab, dataFolga: dataEscolhida }];
+        
+        API.salvarFolgas(
+          filial, 
+          agendamento,
+          () => {
+            setLoading(false);
+            setMensagem({ tipo: 'success', texto: 'Folga salva com sucesso!' });
+            const [ano, mes, dia] = dataEscolhida.split('-');
+            const dataFormatada = `${dia}/${mes}/${ano}`;
+            
+            setDadosTabela(prev => prev.map(d => d.id === idColab ? { ...d, dataAgendada: dataFormatada } : d));
+            setTimeout(() => setMensagem({tipo: '', texto: ''}), 3000);
+          },
+          (err) => { setLoading(false); alert("Falha ao salvar."); }
+        );
+      };
+
+      if (view === 'carregando') {
+        return (
+          <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+             <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+             <div className="text-blue-800 font-bold">Carregando painel...</div>
+          </div>
+        );
+      }
+
+      if (view === 'login') {
+        return (
+          <div className="min-h-screen flex items-center justify-center p-4">
+            <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+              <h1 className="text-2xl font-bold text-blue-900 mb-2 text-center">Portal Banco de Horas</h1>
+              <p className="text-gray-500 mb-6 text-center text-sm">Acesso exclusivo para Coordenadores</p>
+              <form onSubmit={handleLoginCoord} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Selecione sua Regional</label>
+                  <select 
+                    className="w-full border-gray-300 rounded-lg p-3 border focus:ring-blue-500 outline-none"
+                    value={regionalSelecionada}
+                    onChange={e => setRegionalSelecionada(e.target.value)}
+                    required
+                  >
+                    <option value="" disabled>-- Escolha a Regional --</option>
+                    {regionais.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-medium transition-colors">
+                  Acessar Painel
+                </button>
+              </form>
+            </div>
+          </div>
+        );
+      }
+
+      if (view === 'coordenador') {
+        return (
+          <div className="min-h-screen p-6 md:p-8">
+            <div className="max-w-6xl mx-auto">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-800">Visão Geral</h1>
+                  <p className="text-gray-600">Regional: <span className="font-semibold text-blue-600">{regionalSelecionada}</span></p>
+                </div>
+                <button onClick={() => setView('login')} className="text-gray-500 hover:text-gray-800 underline text-sm">Trocar Regional</button>
+              </div>
+
+              {mensagem.texto && (
+                <div className="mb-4 p-4 bg-green-100 text-green-800 rounded-lg flex items-center">
+                  <Icons.Check /> {mensagem.texto}
+                </div>
+              )}
+
+              <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+                <div className="flex justify-between items-center border-b pb-4 mb-4">
+                  <h2 className="text-xl font-semibold text-gray-800">Ofensores de Horas (>= 5h)</h2>
+                  <button 
+                    onClick={dispararEmails}
+                    disabled={loading || dadosTabela.length === 0}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium flex items-center transition-colors disabled:opacity-50"
+                  >
+                    {loading ? 'Processando...' : <><Icons.Mail /> Disparar p/ Gerentes</>}
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 text-gray-600 text-sm">
+                        <th className="p-3 border-b font-medium">Filial</th>
+                        <th className="p-3 border-b font-medium">Colaborador</th>
+                        <th className="p-3 border-b font-medium">Horas</th>
+                        <th className="p-3 border-b font-medium">Folga Agendada</th>
+                        <th className="p-3 border-b font-medium">Situação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dadosTabela.length === 0 && !loading && <tr><td colSpan="5" className="text-center p-6 text-gray-500">Nenhum colaborador acima de 5 horas.</td></tr>}
+                      {loading && dadosTabela.length === 0 && <tr><td colSpan="5" className="text-center p-6 text-blue-500">Buscando dados da base...</td></tr>}
+                      {dadosTabela.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="p-3 border-b">{item.filial}</td>
+                          <td className="p-3 border-b font-medium">{item.nome}</td>
+                          <td className="p-3 border-b">{item.horas}</td>
+                          <td className="p-3 border-b">
+                            {item.dataAgendada ? (
+                              <span className="text-green-600 font-medium flex items-center text-sm"><Icons.Calendar /> {item.dataAgendada}</span>
+                            ) : (
+                              <span className="text-gray-400 italic text-sm">Pendente</span>
+                            )}
+                          </td>
+                          <td className="p-3 border-b">
+                            {item.dataAgendada ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-800">Resolvido</span>
+                            ) : item.horas > 10 ? 
+                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-800"><Icons.Alert /> CRÍTICO</span> : 
+                              <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-yellow-100 text-yellow-800">Agendar</span>
+                            }
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      if (view === 'gerente') {
+        return (
+          <div className="min-h-screen p-4 md:p-8">
+            <div className="max-w-3xl mx-auto">
+              <div className="mb-8">
+                <h1 className="text-3xl font-bold text-gray-800">Agendamento de Folgas</h1>
+                <p className="text-gray-600">Filial: <span className="font-semibold">{filial}</span></p>
+              </div>
+
+              {mensagem.texto && (
+                <div className="mb-4 p-4 bg-green-100 text-green-800 rounded-lg flex items-center">
+                  <Icons.Check /> {mensagem.texto}
+                </div>
+              )}
+
+              {loading && dadosTabela.length === 0 ? <p className="text-center mt-10 text-blue-600">Sincronizando filial...</p> : null}
+
+              {dadosTabela.length === 0 && !loading ? (
+                <div className="bg-green-50 p-8 rounded-xl text-center border border-green-200">
+                  <h2 className="text-xl font-bold text-green-800 mb-2">Tudo em dia!</h2>
+                  <p className="text-green-700">Não há pendências de horas registradas para a sua filial.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {dadosTabela.map(colab => (
+                    <div key={colab.id} className={`bg-white rounded-xl shadow p-5 border-l-4 ${colab.dataAgendada ? 'border-green-500' : colab.horas > 10 ? 'border-red-500' : 'border-yellow-400'}`}>
+                      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-800">{colab.nome}</h3>
+                          <p className="text-sm text-gray-600 mt-1">Saldo Atual: <span className="font-bold">{colab.horas}h</span></p>
+                          {colab.dataAgendada ? (
+                            <p className="text-sm text-green-600 font-bold flex items-center mt-2"><Icons.Calendar /> Folga combinada para: {colab.dataAgendada}</p>
+                          ) : colab.horas > 10 && (
+                            <p className="text-xs text-red-600 font-bold flex items-center mt-2"><Icons.Alert /> Risco Crítico - Necessário agendar.</p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <input 
+                            type="date" 
+                            className="border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={datasAgendadas[colab.id] || ''}
+                            onChange={(e) => setDatasAgendadas({...datasAgendadas, [colab.id]: e.target.value})}
+                          />
+                          <button 
+                            onClick={() => salvarFolgaGerente(colab.id, colab.nome)}
+                            disabled={loading}
+                            className={`${colab.dataAgendada ? 'bg-gray-500 hover:bg-gray-600' : 'bg-blue-600 hover:bg-blue-700'} text-white px-4 py-2 rounded font-medium disabled:opacity-50 transition-colors`}
+                          >
+                            {colab.dataAgendada ? 'Atualizar' : 'Salvar'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+      return null;
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
