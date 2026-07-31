@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base target="_top">
+    <title>Dashboard de Impacto do Feedback | Magalu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        magalu: {
+                            blue: '#00529b',
+                            light: '#0086ff',
+                            orange: '#f88c00',
+                            bg: '#f8fafc'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: theme('colors.magalu.bg');
+            -webkit-font-smoothing: antialiased;
+        }
+        .glass-header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .kpi-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.08);
+        }
+        .loader-spinner {
+            border: 3px solid rgba(0, 82, 155, 0.1);
+            border-left-color: #00529b;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .table-scroll::-webkit-scrollbar { height: 8px; }
+        .table-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .table-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+    <div id="loading" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center transition-opacity duration-300">
+        <div class="loader-spinner mb-4"></div>
+        <h2 class="text-xl font-semibold text-slate-800 tracking-tight">Analisando Performance</h2>
+        <p class="text-sm text-slate-500 mt-2">Agrupando Diretorias e projetando faturamento...</p>
+    </div>
+
+    <header class="glass-header sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <div class="text-magalu-blue font-black text-2xl tracking-tighter">magalu</div>
+            <div class="h-6 w-px bg-slate-300"></div>
+            <h1 class="text-lg font-semibold text-slate-700 tracking-tight">Impacto do Feedback</h1>
+        </div>
+        <div class="flex items-center gap-3 bg-white border border-slate-200 px-3 py-1.5 rounded-full shadow-sm hidden sm:flex">
+            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            <span class="text-xs font-medium text-slate-600">Dados Sincronizados</span>
+        </div>
+    </header>
+
+    <main class="flex-1 w-full max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-4 mb-8">
+            <div class="flex-1">
+                <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Análise Executiva</h2>
+                <p id="visaoAtivaText" class="text-slate-500 text-sm mt-1">Visão Atual: Companhia (Global)</p>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+                <div class="w-full sm:w-64">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Filtrar Diretoria</label>
+                    <div class="relative">
+                        <select id="fDiretoria" class="w-full appearance-none bg-white border border-slate-300 text-slate-700 py-2.5 px-4 pr-10 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-magalu-light focus:border-magalu-light font-medium transition-shadow cursor-pointer disabled:bg-slate-50 disabled:text-slate-400">
+                            <option value="">Todas as Diretorias</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="w-full sm:w-64">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Filtrar Regional</label>
+                    <div class="relative">
+                        <select id="fRegional" disabled class="w-full appearance-none bg-white border border-slate-300 text-slate-700 py-2.5 px-4 pr-10 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-magalu-light focus:border-magalu-light font-medium transition-shadow cursor-pointer disabled:bg-slate-50 disabled:text-slate-400">
+                            <option value="">Todas as Regionais</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="dashboardContent" class="space-y-6 opacity-0 transition-opacity duration-500">
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                
+                <!-- KPI 0: Volumetria de Pessoas -->
+                <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-slate-400"></div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Time de Vendas</h3>
+                        <div class="p-1.5 bg-slate-50 text-slate-400 rounded-lg">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        </div>
+                    </div>
+                    <p id="k0_total" class="text-3xl font-black text-slate-800">0</p>
+                    <p class="text-xs text-slate-500 mt-2 flex items-center gap-1">
+                        <span id="k0_pendentes" class="font-bold text-red-500">0</span> com pendências
+                    </p>
+                </div>
+
+                <!-- KPI 1 -->
+                <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-magalu-blue"></div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Ating. Em Dia</h3>
+                        <div class="p-1.5 bg-blue-50 text-magalu-blue rounded-lg">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                        </div>
+                    </div>
+                    <p id="k2" class="text-3xl font-black text-slate-800">0%</p>
+                    <p class="text-[11px] text-slate-400 mt-2">Média Ponderada Global</p>
+                </div>
+
+                <!-- KPI 2 -->
+                <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-slate-300"></div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Ating. Pendente</h3>
+                        <div class="p-1.5 bg-slate-50 text-slate-400 rounded-lg">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
+                        </div>
+                    </div>
+                    <p id="k5" class="text-3xl font-black text-slate-500">0%</p>
+                    <p class="text-[11px] text-slate-400 mt-2">Média Ponderada Global</p>
+                </div>
+
+                <!-- KPI 3 -->
+                <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden group lg:col-span-2">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-magalu-orange"></div>
+                    <div class="absolute right-0 bottom-0 opacity-10 group-hover:scale-105 transition-transform duration-500 transform translate-x-4 translate-y-4">
+                        <svg class="w-32 h-32 text-magalu-orange" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.64-2.25 1.64-1.74 0-2.1-.96-2.17-1.92H8c.06 1.4 1.05 2.5 2.87 2.85V19h2.33v-1.67c1.47-.31 2.85-1.35 2.85-3.03-.01-2.27-1.87-2.99-3.74-3.44z"></path></svg>
+                    </div>
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <h3 class="text-[11px] font-bold text-magalu-orange uppercase tracking-wider">Faturamento Perdido</h3>
+                                <span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full" id="k4">+0%</span>
+                            </div>
+                            <p id="k3" class="text-4xl font-black text-magalu-orange relative z-10">R$ 0</p>
+                            <p class="text-xs text-slate-500 mt-2 max-w-[200px]">Projeção baseada na eficiência real da equipe regularizada.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="insightCard" class="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-2xl p-5 shadow-sm hidden">
+                <div class="flex items-start gap-4">
+                    <div class="bg-orange-100 p-2.5 rounded-full flex-shrink-0 mt-0.5">
+                        <span class="text-xl leading-none block">💡</span>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-orange-900 font-bold text-sm uppercase tracking-wide mb-1">Oportunidade Estratégica</h4>
+                        <p id="insightText" class="text-orange-800/90 text-sm leading-relaxed"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="pendentesSection" class="bg-white rounded-2xl border border-slate-200 shadow-sm hidden flex-col">
+                <div class="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">Action List: Feedbacks Pendentes</h3>
+                        <p class="text-sm text-slate-500 mt-1">Lista nominal para ação imediata da liderança correspondente.</p>
+                    </div>
+                </div>
+                
+                <div class="w-full overflow-x-auto table-scroll max-h-[500px]">
+                    <table class="w-full text-left border-collapse whitespace-nowrap relative">
+                        <thead class="sticky top-0 bg-slate-50 z-10">
+                            <tr class="border-y border-slate-200">
+                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Colaborador</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Filial</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Tempo de Casa</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Atrasos</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Atingimento</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendentesBody" class="divide-y divide-slate-100 bg-white">
+                            <!-- Injetado via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let APP_DATA = {};
+
+        function carregarDadosDoServidor() {
+            if (typeof google === 'undefined') {
+                document.getElementById('loading').style.display = 'none';
+                showFatalError("Ambiente Google Apps Script não detectado. Execute este código através de um Web App publicado.");
+                return;
+            }
+
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    try {
+                        APP_DATA = JSON.parse(res);
+                        
+                        const loadingEl = document.getElementById('loading');
+                        loadingEl.style.opacity = '0';
+                        setTimeout(() => loadingEl.style.display = 'none', 300);
+                        
+                        if(APP_DATA._error) {
+                            showFatalError("Erro no Servidor: " + APP_DATA.message);
+                            return;
+                        }
+
+                        if(!APP_DATA || !APP_DATA.global) {
+                            showFatalError("Nenhum dado válido foi retornado pelo servidor.");
+                            return;
+                        }
+                        
+                        setupFiltros();
+                        // Inicializa visualizando a companhia total
+                        renderDashboard(APP_DATA.global, 'Companhia (Global)');
+                        document.getElementById('dashboardContent').style.opacity = '1';
+
+                    } catch(e) {
+                        showFatalError("Erro de Parsing de Dados: " + e.message);
+                    }
+                })
+                .withFailureHandler(function(err) {
+                    showFatalError("Falha Crítica de Conexão: " + err.message);
+                })
+                .getDashboardData();
+        }
+
+        function showFatalError(msg) {
+            const loadingEl = document.getElementById('loading');
+            loadingEl.style.opacity = '1';
+            loadingEl.style.display = 'flex';
+            loadingEl.innerHTML = `
+                <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg max-w-lg shadow-lg">
+                    <h3 class="text-red-800 font-bold text-lg mb-2">Falha na Execução</h3>
+                    <p class="text-red-700 text-sm">${msg}</p>
+                </div>
+            `;
+        }
+
+        function setupFiltros() {
+            const elDiretoria = document.getElementById('fDiretoria');
+            const elRegional = document.getElementById('fRegional');
+            
+            // Popula Diretorias
+            const diretorias = Object.keys(APP_DATA.mapa).sort();
+            diretorias.forEach(d => elDiretoria.add(new Option(d, d)));
+
+            // Listener Cascata: Diretoria -> Regional
+            elDiretoria.addEventListener('change', function() {
+                const diretoria = this.value;
+                
+                // Resetar Regionais
+                elRegional.innerHTML = '<option value="">Todas as Regionais</option>';
+                
+                if (!diretoria) {
+                    elRegional.disabled = true;
+                    renderDashboard(APP_DATA.global, 'Companhia (Global)');
+                    return;
+                }
+                
+                // Popula Regionais da Diretoria
+                const regionais = APP_DATA.mapa[diretoria].sort();
+                regionais.forEach(r => elRegional.add(new Option(r, r)));
+                elRegional.disabled = false;
+                
+                renderDashboard(APP_DATA.diretorias[diretoria], `Diretoria: ${diretoria}`);
+            });
+
+            // Listener Regional
+            elRegional.addEventListener('change', function() {
+                const regional = this.value;
+                const diretoria = elDiretoria.value;
+                
+                if (regional) {
+                    renderDashboard(APP_DATA.regionais[regional], `Regional: ${regional}`);
+                } else if (diretoria) {
+                    renderDashboard(APP_DATA.diretorias[diretoria], `Diretoria: ${diretoria}`);
+                } else {
+                    renderDashboard(APP_DATA.global, 'Companhia (Global)');
+                }
+            });
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        }
+
+        function renderDashboard(dadosScope, tituloScope) {
+            if (!dadosScope) return;
+            
+            document.getElementById('visaoAtivaText').textContent = `Visão Atual: ${tituloScope}`;
+
+            const faturamentoPerdido = dadosScope.faturamentoPerdido;
+
+            // Atualiza KPIs
+            document.getElementById('k0_total').textContent = dadosScope.totalVendedores;
+            document.getElementById('k0_pendentes').textContent = dadosScope.totalPendentes;
+            document.getElementById('k2').textContent = `${dadosScope.mediaAtingimentoEmDia.toFixed(1)}%`;
+            document.getElementById('k5').textContent = `${dadosScope.mediaAtingimentoPendente.toFixed(1)}%`;
+            document.getElementById('k3').textContent = formatCurrency(faturamentoPerdido > 0 ? faturamentoPerdido : 0);
+            document.getElementById('k4').textContent = `+${dadosScope.incrementoPotencialPercentual.toFixed(1)}%`;
+            
+            // Insight Inteligente
+            const insightCard = document.getElementById('insightCard');
+            const insightText = document.getElementById('insightText');
+            insightText.innerHTML = ''; 
+            
+            if (faturamentoPerdido > 1) {
+                insightCard.style.display = 'block';
+                
+                const bScope = document.createElement('b');
+                bScope.className = 'font-bold text-orange-900';
+                bScope.textContent = tituloScope;
+                
+                const bValor = document.createElement('b');
+                bValor.className = 'font-bold text-orange-900 px-1';
+                bValor.textContent = formatCurrency(faturamentoPerdido);
+                
+                insightText.appendChild(document.createTextNode('Focando na liderança de '));
+                insightText.appendChild(bScope);
+                insightText.appendChild(document.createTextNode(', destrava-se '));
+                insightText.appendChild(bValor);
+                insightText.appendChild(document.createTextNode(` apenas regularizando o quadro dos ${dadosScope.totalPendentes} vendedores pendentes.`));
+            } else {
+                insightCard.style.display = 'none';
+            }
+
+            renderPendentesTable(dadosScope.colaboradoresPendentes);
+        }
+
+        // Blindagem XSS: Criação via API DOM
+        function renderPendentesTable(colaboradoresPendentes) {
+            const tableSection = document.getElementById('pendentesSection');
+            const tableBody = document.getElementById('pendentesBody');
+            tableBody.innerHTML = '';
+
+            if (!colaboradoresPendentes || colaboradoresPendentes.length === 0) {
+                tableSection.style.display = 'none';
+                return;
+            }
+
+            colaboradoresPendentes.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors duration-150';
+                
+                const tdNome = document.createElement('td');
+                tdNome.className = 'px-6 py-4 font-medium text-slate-800';
+                tdNome.textContent = row.nome;
+                
+                const tdFilial = document.createElement('td');
+                tdFilial.className = 'px-6 py-4 text-sm text-slate-500';
+                tdFilial.textContent = row.filial;
+                
+                const tdDias = document.createElement('td');
+                tdDias.className = 'px-6 py-4 text-center';
+                const spanDias = document.createElement('span');
+                spanDias.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700';
+                spanDias.textContent = `${row.diasContratados} dias`;
+                tdDias.appendChild(spanDias);
+                
+                const tdPendentes = document.createElement('td');
+                tdPendentes.className = 'px-6 py-4';
+                const divTags = document.createElement('div');
+                divTags.className = 'flex gap-2 flex-wrap';
+                
+                const tags = row.quaisPendentes.split(', ');
+                tags.forEach(tag => {
+                    if(!tag) return;
+                    const spanTag = document.createElement('span');
+                    spanTag.className = 'inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-red-50 text-red-700 border border-red-100';
+                    spanTag.textContent = tag;
+                    divTags.appendChild(spanTag);
+                });
+                tdPendentes.appendChild(divTags);
+                
+                const tdAting = document.createElement('td');
+                tdAting.className = 'px-6 py-4 text-right';
+                const atingValue = Math.round(row.atingimento);
+                const isSuccess = atingValue >= 100;
+                
+                const spanAting = document.createElement('span');
+                spanAting.className = `inline-flex items-center justify-center min-w-[3rem] px-2.5 py-1 rounded-full text-sm font-bold ${
+                    isSuccess ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                }`;
+                spanAting.textContent = `${atingValue}%`;
+                tdAting.appendChild(spanAting);
+
+                tr.appendChild(tdNome);
+                tr.appendChild(tdFilial);
+                tr.appendChild(tdDias);
+                tr.appendChild(tdPendentes);
+                tr.appendChild(tdAting);
+                
+                tableBody.appendChild(tr);
+            });
+
+            tableSection.style.display = 'flex';
+        }
+
+        window.onload = carregarDadosDoServidor;
+    </script>
+</body>
+</html>
