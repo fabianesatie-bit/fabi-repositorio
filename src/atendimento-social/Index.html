@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GP360 - Atendimento e Governança</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden text-slate-800">
+
+  <!-- NOTIFICAÇÃO TOAST CUSTOMIZADA -->
+  <div id="toast" class="fixed top-5 right-5 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 ease-out max-w-md w-full bg-white shadow-2xl rounded-xl border border-slate-100 p-4 flex items-start gap-3">
+    <div id="toast-icon-box" class="p-2 rounded-lg text-white">
+      <i id="toast-icon" data-lucide="info" class="w-5 h-5"></i>
+    </div>
+    <div class="flex-1">
+      <h4 id="toast-title" class="font-semibold text-slate-900 text-sm">Notificação</h4>
+      <p id="toast-desc" class="text-xs text-slate-500 mt-0.5">Mensagem do sistema.</p>
+    </div>
+    <button onclick="hideToast()" class="text-slate-400 hover:text-slate-600 transition-colors">
+      <i data-lucide="x" class="w-4 h-4"></i>
+    </button>
+  </div>
+
+  <!-- CONTAINER CENTRAL -->
+  <div class="flex h-full w-full overflow-hidden">
+    
+    <!-- ÁREA DE CONTEÚDO PRINCIPAL -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+      
+      <!-- TOPBAR HEADER -->
+      <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 shrink-0 shadow-sm z-10">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-500 flex items-center justify-center text-white font-bold shadow-md shadow-indigo-900/25">
+              GP
+            </div>
+            <div>
+              <h2 id="page-title" class="text-sm font-bold text-slate-800 leading-tight">GP360 - Central de Atendimento</h2>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 font-medium border border-indigo-100" id="indicator-environment">Conectando...</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button onclick="switchTab('dashboard')" id="btn-header-dash" class="px-3.5 py-2 bg-indigo-50 text-indigo-700 border border-indigo-150 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            <span class="hidden md:inline">Painel Geral</span>
+          </button>
+
+          <button onclick="switchTab('formulario')" id="btn-header-form" class="px-3.5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-xs font-semibold shadow-md transition-all flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Novo Atendimento</span>
+          </button>
+
+          <div class="h-6 w-px bg-slate-200 hidden sm:block"></div>
+
+          <div class="text-right hidden sm:block">
+            <span id="usr-nome" class="text-xs font-bold text-slate-800 block">Carregando...</span>
+            <span id="header-regional-info" class="text-[10px] text-slate-400 block tracking-wide">Aguarde</span>
+          </div>
+          <button onclick="refreshData()" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors" title="Sincronizar Planilha">
+            <i data-lucide="rotate-cw" id="btn-refresh-icon" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEWPORTS (DASHBOARD OU FORMULÁRIO) -->
+      <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar">
+        
+        <!-- TAB: DASHBOARD -->
+        <section id="view-dashboard" class="space-y-6">
+          
+          <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4 bg-gradient-to-r from-slate-50/50 to-white">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <i data-lucide="git-branch" class="w-3.5 h-3.5"></i> Fluxo
+              </label>
+              <select id="filter-fluxo" onchange="applyDashboardFilters()" class="w-full text-xs px-2.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white shadow-sm font-medium">
+                <option value="TODOS">TODOS</option>
+                <option value="SOCIAL">EQUIPE SOCIAL</option>
+                <option value="GP">ACOMPANHAMENTO GP</option>
+                <option value="MULHER">CANAL DA MULHER</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <i data-lucide="user-check" class="w-3.5 h-3.5"></i> Situação
+              </label>
+              <select id="filter-situacao-funcional" onchange="applyDashboardFilters()" class="w-full text-xs px-2.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white shadow-sm font-medium">
+                <option value="TODOS">TODOS OS COLABORADORES</option>
+                <option value="ATIVO">SOMENTE ATIVOS</option>
+                <option value="DESLIGADO">SOMENTE DESLIGADOS</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <i data-lucide="building-2" class="w-3.5 h-3.5"></i> Diretoria
+              </label>
+              <select id="filter-diretoria" onchange="applyDashboardFilters()" class="w-full text-xs px-2.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white shadow-sm font-medium">
+                <option value="TODAS">TODAS</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <i data-lucide="map" class="w-3.5 h-3.5"></i> Regional
+              </label>
+              <select id="filter-regional" onchange="applyDashboardFilters()" class="w-full text-xs px-2.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white shadow-sm font-medium">
+                <option value="TODAS">TODAS</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <i data-lucide="store" class="w-3.5 h-3.5"></i> Filial
+              </label>
+              <select id="filter-filial" onchange="applyDashboardFilters()" class="w-full text-xs px-2.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white shadow-sm font-medium">
+                <option value="TODAS">TODAS</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <i data-lucide="user" class="w-3.5 h-3.5"></i> Coordenador
+              </label>
+              <select id="filter-coordenador" onchange="applyDashboardFilters()" class="w-full text-xs px-2.5 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white shadow-sm font-medium">
+                <option value="TODOS">TODOS</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Data Início
+              </label>
+              <input type="date" id="filter-data-inicio" onchange="applyDashboardFilters()" class="w-full text-xs px-2.5 py-1.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white shadow-sm font-medium h-[34px]">
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Data Fim
+              </label>
+              <input type="date" id="filter-data-fim" onchange="applyDashboardFilters()" class="w-full text-xs px-2.5 py-1.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white shadow-sm font-medium h-[34px]">
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-all">
+              <div>
+                <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Volume de Atendimentos</span>
+                <h3 class="text-2xl font-bold text-slate-800 mt-1" id="stat-total">0</h3>
+                <p class="text-[10px] text-indigo-500 mt-1 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Total consolidado das bases
+                </p>
+              </div>
+              <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                <i data-lucide="folder-heart" class="w-6 h-6"></i>
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-all">
+              <div>
+                <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Acompanhamentos GP</span>
+                <h3 class="text-2xl font-bold text-slate-800 mt-1" id="stat-internos">0</h3>
+                <p class="text-[10px] text-purple-500 mt-1 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Monitorados regionalmente
+                </p>
+              </div>
+              <div class="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                <i data-lucide="user-cog" class="w-6 h-6"></i>
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-all">
+              <div>
+                <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Ativos na Base ROL</span>
+                <h3 class="text-2xl font-bold text-emerald-600 mt-1" id="stat-ativos-count">0</h3>
+                <p class="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                  Cruzamento em tempo real
+                </p>
+              </div>
+              <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                <i data-lucide="smile" class="w-6 h-6"></i>
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-all">
+              <div>
+                <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Lojas Atendidas</span>
+                <h3 class="text-2xl font-bold text-slate-800 mt-1" id="stat-lojas">0</h3>
+                <p class="text-[10px] text-slate-400 mt-1">Filiais assistidas</p>
+              </div>
+              <div class="p-3 bg-sky-50 text-sky-600 rounded-xl">
+                <i data-lucide="store" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 flex flex-col h-80">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h4 id="chart-motivos-title" class="font-bold text-slate-800 text-sm">Distribuição por Categoria/Motivo</h4>
+                  <p class="text-[10px] text-slate-400 font-medium">Filtros aplicados em tempo real</p>
+                </div>
+                <div class="inline-flex rounded-xl p-0.5 bg-slate-100 border border-slate-200">
+                  <button onclick="changeMotivoChartMode('categoria')" id="btn-chart-mode-cat" class="px-3 py-1.5 text-[10px] font-bold rounded-lg bg-white text-slate-800 shadow-sm transition-all focus:outline-none">
+                    Categorias
+                  </button>
+                  <button onclick="changeMotivoChartMode('mensal')" id="btn-chart-mode-mes" class="px-3 py-1.5 text-[10px] font-bold rounded-lg text-slate-500 hover:text-slate-800 transition-all focus:outline-none">
+                    Por Mês
+                  </button>
+                </div>
+              </div>
+              <div class="flex-1 relative min-h-0">
+                <canvas id="chart-motivos"></canvas>
+              </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col h-80">
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="font-bold text-slate-800 text-sm">Volume por Regional</h4>
+                <p class="text-[10px] text-slate-400 font-medium">Divisão percentual</p>
+              </div>
+              <div class="flex-1 relative min-h-0 flex items-center justify-center">
+                <canvas id="chart-regionais"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABELA COM PREVENÇÃO XSS -->
+          <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+            <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+              <div>
+                <h4 class="font-bold text-slate-800 text-sm">Painel Geral de Registros de Atendimento</h4>
+                <p class="text-xs text-slate-400 mt-0.5">Cruzamento em tempo real com a folha ativa de colaboradores (BASE_ROL).</p>
+              </div>
+              <div class="relative max-w-xs w-full">
+                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                <input type="text" id="search-dash-table" onkeyup="filterDashTable()" placeholder="Buscar colaborador, ID ou motivo..." class="w-full text-xs pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white">
+              </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse" id="dash-table">
+                <thead>
+                  <tr class="border-b border-slate-100 text-[10px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50/20">
+                    <th class="py-3 px-5 whitespace-nowrap">Data Entrada</th>
+                    <th class="py-3 px-5 whitespace-nowrap">ID</th>
+                    <th class="py-3 px-5 whitespace-nowrap">Colaborador</th>
+                    <th class="py-3 px-5 whitespace-nowrap">Situação Funcional</th>
+                    <th class="py-3 px-5 whitespace-nowrap">Filial</th>
+                    <th class="py-3 px-5 whitespace-nowrap">Regional</th>
+                    <th class="py-3 px-5 whitespace-nowrap">Canal / Fluxo</th>
+                    <th class="py-3 px-5 whitespace-nowrap">Classificação</th>
+                    <th class="py-3 px-5 whitespace-nowrap">Ações</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs text-slate-600" id="dash-table-body">
+                  <tr>
+                    <td colspan="9" class="py-8 text-center text-slate-400">Sincronizando com as bases do Google Sheets...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB: FORMULÁRIO -->
+        <section id="view-formulario" class="hidden space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            
+            <div class="lg:col-span-1 space-y-5">
+              
+              <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+                <div>
+                  <div class="flex items-center justify-between">
+                    <h4 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                      <i data-lucide="user-check" class="w-4 h-4 text-indigo-600"></i>
+                      Identificação Automática por ID
+                    </h4>
+                    <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">BASE_ROL</span>
+                  </div>
+                  <p class="text-xs text-slate-400 mt-1">Informe o ID funcional para identificação imediata na base ativa. Caso seja um ex-colaborador, a edição manual é ativada automaticamente.</p>
+                </div>
+                
+                <div class="space-y-2">
+                  <div class="flex gap-2">
+                    <div class="relative flex-1">
+                      <i data-lucide="id-card" class="w-4.5 h-4.5 absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                      <input type="text" id="search-id-input" placeholder="ID funcional (ex: 103361)..." class="w-full text-xs pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-bold" oninput="handleIdInputChange(this)" onkeydown="if(event.key === 'Enter') handleSearchColab()">
+                    </div>
+                    <button onclick="handleSearchColab()" id="btn-buscar-colab" class="px-4 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition-all flex items-center gap-2 shadow-md shadow-slate-900/10 active:scale-95 shrink-0">
+                      <i data-lucide="search" class="w-4 h-4"></i>
+                      Buscar
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div id="colab-card-empty" class="bg-white border border-dashed border-slate-200 rounded-2xl p-8 text-center text-slate-400 shadow-sm">
+                <div class="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                  <i data-lucide="user" class="w-6 h-6"></i>
+                </div>
+                <h5 class="font-medium text-slate-700 text-xs">Ficha Cadastral</h5>
+                <p class="text-[11px] text-slate-400 mt-1 max-w-[200px] mx-auto">Digite um ID acima para consulta em tempo real na base ativa (BASE_ROL).</p>
+              </div>
+
+              <div id="colab-card-filled" class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden hidden transition-all">
+                <div id="card-header-gradient" class="p-5 text-white transition-all relative">
+                  <div id="colab-status-badge" class="absolute top-4 right-4 text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                    ATIVO
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center font-bold text-white text-sm shrink-0" id="card-colab-avatar">
+                      ?
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <h4 class="font-bold text-sm truncate" id="card-colab-nome">Nome do Colaborador</h4>
+                      <p class="text-[10px] text-slate-200 mt-0.5 truncate" id="card-colab-cargo">Cargo ou Função</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="p-5 space-y-4 bg-white">
+                  <div id="colab-view-mode" class="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <span class="text-[10px] text-slate-400 font-semibold block uppercase">ID / Chapa</span>
+                      <p class="font-bold text-slate-800 mt-0.5" id="card-colab-id">000000</p>
+                    </div>
+                    <div>
+                      <span class="text-[10px] text-slate-400 font-semibold block uppercase">Regional</span>
+                      <p class="font-bold text-slate-800 mt-0.5" id="card-colab-regional">Região</p>
+                    </div>
+                    <div>
+                      <span class="text-[10px] text-slate-400 font-semibold block uppercase">Filial Vinculada</span>
+                      <p class="font-bold text-indigo-600 mt-0.5" id="card-colab-filial">Loja</p>
+                    </div>
+                    <div>
+                      <span class="text-[10px] text-slate-400 font-semibold block uppercase">Tempo de Empresa</span>
+                      <p class="font-bold text-slate-800 mt-0.5" id="card-colab-tempo">0a 0m</p>
+                    </div>
+                  </div>
+
+                  <div id="colab-manual-mode" class="space-y-3 hidden border-t border-slate-100 pt-3">
+                    <div class="p-2.5 bg-amber-50 rounded-xl border border-amber-200/80 text-[11px] text-amber-800 font-medium flex items-start gap-2">
+                      <i data-lucide="edit-3" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                      <span>Colaborador não consta na base ativa. Edição manual liberada automaticamente.</span>
+                    </div>
+
+                    <div>
+                      <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nome Completo</label>
+                      <input type="text" id="manual-colab-nome" placeholder="Digite o nome completo..." class="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 font-bold bg-white" oninput="syncManualInputs()">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                      <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Filial / Loja</label>
+                        <input type="text" id="manual-colab-filial" placeholder="Ex: 0124" class="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 font-bold bg-white" oninput="syncManualInputs()">
+                      </div>
+                      <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Regional</label>
+                        <input type="text" id="manual-colab-regional" placeholder="Ex: CAMPINAS" class="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 font-bold bg-white uppercase" oninput="syncManualInputs()">
+                      </div>
+                    </div>
+
+                    <div>
+                      <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cargo / Função</label>
+                      <input type="text" id="manual-colab-cargo" placeholder="Ex: VENDEDOR..." class="w-full text-xs p-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 font-bold bg-white" oninput="syncManualInputs()">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+              
+              <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h4 class="font-bold text-slate-800 text-sm">Histórico Integrado de Acompanhamentos</h4>
+                    <p class="text-xs text-slate-400 mt-0.5">Retrospectiva completa de atendimentos gerados por contratos novos ou anteriores.</p>
+                  </div>
+                  <span id="historico-counter-badge" class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-slate-100 text-slate-600">0 casos</span>
+                </div>
+
+                <div id="historico-empty" class="text-center py-6 text-slate-400 text-xs">
+                  Faça a busca de um colaborador para recuperar a retrospectiva de atendimentos passados.
+                </div>
+
+                <div id="historico-timeline" class="space-y-3 hidden max-h-56 overflow-y-auto pr-2 custom-scrollbar">
+                  <!-- Alimentado dinamicamente via JS blindado contra XSS -->
+                </div>
+              </div>
+
+              <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-5 relative">
+                
+                <div id="form-overlay" class="absolute inset-0 bg-white/80 backdrop-blur-[1px] z-20 rounded-2xl flex items-center justify-center p-6 text-center">
+                  <div class="max-w-xs">
+                    <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center mx-auto mb-2.5">
+                      <i data-lucide="lock" class="w-5 h-5"></i>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-700">Formulário Bloqueado</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Informe um ID funcional à esquerda para identificação na base ativa ou liberação manual.</p>
+                  </div>
+                </div>
+
+                <!-- SELETOR PREMIUM DE CANAL DE ATENDIMENTO COM NOVA OPÇÃO -->
+                <div>
+                  <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Escolha o Canal do Atendimento</label>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    
+                    <div id="flow-card-social" onclick="setFlowType('SOCIAL')" class="border-2 border-indigo-600 bg-indigo-50/30 p-3 rounded-xl cursor-pointer hover:bg-indigo-50/50 transition-all flex gap-3 relative overflow-hidden">
+                      <div class="p-2 bg-indigo-600 text-white rounded-lg h-8 w-8 flex items-center justify-center shrink-0">
+                        <i data-lucide="heart-handshake" class="w-4 h-4"></i>
+                      </div>
+                      <div class="flex-1 min-w-0 pr-2">
+                        <h5 class="text-xs font-bold text-slate-800">Equipe Social</h5>
+                        <p class="text-[9px] text-slate-500 mt-0.5 leading-tight">Alerta imediato p/ os assistentes sociais da Regional.</p>
+                      </div>
+                      <div class="absolute right-2 top-2 text-indigo-600" id="flow-check-social">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 fill-indigo-100"></i>
+                      </div>
+                    </div>
+
+                    <div id="flow-card-gp" onclick="setFlowType('GP')" class="border-2 border-slate-200 bg-white p-3 rounded-xl cursor-pointer hover:border-slate-300 hover:bg-slate-50/50 transition-all flex gap-3 relative overflow-hidden">
+                      <div class="p-2 bg-slate-100 text-slate-600 rounded-lg h-8 w-8 flex items-center justify-center shrink-0" id="flow-icon-box-gp">
+                        <i data-lucide="user-cog" class="w-4 h-4"></i>
+                      </div>
+                      <div class="flex-1 min-w-0 pr-2">
+                        <h5 class="text-xs font-bold text-slate-800">GP Local</h5>
+                        <p class="text-[9px] text-slate-500 mt-0.5 leading-tight">Monitoramento interno. Permite agendar data de retomada.</p>
+                      </div>
+                      <div class="absolute right-2 top-2 text-slate-300 hidden" id="flow-check-gp">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 fill-slate-50"></i>
+                      </div>
+                    </div>
+
+                    <div id="flow-card-mulher" onclick="setFlowType('MULHER')" class="border-2 border-slate-200 bg-white p-3 rounded-xl cursor-pointer hover:border-slate-300 hover:bg-slate-50/50 transition-all flex gap-3 relative overflow-hidden">
+                      <div class="p-2 bg-slate-100 text-slate-600 rounded-lg h-8 w-8 flex items-center justify-center shrink-0" id="flow-icon-box-mulher">
+                        <i data-lucide="shield" class="w-4 h-4"></i>
+                      </div>
+                      <div class="flex-1 min-w-0 pr-2">
+                        <h5 class="text-xs font-bold text-slate-800">Canal da Mulher</h5>
+                        <p class="text-[9px] text-slate-500 mt-0.5 leading-tight">Canal dedicado. Alerta exclusivo para Tarsila de Paula.</p>
+                      </div>
+                      <div class="absolute right-2 top-2 text-slate-300 hidden" id="flow-check-mulher">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 fill-slate-50"></i>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Telefone Atual de Contato</label>
+                    <div class="relative">
+                      <i data-lucide="phone" class="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                      <input type="text" id="form-telefone" oninput="formatarTelefone(this)" placeholder="(11) 99999-9999" class="w-full text-xs pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white">
+                    </div>
+                    <span id="phone-helper-msg" class="text-[10px] text-indigo-500 mt-1 font-medium hidden"></span>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Classificação do Motivo</label>
+                    <div class="flex gap-2">
+                      <select id="form-classificacao" class="flex-1 text-xs px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white font-medium">
+                        <!-- Alimentado dinamicamente. O primeiro item agora é o placeholder -->
+                      </select>
+                      <button id="btn-add-classificacao" onclick="openNewClassifModal()" class="px-3 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-600 rounded-xl transition-all hidden" title="Nova classificação">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="border-t border-slate-100 pt-4">
+                  <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2.5">Tratamento de Fechamento / Próximo Passo</label>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    
+                    <div id="step-card-retorno" onclick="setNextStep('RETORNO')" class="border-2 border-indigo-600 bg-indigo-50/30 p-3.5 rounded-xl cursor-pointer hover:bg-indigo-50/50 transition-all flex gap-3 relative overflow-hidden">
+                      <div class="p-2 bg-indigo-600 text-white rounded-lg h-9 w-9 flex items-center justify-center">
+                        <i data-lucide="calendar-plus" class="w-5 h-5"></i>
+                      </div>
+                      <div class="flex-1 min-w-0 pr-4">
+                        <h5 class="text-xs font-bold text-slate-800">Agendar Novo Retorno</h5>
+                        <p class="text-[10px] text-slate-500 mt-0.5 leading-snug">Mantém o caso ativo na base regional e insere automaticamente uma data em sua Google Agenda.</p>
+                      </div>
+                      <div class="absolute right-3 top-3 text-indigo-600" id="step-check-retorno">
+                        <i data-lucide="check-circle-2" class="w-4.5 h-4.5 fill-indigo-100"></i>
+                      </div>
+                    </div>
+
+                    <div id="step-card-finalizar" onclick="setNextStep('FINALIZAR')" class="border-2 border-slate-200 bg-white p-3.5 rounded-xl cursor-pointer hover:border-slate-300 hover:bg-slate-50/50 transition-all flex gap-3 relative overflow-hidden">
+                      <div class="p-2 bg-slate-100 text-slate-600 rounded-lg h-9 w-9 flex items-center justify-center" id="step-icon-box-finalizar">
+                        <i data-lucide="check" class="w-5 h-5"></i>
+                      </div>
+                      <div class="flex-1 min-w-0 pr-4">
+                        <h5 class="text-xs font-bold text-slate-800">Encerrar / Finalizar Atendimento</h5>
+                        <p class="text-[10px] text-slate-500 mt-0.5 leading-snug">Grava o caso como concluído e resolvido na planilha. Não agenda novos alertas temporais.</p>
+                      </div>
+                      <div class="absolute right-3 top-3 text-slate-300 hidden" id="step-check-finalizar">
+                        <i data-lucide="check-circle-2" class="w-4.5 h-4.5 fill-slate-50"></i>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                <div id="container-data-retomada" class="animate-fade-in bg-purple-50/40 p-4 border border-purple-100/80 rounded-xl">
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="max-w-md">
+                      <h5 class="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                        <i data-lucide="calendar-clock" class="w-4 h-4 text-purple-600"></i>
+                        Programação de Retomada de Contato
+                      </h5>
+                      <p class="text-[10px] text-purple-600 mt-0.5">Selecione o dia planejado. No dia do compromisso, o robô enviará um lembrete em HTML por e-mail para você.</p>
+                    </div>
+                    <div class="relative w-full sm:w-48 shrink-0">
+                      <input type="date" id="form-data-retomada" class="w-full text-xs px-3 py-2 border border-purple-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 bg-white font-medium text-slate-700 h-9">
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label id="form-obs-label" class="block text-xs font-semibold text-slate-600 uppercase mb-1">Observações / Diagnóstico Preliminar</label>
+                  <textarea id="form-obsSocial" rows="3" placeholder="Detalhes da situação habitacional, dores relatadas, suporte pretendido..." class="w-full text-xs p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white"></textarea>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Anotações Internas de Gestão de Pessoas (GP)</label>
+                  <textarea id="form-parecerGP" rows="3" placeholder="Medidas tomadas localmente pelo GP, contato com gestores, CAT encaminhada, etc..." class="w-full text-xs p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-2">
+                  <button onclick="clearForm()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100 transition-all">
+                    Limpar Formulário
+                  </button>
+                  <button onclick="submitSocialRecord()" id="btn-submit-form" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                    Disparar Caso
+                  </button>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL DE ATENDIMENTO COMPLETO -->
+  <div id="modal-atendimento" class="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-white w-full max-w-lg rounded-2xl border border-slate-100 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="bg-slate-900 text-white p-5 flex items-center justify-between shrink-0">
+        <div>
+          <h4 class="font-bold text-sm">Ficha Detalhada do Registro</h4>
+          <p class="text-[10px] text-slate-400 mt-0.5" id="modal-subtitulo">Consulta de Atendimento</p>
+        </div>
+        <button onclick="closeAtendimentoModal()" class="text-slate-400 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-4 text-xs custom-scrollbar">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <span class="text-[10px] text-slate-400 font-semibold block uppercase">Colaborador</span>
+            <p class="font-bold text-slate-800 mt-0.5" id="modal-colab">Nome Completo</p>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 font-semibold block uppercase">Situação Funcional</span>
+            <p class="mt-0.5" id="modal-situacao-funcional">--</p>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 font-semibold block uppercase">Data Entrada</span>
+            <p class="font-bold text-slate-800 mt-0.5" id="modal-data">00/00/0000</p>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 font-semibold block uppercase">Cargo</span>
+            <p class="font-bold text-slate-800 mt-0.5" id="modal-cargo">Função</p>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 font-semibold block uppercase">Regional</span>
+            <p class="font-bold text-slate-800 mt-0.5" id="modal-regional">São Paulo</p>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 font-semibold block uppercase">Filial</span>
+            <p class="font-bold text-indigo-600 mt-0.5" id="modal-filial">Loja --</p>
+          </div>
+        </div>
+        
+        <div class="flex gap-2 border-t border-slate-100 pt-4">
+          <div>
+            <span class="text-[10px] text-slate-400 font-semibold block uppercase">Classificação</span>
+            <span class="inline-block px-2.5 py-0.5 bg-amber-50 text-amber-800 font-bold rounded-md border border-amber-100 mt-1" id="modal-classificacao">Outros</span>
+          </div>
+          <div>
+            <span class="text-[10px] text-slate-400 font-semibold block uppercase">Canal/Fluxo</span>
+            <span class="inline-block px-2.5 py-0.5 font-bold rounded-md border mt-1" id="modal-fluxo-badge">Social</span>
+          </div>
+        </div>
+        
+        <div class="border-t border-slate-100 pt-4 space-y-3">
+          <div>
+            <h5 class="font-semibold text-slate-800 mb-1" id="modal-obs-title">Observações do Atendimento</h5>
+            <div class="bg-slate-50 p-3 rounded-xl text-slate-600 whitespace-pre-line leading-relaxed text-[11px]" id="modal-obs">
+              Detalhes do caso...
+            </div>
+          </div>
+          <div>
+            <h5 class="font-semibold text-slate-800 mb-1">Parecer de Gestão de Pessoas</h5>
+            <div class="bg-slate-50 p-3 rounded-xl text-slate-600 whitespace-pre-line leading-relaxed text-[11px]" id="modal-parecer">
+              Parecer...
+            </div>
+          </div>
+          <div id="modal-retomada-box" class="hidden">
+            <h5 class="font-semibold text-purple-900 mb-1">Compromisso de Retomada</h5>
+            <div class="bg-purple-50 p-3 rounded-xl text-purple-800 leading-relaxed text-[11px] font-bold" id="modal-retomada-date">
+              --/--/----
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="p-4 border-t border-slate-100 flex justify-end shrink-0 bg-slate-50">
+        <button onclick="closeAtendimentoModal()" class="px-4 py-2 bg-slate-900 text-white font-semibold rounded-xl text-xs hover:bg-slate-800 transition-colors">
+          Fechar Visualização
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CADASTRO DE NOVA CLASSIFICAÇÃO -->
+  <div id="modal-nova-classif" class="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+    <div class="bg-white w-full max-w-sm rounded-2xl border border-slate-100 shadow-2xl overflow-hidden flex flex-col">
+      <div class="bg-slate-900 text-white p-5 flex items-center justify-between shrink-0">
+        <div>
+          <h4 class="font-bold text-sm">Nova Classificação</h4>
+          <p class="text-[10px] text-slate-400 mt-0.5">Criar novo motivo de assistência</p>
+        </div>
+        <button onclick="closeNewClassifModal()" class="text-slate-400 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-4 text-xs">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nome do Motivo</label>
+          <input type="text" id="new-classif-input" placeholder="Ex: APOSENTADORIA..." class="w-full text-xs p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 uppercase font-bold">
+        </div>
+      </div>
+      <div class="p-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50">
+        <button onclick="closeNewClassifModal()" class="px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100">
+          Cancelar
+        </button>
+        <button onclick="submitNewClassification()" id="btn-save-classif" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl text-xs hover:bg-indigo-700 transition-colors">
+          Salvar Motivo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const isGoogleAppsScript = (typeof google !== 'undefined' && google.script && google.script.run);
+    
+    // Função utilitária estrita para sanitização de XSS em inserções no innerHTML
+    function escapeHTML(str) {
+      if (str === null || str === undefined) return "";
+      return str.toString().replace(/[&<>'"]/g, function(tag) {
+        const charsToReplace = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          "'": '&#39;',
+          '"': '&quot;'
+        };
+        return charsToReplace[tag] || tag;
+      });
+    }
+    
+    const mockDb = {
+      user: {
+        email: "fabiane.satie@magazineluiza.com.br",
+        nome: "Fabiane Satie",
+        cargo: "Gerente GP",
+        diretoria: "Todas",
+        regionais: ["TODAS"],
+        nivelAcesso: "Administrador"
+      },
+      rol: {
+        "103361": { id: "103361", nome: "ELENYR CHRISTINA DE CARVALHO COSTA", filial: "0124", tempoEmpresa: "21a 8m", regional: "RIBEIRÃO PRETO", cargo: "VENDEDOR" }
+      },
+      classificacoes: ["ACIDENTE TRABALHO", "AFASTAMENTO", "BENEFICIO", "CALAMIDADE"],
+      atendimentos: [
+        { dataEntrada: "10/05/2026", id: "103361", colaborador: "ELENYR CHRISTINA COSTA", cargo: "VENDEDOR", regional: "RIBEIRÃO PRETO", diretoria: "SP/RJ", coordenador: "Josiane Emilio", filial: "0124", classificacao: "BENEFICIO", obsSocial: "Auxílio solicitado.", parecerGP: "OK.", fluxo: "SOCIAL", situacaoFuncional: "ATIVO" },
+        { dataEntrada: "12/07/2026", id: "103361", colaborador: "ELENYR CHRISTINA COSTA", cargo: "VENDEDOR", regional: "RIBEIRÃO PRETO", diretoria: "SP/RJ", coordenador: "Josiane Emilio", filial: "0124", classificacao: "SAÚDE", obsSocial: "Acompanhamento Canal da Mulher", parecerGP: "Sigiloso.", fluxo: "MULHER", situacaoFuncional: "ATIVO" }
+      ]
+    };
+
+    let currentUserProfile = null;
+    let localAtendimentos = [];
+    let activeColaborador = null;
+    let chartMotivosInstance = null;
+    let chartRegionaisInstance = null;
+    let selectedFlowType = "SOCIAL";
+    let selectedNextStep = "RETORNO";
+    let currentMotivoChartMode = 'categoria';
+    let isManualInputActive = false;
+
+    window.onload = function() {
+      const indicator = document.getElementById('indicator-environment');
+      if (isGoogleAppsScript) {
+        indicator.innerText = "Produção (Google Sheets)";
+        indicator.className = "text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium border border-emerald-100";
+      } else {
+        indicator.innerText = "Simulador Integrado GP360";
+        indicator.className = "text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium border border-amber-100 animate-pulse";
+      }
+
+      callBackend("getUserProfileContext", null, function(profile) {
+        currentUserProfile = profile;
+        document.getElementById('usr-nome').innerText = escapeHTML(profile.nome);
+        document.getElementById('header-regional-info').innerText = escapeHTML(profile.regionais.join(", "));
+        
+        if (profile.nivelAcesso === "Administrador" || profile.email.toLowerCase().trim() === "fabiane.satie@magazineluiza.com.br") {
+          document.getElementById('btn-add-classificacao').classList.remove('hidden');
+        }
+
+        loadClassificacoes();
+        refreshData();
+      });
+
+      setNextStep('RETORNO');
+      lucide.createIcons();
+    };
+
+    function callBackend(method, arg, successCallback, failureCallback) {
+      if (isGoogleAppsScript && typeof google.script.run !== 'undefined' && typeof google.script.run[method] === 'function') {
+        let runner = google.script.run;
+        if (successCallback) runner = runner.withSuccessHandler(successCallback);
+        if (failureCallback) runner = runner.withFailureHandler(failureCallback);
+        runner[method](arg);
+      } else {
+        setTimeout(() => {
+          try {
+            if (method === "getUserProfileContext") successCallback(mockDb.user);
+            else if (method === "getClassificacoes") successCallback(mockDb.classificacoes);
+            else if (method === "getAtendimentosData") successCallback(mockDb.atendimentos);
+            else if (method === "searchColabById") {
+              const queryId = arg.toString().trim();
+              if (mockDb.rol[queryId]) {
+                successCallback({
+                  manualMode: false,
+                  colaborador: { ...mockDb.rol[queryId], situacaoFuncional: "ATIVO" },
+                  historico: mockDb.atendimentos.filter(a => a.id === queryId).map(h => ({
+                    data: h.dataEntrada, classificacao: h.classificacao, obsSocial: h.obsSocial, parecerGP: h.parecerGP, dataRetomada: h.dataRetomada || "", fluxo: h.fluxo || "SOCIAL"
+                  }))
+                });
+              } else {
+                successCallback({ manualMode: true, colaborador: { id: queryId, nome: "", filial: "", regional: "SÃO PAULO", cargo: "", tempoEmpresa: "Fora da Base", telefone: "", situacaoFuncional: "INATIVO" }, historico: [] });
+              }
+            } else if (method === "saveNewSocialRecord") {
+              successCallback(true);
+            }
+          } catch(err) {
+            if (failureCallback) failureCallback(err);
+          }
+        }, 200);
+      }
+    }
+
+    function switchTab(tabName) {
+      const viewDash = document.getElementById('view-dashboard');
+      const viewForm = document.getElementById('view-formulario');
+      const btnDash = document.getElementById('btn-header-dash');
+      const btnForm = document.getElementById('btn-header-form');
+
+      if (!viewDash || !viewForm) return;
+
+      viewDash.classList.add('hidden');
+      viewForm.classList.add('hidden');
+
+      if (btnDash) btnDash.className = "px-3.5 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5";
+      if (btnForm) btnForm.className = "px-3.5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl text-xs font-semibold shadow-md transition-all flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]";
+
+      if (tabName === 'dashboard') {
+        viewDash.classList.remove('hidden');
+        if (btnDash) btnDash.className = "px-3.5 py-2 bg-indigo-50 text-indigo-700 border border-indigo-150 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5";
+        refreshData();
+      } else if (tabName === 'formulario') {
+        viewForm.classList.remove('hidden');
+        if (btnForm) btnForm.className = "px-3.5 py-2 bg-gradient-to-tr from-indigo-700 to-purple-600 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 hover:scale-105";
+      }
+    }
+
+    function refreshData() {
+      const btnIcon = document.getElementById('btn-refresh-icon');
+      if (btnIcon) btnIcon.classList.add('animate-spin');
+
+      callBackend("getAtendimentosData", null, function(data) {
+        if (btnIcon) btnIcon.classList.remove('animate-spin');
+        localAtendimentos = data || [];
+        populateFilterOptions(localAtendimentos);
+        applyDashboardFilters();
+      }, function(err) {
+        if (btnIcon) btnIcon.classList.remove('animate-spin');
+        showToast("Erro na sincronização", "Não foi possível carregar as informações.", "error");
+      });
+    }
+
+    function handleIdInputChange(input) {
+      if (!input.value.trim()) {
+        resetFormState();
+      }
+    }
+
+    function handleSearchColab() {
+      const input = document.getElementById('search-id-input');
+      const btn = document.getElementById('btn-buscar-colab');
+      const id = input ? input.value.toString().trim() : "";
+      
+      if (!id) {
+        showToast("Insira o ID", "Por favor, digite o ID para busca automática.", "warning");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="w-4 h-4 animate-spin border-2 border-white border-t-transparent rounded-full"></i>';
+
+      callBackend("searchColabById", id, function(result) {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="search" class="w-4 h-4"></i> Buscar';
+        lucide.createIcons();
+
+        if (result && result.error) {
+          showToast("Alçada Restrita", result.error, "warning");
+          resetFormState();
+          return;
+        }
+
+        activeColaborador = result.colaborador;
+        isManualInputActive = result.manualMode;
+        
+        document.getElementById('colab-card-empty').classList.add('hidden');
+        document.getElementById('colab-card-filled').classList.remove('hidden');
+        document.getElementById('form-overlay').classList.add('hidden');
+
+        const cardHeader = document.getElementById('card-header-gradient');
+        const badgeStatus = document.getElementById('colab-status-badge');
+        const viewModeDiv = document.getElementById('colab-view-mode');
+        const manualModeDiv = document.getElementById('colab-manual-mode');
+
+        document.getElementById('card-colab-id').innerText = escapeHTML(result.colaborador.id);
+
+        if (!result.manualMode && result.colaborador.situacaoFuncional === "ATIVO") {
+          cardHeader.className = "p-5 text-white bg-gradient-to-r from-indigo-950 via-indigo-900 to-slate-900 transition-all relative";
+          badgeStatus.innerText = "🟢 ATIVO (BASE_ROL)";
+          badgeStatus.className = "absolute top-4 right-4 text-[9px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 uppercase tracking-wider shadow-sm";
+
+          document.getElementById('card-colab-avatar').innerText = result.colaborador.nome ? escapeHTML(result.colaborador.nome.charAt(0)) : "?";
+          document.getElementById('card-colab-nome').innerText = escapeHTML(result.colaborador.nome);
+          document.getElementById('card-colab-cargo').innerText = escapeHTML(result.colaborador.cargo);
+          document.getElementById('card-colab-regional').innerText = escapeHTML(result.colaborador.regional);
+          document.getElementById('card-colab-filial').innerText = "Loja " + escapeHTML(result.colaborador.filial);
+          document.getElementById('card-colab-tempo').innerText = escapeHTML(result.colaborador.tempoEmpresa);
+
+          viewModeDiv.classList.remove('hidden');
+          manualModeDiv.classList.add('hidden');
+          showToast("Identificação Concluída", "Colaborador ativo localizado na BASE_ROL.", "success");
+        } else {
+          cardHeader.className = "p-5 text-white bg-gradient-to-r from-amber-800 via-slate-800 to-slate-900 transition-all relative";
+          badgeStatus.innerText = "🟡 PREENCHIMENTO MANUAL LIBERADO";
+          badgeStatus.className = "absolute top-4 right-4 text-[9px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-500/30 uppercase tracking-wider shadow-sm";
+
+          document.getElementById('manual-colab-nome').value = result.colaborador.nome || "";
+          document.getElementById('manual-colab-filial').value = result.colaborador.filial || "";
+          document.getElementById('manual-colab-regional').value = result.colaborador.regional || "SÃO PAULO";
+          document.getElementById('manual-colab-cargo').value = result.colaborador.cargo || "";
+
+          viewModeDiv.classList.add('hidden');
+          manualModeDiv.classList.remove('hidden');
+          syncManualInputs();
+          showToast("Preenchimento Manual Liberado", "Colaborador não consta na base ativa. Preencha ou confirme os dados.", "warning");
+        }
+
+        const phoneInput = document.getElementById('form-telefone');
+        const phoneHelper = document.getElementById('phone-helper-msg');
+        if (result.colaborador.telefone) {
+          phoneInput.value = result.colaborador.telefone;
+          formatarTelefone(phoneInput);
+          phoneHelper.innerText = "Telefone histórico carregado automaticamente.";
+          phoneHelper.classList.remove('hidden');
+        } else {
+          phoneInput.value = '';
+          phoneHelper.classList.add('hidden');
+        }
+
+        renderHistorico(result.historico || []);
+
+      }, function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="search" class="w-4 h-4"></i> Buscar';
+        lucide.createIcons();
+        showToast("Erro na Consulta", err.message || "Não foi possível concluir a busca.", "error");
+      });
+    }
+
+    function syncManualInputs() {
+      if (!activeColaborador) return;
+      const nomeVal = document.getElementById('manual-colab-nome').value.trim();
+      const filialVal = document.getElementById('manual-colab-filial').value.trim();
+      const regionalVal = document.getElementById('manual-colab-regional').value.trim().toUpperCase();
+      const cargoVal = document.getElementById('manual-colab-cargo').value.trim();
+
+      activeColaborador.nome = nomeVal || "Colaborador Não Cadastrado";
+      activeColaborador.filial = filialVal || "0000";
+      activeColaborador.regional = regionalVal || "SÃO PAULO";
+      activeColaborador.cargo = cargoVal || "OUTROS";
+
+      document.getElementById('card-colab-avatar').innerText = activeColaborador.nome ? escapeHTML(activeColaborador.nome.charAt(0)) : "?";
+      document.getElementById('card-colab-nome').innerText = escapeHTML(activeColaborador.nome);
+      document.getElementById('card-colab-cargo').innerText = escapeHTML(activeColaborador.cargo);
+    }
+
+    function formatarTelefone(input) {
+      let value = input.value.replace(/\D/g, "");
+      if (value.length > 11) value = value.slice(0, 11);
+      
+      if (value.length > 10) {
+        value = value.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
+      } else if (value.length > 6) {
+        value = value.replace(/^(\d{2})(\d{4})(\d{0,4})$/, "($1) $2-$3");
+      } else if (value.length > 2) {
+        value = value.replace(/^(\d{2})(\d{0,4})$/, "($1) $2");
+      } else if (value.length > 0) {
+        value = value.replace(/^(\d{0,2})$/, "($1");
+      }
+      input.value = value;
+    }
+
+    function setFlowType(type) {
+      selectedFlowType = type;
+      const cardSocial = document.getElementById('flow-card-social');
+      const cardGP = document.getElementById('flow-card-gp');
+      const cardMulher = document.getElementById('flow-card-mulher');
+      const checkSocial = document.getElementById('flow-check-social');
+      const checkGP = document.getElementById('flow-check-gp');
+      const checkMulher = document.getElementById('flow-check-mulher');
+      const iconGP = document.getElementById('flow-icon-box-gp');
+      const iconMulher = document.getElementById('flow-icon-box-mulher');
+      const labelObs = document.getElementById('form-obs-label');
+      const textObs = document.getElementById('form-obsSocial');
+      const btnSubmit = document.getElementById('btn-submit-form');
+
+      // RESET
+      [cardSocial, cardGP, cardMulher].forEach(card => card.className = "border-2 border-slate-200 bg-white p-3 rounded-xl cursor-pointer hover:border-slate-300 hover:bg-slate-50/50 transition-all flex gap-3 relative overflow-hidden");
+      [checkSocial, checkGP, checkMulher].forEach(check => check.classList.add('hidden'));
+      iconGP.className = "p-2 bg-slate-100 text-slate-600 rounded-lg h-8 w-8 flex items-center justify-center shrink-0";
+      iconMulher.className = "p-2 bg-slate-100 text-slate-600 rounded-lg h-8 w-8 flex items-center justify-center shrink-0";
+
+      if (type === 'SOCIAL') {
+        cardSocial.classList.replace('border-slate-200', 'border-indigo-600');
+        cardSocial.classList.replace('bg-white', 'bg-indigo-50/30');
+        checkSocial.classList.remove('hidden');
+        labelObs.innerText = "Observações / Diagnóstico Preliminar";
+        textObs.placeholder = "Detalhes da situação habitacional, dores relatadas, suporte pretendido...";
+        btnSubmit.className = "px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg hover:scale-[1.02] active:scale-95 cursor-pointer";
+        btnSubmit.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Disparar Atendimento';
+      } else if (type === 'GP') {
+        cardGP.classList.replace('border-slate-200', 'border-purple-600');
+        cardGP.classList.replace('bg-white', 'bg-purple-50/30');
+        checkGP.classList.remove('hidden');
+        iconGP.className = "p-2 bg-purple-600 text-white rounded-lg h-8 w-8 flex items-center justify-center shrink-0";
+        labelObs.innerText = "Observações GP Regional (Acompanhamento Local)";
+        textObs.placeholder = "Registre o progresso conversado localmente com o colaborador...";
+        btnSubmit.className = "px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg hover:scale-[1.02] active:scale-95 cursor-pointer";
+        btnSubmit.innerHTML = '<i data-lucide="user-cog" class="w-4 h-4"></i> Gravar Acompanhamento';
+      } else if (type === 'MULHER') {
+        cardMulher.classList.replace('border-slate-200', 'border-rose-600');
+        cardMulher.classList.replace('bg-white', 'bg-rose-50/30');
+        checkMulher.classList.remove('hidden');
+        iconMulher.className = "p-2 bg-rose-600 text-white rounded-lg h-8 w-8 flex items-center justify-center shrink-0";
+        labelObs.innerText = "Detalhes do Acolhimento - CANAL DA MULHER";
+        textObs.placeholder = "Descreva a situação de forma sensível e confidencial...";
+        btnSubmit.className = "px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg hover:scale-[1.02] active:scale-95 cursor-pointer";
+        btnSubmit.innerHTML = '<i data-lucide="shield-alert" class="w-4 h-4"></i> Acionar Tarsila de Paula';
+      }
+      lucide.createIcons();
+    }
+
+    function setNextStep(step) {
+      selectedNextStep = step;
+      const cardRetorno = document.getElementById('step-card-retorno');
+      const cardFinalizar = document.getElementById('step-card-finalizar');
+      const checkRetorno = document.getElementById('step-check-retorno');
+      const checkFinalizar = document.getElementById('step-check-finalizar');
+      const iconFinalizar = document.getElementById('step-icon-box-finalizar');
+      const containerRetomada = document.getElementById('container-data-retomada');
+
+      if (step === 'RETORNO') {
+        cardRetorno.className = "border-2 border-indigo-600 bg-indigo-50/30 p-3.5 rounded-xl cursor-pointer hover:bg-indigo-50/50 transition-all flex gap-3 relative overflow-hidden";
+        cardFinalizar.className = "border-2 border-slate-200 bg-white p-3.5 rounded-xl cursor-pointer hover:border-slate-300 hover:bg-slate-50/50 transition-all flex gap-3 relative overflow-hidden";
+        checkRetorno.classList.remove('hidden');
+        checkFinalizar.classList.add('hidden');
+        iconFinalizar.className = "p-2 bg-slate-100 text-slate-600 rounded-lg h-9 w-9 flex items-center justify-center";
+        containerRetomada.classList.remove('hidden');
+      } else {
+        cardRetorno.className = "border-2 border-slate-200 bg-white p-3.5 rounded-xl cursor-pointer hover:border-slate-300 hover:bg-slate-50/50 transition-all flex gap-3 relative overflow-hidden";
+        cardFinalizar.className = "border-2 border-emerald-600 bg-emerald-50/30 p-3.5 rounded-xl cursor-pointer hover:bg-emerald-50/50 transition-all flex gap-3 relative overflow-hidden";
+        checkRetorno.classList.add('hidden');
+        checkFinalizar.classList.remove('hidden');
+        iconFinalizar.className = "p-2 bg-emerald-600 text-white rounded-lg h-9 w-9 flex items-center justify-center";
+        containerRetomada.classList.add('hidden');
+        document.getElementById('form-data-retomada').value = '';
+      }
+      lucide.createIcons();
+    }
+
+    function loadClassificacoes() {
+      callBackend("getClassificacoes", null, function(lista) {
+        const select = document.getElementById('form-classificacao');
+        if (!select) return;
+        
+        // Bloqueio de submissão sem classificação e placeholder inseridos
+        select.innerHTML = '<option value="" disabled selected>ESCOLHER MOTIVO</option>';
+        (lista || []).forEach(item => {
+          const opt = document.createElement('option');
+          opt.value = item;
+          opt.innerText = item;
+          select.appendChild(opt);
+        });
+      });
+    }
+
+    function renderHistorico(historico) {
+      const emptyDiv = document.getElementById('historico-empty');
+      const timelineDiv = document.getElementById('historico-timeline');
+      const counterBadge = document.getElementById('historico-counter-badge');
+      
+      counterBadge.innerText = `${historico.length} casos`;
+
+      if (historico.length === 0) {
+        emptyDiv.innerText = "Nenhum histórico passado localizado para este ID.";
+        emptyDiv.classList.remove('hidden');
+        timelineDiv.classList.add('hidden');
+        return;
+      }
+
+      emptyDiv.classList.add('hidden');
+      timelineDiv.classList.remove('hidden');
+      timelineDiv.innerHTML = '';
+
+      historico.forEach(item => {
+        const div = document.createElement('div');
+        div.className = "flex gap-3 items-start bg-slate-50 hover:bg-indigo-50/20 p-3 rounded-xl border border-slate-100 hover:border-indigo-100 transition-all cursor-pointer";
+        
+        div.onclick = function() {
+          showAtendimentoModal({
+            colaborador: activeColaborador.nome,
+            dataEntrada: item.data,
+            cargo: activeColaborador.cargo,
+            regional: activeColaborador.regional,
+            classificacao: item.classificacao,
+            obsSocial: item.obsSocial,
+            parecerGP: item.parecerGP,
+            filial: activeColaborador.filial,
+            fluxo: item.fluxo || "SOCIAL",
+            situacaoFuncional: activeColaborador.situacaoFuncional,
+            dataRetomada: item.dataRetomada || ""
+          });
+        };
+
+        const isMulher = (item.fluxo === "MULHER");
+        const isSocial = (item.fluxo === "SOCIAL");
+        
+        let badgeColor = "bg-purple-50 text-purple-800 border-purple-100";
+        let flowLabel = "GP";
+        
+        if (isSocial) {
+          badgeColor = "bg-amber-50 text-amber-800 border-amber-100";
+          flowLabel = "Social";
+        } else if (isMulher) {
+          badgeColor = "bg-rose-50 text-rose-800 border-rose-100";
+          flowLabel = "Mulher";
+        }
+
+        // Blindagem XSS na injeção do histórico
+        div.innerHTML = `
+          <div class="px-2 py-1 rounded text-[9px] font-bold shrink-0 uppercase tracking-wider ${badgeColor}">${flowLabel} | ${escapeHTML(item.classificacao)}</div>
+          <div class="flex-1 min-w-0">
+            <p class="font-medium text-slate-800 text-[11px] truncate">${escapeHTML(item.obsSocial)}</p>
+            <span class="text-[9px] text-slate-400 block mt-0.5">${escapeHTML(item.data)}</span>
+          </div>
+          <i data-lucide="eye" class="w-3.5 h-3.5 text-slate-400 shrink-0 self-center"></i>
+        `;
+        timelineDiv.appendChild(div);
+      });
+      lucide.createIcons();
+    }
+
+    function submitSocialRecord() {
+      if (!activeColaborador) return;
+
+      if (isManualInputActive) {
+        syncManualInputs();
+        if (!activeColaborador.nome || activeColaborador.nome === "Colaborador Não Cadastrado") {
+          showToast("Nome Obrigatório", "Por favor, digite o nome completo do colaborador.", "warning");
+          return;
+        }
+      }
+
+      const tel = document.getElementById('form-telefone').value.trim();
+      const classif = document.getElementById('form-classificacao').value; // Retorna null ou "" se a default placeholder estiver ativa
+      const obs = document.getElementById('form-obsSocial').value.trim();
+      const parecer = document.getElementById('form-parecerGP').value.trim();
+      const retomada = document.getElementById('form-data-retomada').value;
+      
+      if (!classif) {
+        showToast("Classificação Obrigatória", "Por favor, escolha o motivo no menu suspenso antes de salvar.", "warning");
+        return;
+      }
+
+      if (!tel || !obs || !parecer) {
+        showToast("Preencha o Formulário", "Por favor, digite todos os campos exigidos.", "warning");
+        return;
+      }
+
+      if (selectedNextStep === 'RETORNO' && !retomada) {
+        showToast("Data Requerida", "Selecione o dia do retorno no calendário.", "warning");
+        return;
+      }
+
+      const btn = document.getElementById('btn-submit-form');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="w-4 h-4 animate-spin border-2 border-white border-t-transparent rounded-full"></i> Gravando...';
+
+      const payload = {
+        id: activeColaborador.id,
+        telefone: tel,
+        classificacao: classif,
+        obsSocial: obs,
+        parecerGP: parecer,
+        fluxo: selectedFlowType,
+        dataRetomada: selectedNextStep === 'RETORNO' ? retomada : "",
+        situacao: selectedNextStep === 'RETORNO' ? "ATIVO" : "FINALIZADO"
+      };
+
+      callBackend("saveNewSocialRecord", payload, function(success) {
+        btn.disabled = false;
+        setFlowType(selectedFlowType);
+        
+        if (success) {
+          showToast("Atendimento Gravado", "Operação concluída e consolidada no banco de dados.", "success");
+          resetFormState();
+          document.getElementById('search-id-input').value = '';
+          setTimeout(() => { switchTab('dashboard'); }, 1200);
+        }
+      }, function(err) {
+        btn.disabled = false;
+        setFlowType(selectedFlowType);
+        showToast("Erro no Registro", err.message || "Erro de conexão ao gravar.", "error");
+      });
+    }
+
+    function resetFormState() {
+      activeColaborador = null;
+      isManualInputActive = false;
+      document.getElementById('colab-card-empty').classList.remove('hidden');
+      document.getElementById('colab-card-filled').classList.add('hidden');
+      document.getElementById('form-overlay').classList.remove('hidden');
+      document.getElementById('historico-empty').classList.remove('hidden');
+      document.getElementById('historico-timeline').classList.add('hidden');
+      document.getElementById('historico-counter-badge').innerText = "0 casos";
+      document.getElementById('phone-helper-msg').classList.add('hidden');
+      clearForm();
+    }
+
+    function clearForm() {
+      document.getElementById('form-telefone').value = '';
+      document.getElementById('form-obsSocial').value = '';
+      document.getElementById('form-parecerGP').value = '';
+      document.getElementById('form-data-retomada').value = '';
+      document.getElementById('manual-colab-nome').value = '';
+      document.getElementById('manual-colab-filial').value = '';
+      document.getElementById('manual-colab-regional').value = '';
+      document.getElementById('manual-colab-cargo').value = '';
+      document.getElementById('form-classificacao').value = '';
+      setFlowType('SOCIAL');
+      setNextStep('RETORNO');
+    }
+
+    function populateFilterOptions(data) {
+      const filterDir = document.getElementById('filter-diretoria');
+      const filterReg = document.getElementById('filter-regional');
+      const filterCoord = document.getElementById('filter-coordenador');
+      const filterFilial = document.getElementById('filter-filial');
+
+      if (!filterDir || !filterReg) return;
+
+      const prevDir = filterDir.value || "TODAS";
+      const prevReg = filterReg.value || "TODAS";
+      const prevCoord = filterCoord ? filterCoord.value : "TODOS";
+      const prevFilial = filterFilial ? filterFilial.value : "TODAS";
+
+      const dSet = new Set();
+      const rSet = new Set();
+      const cSet = new Set();
+      const fSet = new Set();
+
+      data.forEach(item => {
+        if (item.diretoria) dSet.add(item.diretoria.toUpperCase().trim());
+        if (item.regional) rSet.add(item.regional.toUpperCase().trim());
+        if (item.coordenador) cSet.add(item.coordenador.toUpperCase().trim());
+        if (item.filial) fSet.add(item.filial.trim());
+      });
+
+      filterDir.innerHTML = '<option value="TODAS">DIRETORIAS (TODAS)</option>';
+      [...dSet].sort().forEach(d => filterDir.innerHTML += `<option value="${escapeHTML(d)}">${escapeHTML(d)}</option>`);
+
+      filterReg.innerHTML = '<option value="TODAS">REGIONAIS (TODAS)</option>';
+      [...rSet].sort().forEach(r => filterReg.innerHTML += `<option value="${escapeHTML(r)}">${escapeHTML(r)}</option>`);
+
+      if (filterCoord) {
+        filterCoord.innerHTML = '<option value="TODOS">COORDENADORES (TODOS)</option>';
+        [...cSet].sort().forEach(c => filterCoord.innerHTML += `<option value="${escapeHTML(c)}">${escapeHTML(c)}</option>`);
+      }
+
+      if (filterFilial) {
+        filterFilial.innerHTML = '<option value="TODAS">FILIAIS (TODAS)</option>';
+        [...fSet].sort((a,b)=>parseInt(a)-parseInt(b)).forEach(f => filterFilial.innerHTML += `<option value="${escapeHTML(f)}">LOJA ${escapeHTML(f)}</option>`);
+      }
+
+      if ([...filterDir.options].some(o => o.value === prevDir)) filterDir.value = prevDir;
+      if ([...filterReg.options].some(o => o.value === prevReg)) filterReg.value = prevReg;
+      if (filterCoord && [...filterCoord.options].some(o => o.value === prevCoord)) filterCoord.value = prevCoord;
+      if (filterFilial && [...filterFilial.options].some(o => o.value === prevFilial)) filterFilial.value = prevFilial;
+    }
+
+    function applyDashboardFilters() {
+      const selFluxo = document.getElementById('filter-fluxo').value;
+      const selFuncional = document.getElementById('filter-situacao-funcional').value;
+      const selDir = document.getElementById('filter-diretoria').value;
+      const selReg = document.getElementById('filter-regional').value;
+      const selCoord = document.getElementById('filter-coordenador').value;
+      const selFilial = document.getElementById('filter-filial').value;
+      
+      const stVal = document.getElementById('filter-data-inicio').value;
+      const endVal = document.getElementById('filter-data-fim').value;
+
+      const startDate = stVal ? new Date(stVal + 'T00:00:00') : null;
+      const endDate = endVal ? new Date(endVal + 'T23:59:59') : null;
+
+      const parseDate = (str) => {
+        if (!str) return null;
+        const pts = str.split('/');
+        return new Date(pts[2], pts[1] - 1, pts[0]);
+      };
+
+      const filtered = localAtendimentos.filter(item => {
+        const matchFluxo = (selFluxo === 'TODOS' || (item.fluxo || 'SOCIAL') === selFluxo);
+        const matchFuncional = (selFuncional === 'TODOS' || item.situacaoFuncional === selFuncional);
+        const matchDir = (selDir === 'TODAS' || (item.diretoria && item.diretoria.toUpperCase() === selDir));
+        const matchReg = (selReg === 'TODAS' || (item.regional && item.regional.toUpperCase() === selReg));
+        const matchCoord = (selCoord === 'TODOS' || (item.coordenador && item.coordenador.toUpperCase() === selCoord));
+        const matchFilial = (selFilial === 'TODAS' || item.filial === selFilial);
+
+        let matchDate = true;
+        if (startDate || endDate) {
+          const itemDate = parseDate(item.dataEntrada);
+          if (itemDate) {
+            if (startDate && itemDate < startDate) matchDate = false;
+            if (endDate && itemDate > endDate) matchDate = false;
+          } else {
+            matchDate = false;
+          }
+        }
+
+        return matchFluxo && matchFuncional && matchDir && matchReg && matchCoord && matchFilial && matchDate;
+      });
+
+      updateStats(filtered);
+      renderDashboardTable(filtered);
+      renderCharts(filtered);
+    }
+
+    function updateStats(data) {
+      document.getElementById('stat-total').innerText = data.length;
+      document.getElementById('stat-internos').innerText = data.filter(a => a.fluxo === "GP").length;
+      document.getElementById('stat-ativos-count').innerText = data.filter(a => a.situacaoFuncional === "ATIVO").length;
+      document.getElementById('stat-lojas').innerText = [...new Set(data.map(a => a.filial).filter(Boolean))].length;
+    }
+
+    function renderDashboardTable(data) {
+      const tbody = document.getElementById('dash-table-body');
+      tbody.innerHTML = '';
+
+      if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-slate-400">Nenhum registro correspondente aos filtros foi encontrado.</td></tr>`;
+        return;
+      }
+
+      data.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = "border-b border-slate-100 hover:bg-slate-50/50 transition-colors cursor-pointer";
+        tr.onclick = function() { showAtendimentoModal(item); };
+        
+        let fluxoBadge = '';
+        if (item.fluxo === "MULHER") {
+          fluxoBadge = `<span class="text-[9px] px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold border border-rose-100 uppercase">C. MULHER</span>`;
+        } else if (item.fluxo === "GP") {
+          fluxoBadge = `<span class="text-[9px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-bold border border-purple-100 uppercase">GP LOCAL</span>`;
+        } else {
+          fluxoBadge = `<span class="text-[9px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-100 uppercase">SOCIAL</span>`;
+        }
+
+        const isAtivo = (item.situacaoFuncional === "ATIVO");
+        const funcionalBadge = isAtivo
+          ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-100"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Ativo</span>`
+          : `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-800 border border-rose-100"><span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Desligado</span>`;
+
+        // Injeção de variáveis com escapeHTML (Proteção XSS)
+        tr.innerHTML = `
+          <td class="py-3 px-5 font-medium text-slate-500 whitespace-nowrap">${escapeHTML(item.dataEntrada)}</td>
+          <td class="py-3 px-5 text-slate-700 font-semibold whitespace-nowrap">${escapeHTML(item.id)}</td>
+          <td class="py-3 px-5 font-bold text-slate-900 whitespace-nowrap">${escapeHTML(item.colaborador)}</td>
+          <td class="py-3 px-5 whitespace-nowrap">${funcionalBadge}</td>
+          <td class="py-3 px-5 text-slate-500 font-semibold whitespace-nowrap">Loja ${escapeHTML(item.filial)}</td>
+          <td class="py-3 px-5 whitespace-nowrap"><span class="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">${escapeHTML(item.regional)}</span></td>
+          <td class="py-3 px-5 whitespace-nowrap">${fluxoBadge}</td>
+          <td class="py-3 px-5 whitespace-nowrap"><span class="text-[10px] px-2 py-0.5 rounded bg-amber-50 text-amber-800 font-bold border border-amber-100">${escapeHTML(item.classificacao)}</span></td>
+          <td class="py-3 px-5 text-slate-400 whitespace-nowrap">
+            <button class="p-1.5 hover:bg-slate-100 hover:text-slate-800 rounded-lg transition-colors">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      lucide.createIcons();
+    }
+
+    function filterDashTable() {
+      applyDashboardFilters();
+    }
+
+    function getMonthlyData(data) {
+      const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+      const counts = {};
+
+      data.forEach(item => {
+        if (!item.dataEntrada) return;
+        const parts = item.dataEntrada.split('/');
+        if (parts.length !== 3) return;
+        
+        const month = parseInt(parts[1], 10) - 1; 
+        const year = parseInt(parts[2], 10);
+        
+        const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+        if (!counts[key]) {
+          counts[key] = {
+            count: 0,
+            label: `${monthNames[month]}/${String(year).slice(-2)}`,
+            sortVal: year * 12 + month
+          };
+        }
+        counts[key].count++;
+      });
+
+      const sortedKeys = Object.keys(counts).sort((a, b) => counts[a].sortVal - counts[b].sortVal);
+      const labels = sortedKeys.map(k => counts[k].label);
+      const values = sortedKeys.map(k => counts[k].count);
+
+      return { labels, values };
+    }
+
+    function changeMotivoChartMode(mode) {
+      currentMotivoChartMode = mode;
+      
+      const btnCat = document.getElementById('btn-chart-mode-cat');
+      const btnMes = document.getElementById('btn-chart-mode-mes');
+      const titleEl = document.getElementById('chart-motivos-title');
+
+      if (mode === 'categoria') {
+        btnCat.className = "px-3 py-1.5 text-[10px] font-bold rounded-lg bg-white text-slate-800 shadow-sm transition-all focus:outline-none";
+        btnMes.className = "px-3 py-1.5 text-[10px] font-bold rounded-lg text-slate-500 hover:text-slate-800 transition-all focus:outline-none";
+        titleEl.innerText = "Distribuição por Categoria/Motivo";
+      } else {
+        btnCat.className = "px-3 py-1.5 text-[10px] font-bold rounded-lg text-slate-500 hover:text-slate-800 transition-all focus:outline-none";
+        btnMes.className = "px-3 py-1.5 text-[10px] font-bold rounded-lg bg-white text-slate-800 shadow-sm transition-all focus:outline-none";
+        titleEl.innerText = "Evolução Mensal de Atendimentos";
+      }
+
+      applyDashboardFilters();
+    }
+
+    function renderCharts(data) {
+      if (chartMotivosInstance) chartMotivosInstance.destroy();
+      const ctxMotivos = document.getElementById('chart-motivos').getContext('2d');
+
+      if (currentMotivoChartMode === 'categoria') {
+        const motivosMap = {};
+        data.forEach(item => {
+          motivosMap[item.classificacao] = (motivosMap[item.classificacao] || 0) + 1;
+        });
+        const motivosLabels = Object.keys(motivosMap);
+        const motivosValores = Object.values(motivosMap);
+
+        chartMotivosInstance = new Chart(ctxMotivos, {
+          type: 'bar',
+          data: {
+            labels: motivosLabels,
+            datasets: [{
+              label: 'Volume de Atendimentos',
+              data: motivosValores,
+              backgroundColor: '#6366f1',
+              borderRadius: 6,
+              barThickness: 24,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, ticks: { precision: 0 } },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      } else {
+        const monthlyData = getMonthlyData(data);
+
+        chartMotivosInstance = new Chart(ctxMotivos, {
+          type: 'line',
+          data: {
+            labels: monthlyData.labels,
+            datasets: [{
+              label: 'Atendimentos no Mês',
+              data: monthlyData.values,
+              borderColor: '#8b5cf6',
+              backgroundColor: 'rgba(139, 92, 246, 0.12)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.35,
+              pointBackgroundColor: '#8b5cf6',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, ticks: { precision: 0 } },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      }
+
+      const regionaisMap = {};
+      data.forEach(item => {
+        regionaisMap[item.regional] = (regionaisMap[item.regional] || 0) + 1;
+      });
+      const regionaisLabels = Object.keys(regionaisMap);
+      const regionaisValores = Object.values(regionaisMap);
+
+      if (chartRegionaisInstance) chartRegionaisInstance.destroy();
+      const ctxRegionais = document.getElementById('chart-regionais').getContext('2d');
+      chartRegionaisInstance = new Chart(ctxRegionais, {
+        type: 'doughnut',
+        data: {
+          labels: regionaisLabels,
+          datasets: [{
+            data: regionaisValores,
+            backgroundColor: ['#4f46e5', '#10b981', '#06b6d4', '#f59e0b', '#ec4899', '#8b5cf6'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
+          },
+          cutout: '60%'
+        }
+      });
+    }
+
+    function showAtendimentoModal(item) {
+      document.getElementById('modal-colab').innerText = escapeHTML(item.colaborador);
+      document.getElementById('modal-data').innerText = escapeHTML(item.dataEntrada);
+      document.getElementById('modal-cargo').innerText = escapeHTML(item.cargo);
+      document.getElementById('modal-regional').innerText = escapeHTML(item.regional);
+      document.getElementById('modal-filial').innerText = `Loja ${escapeHTML(item.filial)}`;
+      document.getElementById('modal-classificacao').innerText = escapeHTML(item.classificacao);
+      document.getElementById('modal-obs').innerText = escapeHTML(item.obsSocial);
+      document.getElementById('modal-parecer').innerText = escapeHTML(item.parecerGP);
+
+      const isAtivo = (item.situacaoFuncional === "ATIVO");
+      const situacaoEl = document.getElementById('modal-situacao-funcional');
+      if (isAtivo) {
+        situacaoEl.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-100">Ativo</span>`;
+      } else {
+        situacaoEl.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-800 border border-rose-100">Desligado / Inativo</span>`;
+      }
+
+      const modalFluxo = document.getElementById('modal-fluxo-badge');
+      const divRetomada = document.getElementById('modal-retomada-box');
+
+      if (item.fluxo === "MULHER") {
+        modalFluxo.innerText = "CANAL DA MULHER";
+        modalFluxo.className = "inline-block px-2.5 py-0.5 bg-rose-50 text-rose-800 font-bold rounded-md border border-rose-100 mt-1";
+        divRetomada.classList.add('hidden');
+      } else if (item.fluxo === "GP") {
+        modalFluxo.innerText = "ACOMPANHAMENTO GP REGIONAL";
+        modalFluxo.className = "inline-block px-2.5 py-0.5 bg-purple-50 text-purple-800 font-bold rounded-md border border-purple-100 mt-1";
+        if (item.dataRetomada) {
+          document.getElementById('modal-retomada-date').innerText = escapeHTML(item.dataRetomada);
+          divRetomada.classList.remove('hidden');
+        } else {
+          divRetomada.classList.add('hidden');
+        }
+      } else {
+        modalFluxo.innerText = "EQUIPE SOCIAL";
+        modalFluxo.className = "inline-block px-2.5 py-0.5 bg-indigo-50 text-indigo-800 font-bold rounded-md border border-indigo-100 mt-1";
+        divRetomada.classList.add('hidden');
+      }
+
+      const modal = document.getElementById('modal-atendimento');
+      modal.classList.remove('pointer-events-none', 'opacity-0');
+    }
+
+    function closeAtendimentoModal() {
+      document.getElementById('modal-atendimento').classList.add('pointer-events-none', 'opacity-0');
+    }
+
+    function openNewClassifModal() {
+      document.getElementById('new-classif-input').value = '';
+      document.getElementById('modal-nova-classif').classList.remove('pointer-events-none', 'opacity-0');
+    }
+
+    function closeNewClassifModal() {
+      document.getElementById('modal-nova-classif').classList.add('pointer-events-none', 'opacity-0');
+    }
+
+    function submitNewClassification() {
+      const input = document.getElementById('new-classif-input');
+      const nome = input.value.trim().toUpperCase();
+      const btn = document.getElementById('btn-save-classif');
+
+      if (!nome) return;
+
+      btn.disabled = true;
+      btn.innerText = "Cadastrando...";
+
+      callBackend("addNewClassification", nome, function(success) {
+        btn.disabled = false;
+        btn.innerText = "Salvar Motivo";
+        if (success) {
+          showToast("Sucesso", "Novo motivo de atendimento adicionado.", "success");
+          closeNewClassifModal();
+          loadClassificacoes();
+        }
+      }, function(err) {
+        btn.disabled = false;
+        btn.innerText = "Salvar Motivo";
+        showToast("Falha ao Criar", err.message || "Classificação já cadastrada.", "error");
+      });
+    }
+
+    function showToast(title, desc, type = "info") {
+      const toast = document.getElementById('toast');
+      const titleEl = document.getElementById('toast-title');
+      const descEl = document.getElementById('toast-desc');
+      const iconBox = document.getElementById('toast-icon-box');
+      const icon = document.getElementById('toast-icon');
+
+      titleEl.innerText = title;
+      descEl.innerText = desc;
+      iconBox.className = "p-2 rounded-lg text-white ";
+
+      if (type === "success") {
+        iconBox.classList.add("bg-emerald-500");
+        icon.setAttribute("data-lucide", "check-circle-2");
+      } else if (type === "error") {
+        iconBox.classList.add("bg-rose-500");
+        icon.setAttribute("data-lucide", "alert-circle");
+      } else if (type === "warning") {
+        iconBox.classList.add("bg-amber-500");
+        icon.setAttribute("data-lucide", "alert-triangle");
+      } else {
+        iconBox.classList.add("bg-indigo-500");
+        icon.setAttribute("data-lucide", "info");
+      }
+
+      lucide.createIcons();
+      toast.classList.remove('translate-y-[-100px]', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(hideToast, 4500);
+    }
+
+    function hideToast() {
+      const toast = document.getElementById('toast');
+      toast.classList.add('translate-y-[-100px]', 'opacity-0');
+      toast.classList.remove('translate-y-0', 'opacity-100');
+    }
+  </script>
+</body>
+</html>
