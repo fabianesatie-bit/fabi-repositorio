@@ -1,0 +1,451 @@
+<script>
+  let dadosGlobais = null; 
+  let arquivoColadoMemoria = null;
+  let fileIdLightboxAtivo = null;
+
+  const urlsRedirecionamento = {
+      "Relatorios/Feedback/Acompanhamento": "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec",
+      "Atendimento Social": "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec"
+  };
+  const motivosRedirecionamento = Object.keys(urlsRedirecionamento);
+
+  if (typeof google === 'undefined') {
+      console.warn("Ambiente Google Apps Script não detectado. Iniciando modo Mock para Preview.");
+      window.google = {
+          script: {
+              run: {
+                  registrarAuditoria: function(evt, det) { console.log("Auditoria Mock:", evt, det); return this; },
+                  withSuccessHandler: function(callback) {
+                      return {
+                          obterDadosIniciais: function() {
+                              setTimeout(() => callback({
+                                  bloqueado: false,
+                                  usuario: { nome: "Usuário Preview", cargo: "Administrador", infoLinha2: "Visão Preview", regionais: ["Regional Teste"], diretoriasAtendidas: ["Diretoria Teste"], isAdmin: true, isSuperAdmin: true, isConfigAdmin: true, isGerenteGP: true, foto: "" },
+                                  lojas: [{id: 1001, nome: "Loja Preview 1", regional: "Regional Teste"}],
+                                  qtdLojasCarteira: 1, qtdVisitas: 5, moedas: 125, moedasMes: 85, faseMontanha: 3, badges: [{id:'1', nome:'Bronze', meta:40, icone:'🥉'}], gastos: 120.00, historico: [], avisos: [], ranking: [], naturezas: ["Integração Preview"], diretorias: ["Diretoria Teste"]
+                              }), 500);
+                          },
+                          buscarIndicadoresLoja: function() {
+                              setTimeout(() => callback({sucesso: true, venda: "110%", nps: "95", bancoHoras: "10 h", quadro: "0", txdes: "1.5%"}), 500);
+                          },
+                          getEvidenciasUsuario: function() { setTimeout(() => callback([])), 500; },
+                          getDicionarioPremios: function() { setTimeout(() => callback([])), 500; },
+                          registrarAtividade: function() { setTimeout(() => callback({sucesso: true})), 500; },
+                          publicarAviso: function() { setTimeout(() => callback({sucesso: true})), 500; },
+                          adicionarNatureza: function() { setTimeout(() => callback({sucesso: true, naturezas: ["Nova Natureza Mock"]})), 500; },
+                          excluirNatureza: function() { setTimeout(() => callback({sucesso: true, naturezas: []})), 500; },
+                          excluirLancamento: function() { setTimeout(() => callback({sucesso: true})), 500; },
+                          getImagemBase64: function() { setTimeout(() => callback({sucesso: false, erro: "Mock"}), 500); }
+                      };
+                  }
+              }
+          }
+      };
+  }
+
+  window.onload = function() {
+    document.getElementById('lanc-data').valueAsDate = new Date(); 
+    let h = new Date().getHours();
+    let saudacao = h < 12 ? "Bom dia" : (h < 18 ? "Boa tarde" : "Boa noite");
+    
+    google.script.run.withSuccessHandler(function(res) {
+       document.getElementById('loading-splash').style.display = 'none';
+
+       if(res.bloqueado) {
+          document.getElementById('bloqueio-tela').style.display = 'flex';
+          if(res.mensagem) document.getElementById('txt-motivo-bloqueio').innerText = res.mensagem;
+          return;
+       }
+
+       if(res.erro) {
+          mostrarToast(res.erro);
+          document.getElementById('app-container').style.display = 'flex';
+          document.getElementById('user-name').innerText = "Erro no Login";
+          return;
+       }
+       
+       document.getElementById('app-container').style.display = 'flex';
+       dadosGlobais = res;
+
+       // Delegação de preenchimento inicial de DOM
+       document.getElementById('user-name').innerText = saudacao + ", " + res.usuario.nome.split(' ')[0];
+       document.getElementById('user-role').innerText = res.usuario.cargo;
+       document.getElementById('user-info2').innerText = res.usuario.infoLinha2;
+       document.getElementById('user-coins').innerText = res.moedas;
+       
+       let divFoto = document.getElementById('user-photo-container');
+       if (res.usuario.foto) {
+           divFoto.innerHTML = '<img src="' + res.usuario.foto + '" alt="Foto" data-nome="' + res.usuario.nome + '" onerror="usarIniciaisComoFallback(this)">';
+       } else {
+           divFoto.innerHTML = usarIniciais(res.usuario.nome);
+       }
+       if (res.usuario.isAdmin || res.usuario.isSuperAdmin) {
+           document.getElementById('btn-add-aviso').style.display = 'block';
+       }
+       if (res.usuario.isConfigAdmin || res.usuario.isGerenteGP) {
+           document.getElementById('menu-admin').style.display = 'block';
+       }
+
+       renderizarGamificacaoVisual(res);
+
+       document.getElementById('dash-lojas').innerText = res.qtdLojasCarteira || res.lojas.length;
+       document.getElementById('dash-visitas').innerText = res.qtdVisitas || 0; 
+       document.getElementById('dash-gastos').innerText = 'R$ ' + res.gastos.toFixed(2).replace('.', ',');
+       
+       let selectDestino = document.getElementById('lanc-destino');
+       res.lojas.forEach(loja => {
+          let opt = document.createElement('option');
+          opt.value = loja.id;
+          opt.text = loja.id + ' - ' + loja.nome;
+          selectDestino.add(opt);
+       });
+       
+       atualizarSelectNaturezas(res.naturezas);
+       renderizarRanking(res.ranking);
+       renderizarAvisos(res.avisos);
+       renderizarHistoricos();
+       renderizarListaAdmin(res.naturezas);
+    }).obterDadosIniciais();
+  };
+
+  function salvarAtividade() {
+     let btn = document.getElementById('btn-salvar');
+     const escopo = document.getElementById('lanc-escopo').value;
+     const motivo = document.getElementById('lanc-motivo').value;
+     
+     let destino = "";
+     if (escopo === 'filial') {
+         destino = document.getElementById('lanc-destino').value;
+     } else {
+         let selecionadas = [];
+         document.querySelectorAll('.chk-abrangencia:checked').forEach(cb => selecionadas.push(cb.value));
+         if(selecionadas.length === 0) return mostrarToast("Selecione pelo menos uma opção!");
+         let prefixo = escopo === 'regional' ? 'REGIONAL - ' : 'DIRETORIA - ';
+         destino = prefixo + selecionadas.join(' / ');
+     }
+     
+     let subTema = "";
+     try {
+         if (motivo === "Reunião regional") {
+             let temasR = [];
+             document.querySelectorAll('.chk-tema:checked').forEach(cb => temasR.push(cb.value));
+             subTema = temasR.join(', ');
+         } else if (motivo === "Treinamentos") {
+             let elemTreino = document.getElementById('treinamento-tema');
+             if(elemTreino) subTema = elemTreino.value;
+         }
+     } catch(e) {}
+     
+     let dataAtiv = document.getElementById('lanc-data').value;
+     if(!dataAtiv || !destino || !motivo) {
+         return mostrarToast("Preencha Data, Destino e Motivo!");
+     }
+     
+     let pessoasImpactadas = 0;
+     try { let p = document.getElementById('lanc-pessoas'); if(p && p.value) pessoasImpactadas = parseInt(p.value, 10); } catch(e){}
+
+     let tempoGasto = 0;
+     try { let t = document.getElementById('lanc-tempo'); if(t && t.value) tempoGasto = parseFloat(t.value); } catch(e){}
+     let observacoes = "";
+     try { let o = document.getElementById('lanc-obs'); if(o && o.value) observacoes = o.value; } catch(e){}
+     
+     let gastoTotalFormatado = parseFloat(document.getElementById('gasto-total-display').innerText.replace(',', '.')) || 0;
+     let linkInputDrive = "";
+     try { let ld = document.getElementById('lanc-link-drive'); if(ld && ld.value) linkInputDrive = ld.value; } catch(e){}
+
+     // Lógica de desvio para portais externos
+     if (motivosRedirecionamento.includes(motivo)) {
+         window.open(urlsRedirecionamento[motivo], "_blank");
+         mostrarToast("Redirecionando para painel externo...");
+
+         let dRedir = {
+             dataAtividade: document.getElementById('lanc-data').value || new Date().toISOString().split('T')[0],
+             roteiro: document.getElementById('lanc-roteiro').value || "Não informado",
+             destino: destino,
+             motivo: motivo,
+             observacoes: observacoes ? observacoes + " (Redirecionamento efetuado via formulário do Portal GP 360)" : "Redirecionamento efetuado via formulário do Portal GP 360",
+             notaChecklist: "",
+             moedas: 1, 
+             kmValor: parseFloat(document.getElementById('km-valor').value) || 0,
+             kmQtd: parseFloat(document.getElementById('km-qtd').value) || 0,
+             kmCusto: parseFloat(document.getElementById('km-custo-display').value) || 0,
+             alimentacao: parseFloat(document.getElementById('gasto-alimentacao').value) || 0,
+             hospedagem: parseFloat(document.getElementById('gasto-hospedagem').value) || 0,
+             aereo: parseFloat(document.getElementById('gasto-aereo').value) || 0,
+             pedagio: parseFloat(document.getElementById('gasto-pedagio').value) || 0,
+             estacionamento: parseFloat(document.getElementById('gasto-estacionamento').value) || 0,
+             gastoTotal: gastoTotalFormatado,
+             subTema: subTema, 
+             pessoasImpactadas: isNaN(pessoasImpactadas) ? 0 : pessoasImpactadas, 
+             tempoGasto: isNaN(tempoGasto) ? 0 : tempoGasto, 
+             linkEvidenciaExterna: ""
+         };
+         btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Registrando..."; btn.disabled = true;
+         chamarBackendSalvar(dRedir, null, btn);
+         document.getElementById('lanc-motivo').value = '';
+         verificarCamposDinamicos();
+         return; 
+     }
+     
+     let d = {
+        dataAtividade: dataAtiv,
+        roteiro: document.getElementById('lanc-roteiro').value || "",
+        destino: destino,
+        motivo: motivo,
+        observacoes: observacoes,
+        notaChecklist: "",
+        moedas: 1, 
+        kmValor: parseFloat(document.getElementById('km-valor').value) || 0,
+        kmQtd: parseFloat(document.getElementById('km-qtd').value) || 0,
+        kmCusto: parseFloat(document.getElementById('km-custo-display').value) || 0,
+        alimentacao: parseFloat(document.getElementById('gasto-alimentacao').value) || 0,
+        hospedagem: parseFloat(document.getElementById('gasto-hospedagem').value) || 0,
+        aereo: parseFloat(document.getElementById('gasto-aereo').value) || 0,
+        pedagio: parseFloat(document.getElementById('gasto-pedagio').value) || 0,
+        estacionamento: parseFloat(document.getElementById('gasto-estacionamento').value) || 0,
+        gastoTotal: gastoTotalFormatado,
+        subTema: subTema,
+        pessoasImpactadas: isNaN(pessoasImpactadas) ? 0 : pessoasImpactadas,
+        tempoGasto: isNaN(tempoGasto) ? 0 : tempoGasto,
+        linkEvidenciaExterna: linkInputDrive
+     };
+     btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Salvando..."; btn.disabled = true;
+
+     let fileInput = document.getElementById('lanc-arquivo');
+     if (fileInput && fileInput.files && fileInput.files[0]) {
+         let file = fileInput.files[0];
+         let fr = new FileReader();
+         fr.onload = function(e) {
+             let data = e.target.result.split(",");
+             let fileData = { fileName: file.name, mimeType: file.type, base64: data[1] };
+             chamarBackendSalvar(d, fileData, btn);
+         };
+         fr.readAsDataURL(file);
+     } else if (arquivoColadoMemoria) {
+         chamarBackendSalvar(d, arquivoColadoMemoria, btn);
+     } else {
+         chamarBackendSalvar(d, null, btn);
+     }
+  }
+
+  function chamarBackendSalvar(dados, fileData, btn) {
+     google.script.run.withSuccessHandler(function(res){
+         if(res.erro) { mostrarToast("Erro: " + res.erro); btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-coins"></i> Salvar e Ganhar Moeda'; return; }
+
+         dispararConfetes();
+         mostrarToast("Ação salva com sucesso!");
+         btn.disabled = false;
+         
+         setTimeout(function() {
+             document.getElementById('lanc-data').valueAsDate = new Date();
+             document.getElementById('lanc-destino').value = '';
+             let obsEl = document.getElementById('lanc-obs'); if(obsEl) obsEl.value = '';
+             let pesEl = document.getElementById('lanc-pessoas'); if(pesEl) pesEl.value = '';
+             let tmpEl = document.getElementById('lanc-tempo'); if(tmpEl) tmpEl.value = '';
+             document.getElementById('km-qtd').value = 0;
+             document.getElementById('gasto-alimentacao').value = '';
+             document.getElementById('gasto-hospedagem').value = '';
+             document.getElementById('gasto-aereo').value = '';
+             document.getElementById('gasto-pedagio').value = '';
+             document.getElementById('gasto-estacionamento').value = '';
+             document.querySelectorAll('.chk-abrangencia').forEach(chk => chk.checked = false);
+             let checkTodas = document.getElementById('check-todas-abrangencia'); if(checkTodas) checkTodas.checked = false;
+             limparOutrasEvidencias('all');
+             calcularDespesas();
+             document.getElementById('painel-indicadores-lancamento').style.display = 'none';
+
+             verificarCamposDinamicos();
+             
+             // Resync completo para atualizar ranking e dashboard
+             google.script.run.withSuccessHandler(function(newData){
+                 dadosGlobais = newData;
+                 renderizarGamificacaoVisual(newData);
+                 renderizarHistoricos();
+                 renderizarRanking(newData.ranking);
+
+                 let domMoedas = document.getElementById('user-coins');
+                 if(domMoedas) domMoedas.innerText = newData.moedas;
+
+                 let domGastos = document.getElementById('dash-gastos');
+                 if(domGastos) domGastos.innerText = "R$ " + newData.gastos.toFixed(2).replace('.', ',');
+                 let domVisitas = document.getElementById('dash-visitas');
+                 if(domVisitas) domVisitas.innerText = newData.qtdVisitas;
+
+                 mudarAba('home', document.querySelector('.nav-item'));
+             }).obterDadosIniciais();
+         }, 1000);
+     }).registrarAtividade(dados, fileData);
+  }
+
+  function deletarHistorico(id) {
+     customConfirm("Excluir este lançamento permanentemente?", function() {
+         let linhaG = document.getElementById('linha-gestao-' + id);
+         let linhaF = document.getElementById('linha-fin-' + id);
+         if (linhaG) linhaG.style.opacity = '0.5';
+         if (linhaF) linhaF.style.opacity = '0.5';
+
+         google.script.run.withSuccessHandler(function(res){
+             if(res.erro) { mostrarToast(res.erro); return; }
+             mostrarToast("Excluído com sucesso!");
+             dadosGlobais.historico = dadosGlobais.historico.filter(h => h.id !== id);
+             renderizarHistoricos();
+
+             google.script.run.withSuccessHandler(function(newData){
+                 dadosGlobais = newData;
+                 let domGastos = document.getElementById('dash-gastos');
+                 if(domGastos) domGastos.innerText = "R$ " + newData.gastos.toFixed(2).replace('.', ',');
+             }).obterDadosIniciais();
+
+         }).excluirLancamento(id);
+     });
+  }
+
+  function salvarKMAvulso() {
+     const data = document.getElementById('avulso-data').value; 
+     const destino = document.getElementById('avulso-destino').value; 
+     const valor = parseFloat(document.getElementById('avulso-valor').value) || 0; 
+     const qtd = parseFloat(document.getElementById('avulso-qtd').value) || 0;
+     const kmCusto = valor * qtd;
+
+     const alimentacao = parseFloat(document.getElementById('avulso-alimentacao').value) || 0;
+     const hospedagem = parseFloat(document.getElementById('avulso-hospedagem').value) || 0;
+     const aereo = parseFloat(document.getElementById('avulso-aereo').value) || 0;
+     const pedagio = parseFloat(document.getElementById('avulso-pedagio').value) || 0;
+     const estacionamento = parseFloat(document.getElementById('avulso-estacionamento').value) || 0;
+
+     const totalFloat = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
+     if(!data || !destino || totalFloat <= 0) { 
+         mostrarToast("Preencha data, destino e ao menos um gasto válido!"); 
+         return; 
+     }
+     const payload = { 
+       destino: "AVULSO: " + destino, 
+       motivo: "Deslocamento Avulso (Sede/Evento)", 
+       dataViagem: data, 
+       kmValor: valor, 
+       kmQtd: qtd, 
+       kmCusto: kmCusto, 
+       alimentacao: alimentacao,
+       hospedagem: hospedagem,
+       aereo: aereo,
+       pedagio: pedagio,
+       estacionamento: estacionamento,
+       gastoTotal: totalFloat, 
+       moedas: 0,
+       roteiro: "Presencial (KM Avulso)",
+       linkEvidenciaExterna: ""
+     };
+     document.getElementById('modal-km-avulso').style.display='none';
+     mostrarToast("Salvando KM Avulso...");
+     
+     google.script.run.withSuccessHandler(function(res){ 
+         if(res.erro) { mostrarToast(res.erro); return; }
+         dispararConfetes();
+         mostrarToast("KM Avulso registrado!"); 
+         google.script.run.withSuccessHandler(function(newData){
+             dadosGlobais = newData;
+             renderizarHistoricos();
+             let domGastos = document.getElementById('dash-gastos');
+             if(domGastos) domGastos.innerText = "R$ " + newData.gastos.toFixed(2).replace('.', ',');
+         }).obterDadosIniciais(); 
+     }).registrarAtividade(payload, null);
+  }
+
+  function salvarNovoAviso() {
+     let msg = document.getElementById('texto-novo-aviso').value.trim();
+     let dir = document.getElementById('aviso-diretoria').value;
+     if (!msg) return mostrarToast('Digite a mensagem!');
+     let btn = document.getElementById('btn-salvar-aviso');
+     btn.disabled = true;
+     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
+
+     google.script.run.withSuccessHandler(function(res){
+         btn.disabled = false;
+         btn.innerHTML = 'Publicar Aviso';
+         if (res.erro) { mostrarToast(res.erro); return; }
+         mostrarToast('Recado publicado!');
+         fecharModalAviso();
+         google.script.run.withSuccessHandler(function(newData){
+             dadosGlobais = newData;
+             renderizarAvisos(newData.avisos);
+         }).obterDadosIniciais();
+     }).publicarAviso(msg, dir);
+  }
+
+  function deletarAviso(data, msg) {
+     customConfirm("Tem certeza que deseja apagar este recado?", function() {
+         google.script.run.withSuccessHandler(function(res){
+             if (res.erro) { mostrarToast(res.erro); return; }
+             mostrarToast('Recado excluído!');
+             google.script.run.withSuccessHandler(function(newData){
+                 dadosGlobais = newData;
+                 renderizarAvisos(newData.avisos);
+             }).obterDadosIniciais();
+         }).excluirAvisoPlanilha(data, msg);
+     });
+  }
+
+  function addNatureza() {
+     let input = document.getElementById('nova-natureza');
+     let val = input.value.trim();
+     if(!val) return;
+     google.script.run.withSuccessHandler(function(res){
+         if(res.erro) { mostrarToast(res.erro); return; }
+         input.value = '';
+         dadosGlobais.naturezas = res.naturezas;
+         atualizarSelectNaturezas(res.naturezas);
+         renderizarListaAdmin(res.naturezas);
+         mostrarToast("Natureza adicionada!");
+     }).adicionarNatureza(val);
+  }
+
+  function delNatureza(texto) {
+     customConfirm("Tem certeza que deseja excluir a natureza '" + texto + "'?", function() {
+         google.script.run.withSuccessHandler(function(res){
+             if(res.erro) { mostrarToast(res.erro); return; }
+             dadosGlobais.naturezas = res.naturezas;
+             atualizarSelectNaturezas(res.naturezas);
+             renderizarListaAdmin(res.naturezas);
+             mostrarToast("Natureza removida!");
+         }).excluirNatureza(texto);
+     });
+  }
+
+  function salvarPremioAdmin() {
+     let nome = document.getElementById('premio-nome').value.trim();
+     let meta = parseInt(document.getElementById('premio-meta').value, 10);
+     let icone = document.getElementById('premio-icone').value.trim() || '🏆';
+     let id = document.getElementById('premio-id').value;
+
+     if (!nome || isNaN(meta) || meta <= 0) {
+         return mostrarToast("Preencha o nome e uma meta de moedas válida!");
+     }
+
+     let premioObj = { id: id, nome: nome, meta: meta, icone: icone };
+     google.script.run.withSuccessHandler(function(res){
+         if (res.sucesso) {
+             mostrarToast("Prêmio salvo!");
+             document.getElementById('premio-nome').value = '';
+             document.getElementById('premio-meta').value = '';
+             document.getElementById('premio-icone').value = '';
+             document.getElementById('premio-id').value = '';
+             renderizarPremiosAdmin(res.premios);
+         } else {
+             mostrarToast(res.erro || "Erro ao salvar prêmio.");
+         }
+     }).salvarPremio(premioObj);
+  }
+
+  function deletarPremioAdmin(id) {
+     customConfirm("Remover este prêmio do dicionário?", function() {
+         google.script.run.withSuccessHandler(function(res){
+             if(res.sucesso) {
+                 mostrarToast("Prêmio excluído!");
+                 renderizarPremiosAdmin(res.premios);
+             } else {
+                 mostrarToast(res.erro);
+             }
+         }).deletarPremio(id);
+     });
+  }
+</script>
