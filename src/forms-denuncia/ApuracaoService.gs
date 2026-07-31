@@ -1,3 +1,9 @@
+// =============================================================================
+// GESTÃO DE APURAÇÕES, COMITÊ E RASCUNHOS
+// Subpasta GitHub: src/forms-denuncia/
+// Arquivo Apps Script: ApuracaoService.gs
+// =============================================================================
+
 function buscarRascunhosApuracoes() {
   try {
     const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
@@ -22,10 +28,14 @@ function buscarRascunhosApuracoes() {
       let podeVer = false;
       if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE') {
         podeVer = true;
-      } else if (usuarioLogadoObj.role === 'LIDERANCA') {
-        if (usuarioLogadoObj.regionais.includes(regCaso) || usuarioLogadoObj.diretoria.includes(dirCaso)) podeVer = true;
+      } else if (usuarioLogadoObj.role === 'LIDERANCA' || usuarioLogadoObj.cargo.includes('coord')) {
+        // Liderança OP e Coordenadores limitados pela regional de atendimento do cadastro
+        if (usuarioLogadoObj.regionais.includes(regCaso) || usuarioLogadoObj.diretoria.includes(dirCaso) || usuarioLogadoObj.regionais === 'todas') {
+           podeVer = true;
+        }
       } else {
-        if (emailCriador === emailLogado || usuarioLogadoObj.cargo.includes('coord')) podeVer = true;
+        // Equipe GP normal vê apenas os rascunhos que ela mesma criou
+        if (emailCriador === emailLogado) podeVer = true;
       }
 
       if (!podeVer) continue;
@@ -460,10 +470,14 @@ function listarTodosRegistrosUsuario() {
         let podeVer = false;
         if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE') {
           podeVer = true;
-        } else if (usuarioLogadoObj.role === 'LIDERANCA') {
-          if (usuarioLogadoObj.regionais.includes(regCaso) || usuarioLogadoObj.diretoria.includes(dirCaso)) podeVer = true;
+        } else if (usuarioLogadoObj.role === 'LIDERANCA' || usuarioLogadoObj.cargo.includes('coord')) {
+          // NOVA REGRA: Coordenadores agora caem no funil regional, igual Liderança.
+          if (usuarioLogadoObj.regionais.includes(regCaso) || usuarioLogadoObj.diretoria.includes(dirCaso) || usuarioLogadoObj.regionais === 'todas') {
+             podeVer = true;
+          }
         } else {
-          if (emailCriador === emailLogado || usuarioLogadoObj.cargo.includes('coord')) podeVer = true;
+          // GP Base
+          if (emailCriador === emailLogado) podeVer = true;
         }
 
         if (podeVer) {
@@ -489,9 +503,15 @@ function listarTodosRegistrosUsuario() {
         const emailCriador = dataInt[i][16] ? dataInt[i][16].toString().toLowerCase().trim() : '';
         
         let podeVer = false;
-        if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE') podeVer = true;
-        else if (usuarioLogadoObj.role === 'LIDERANCA') podeVer = true; // Liderança ve clima geral
-        else if (emailCriador === emailLogado || usuarioLogadoObj.cargo.includes('coord')) podeVer = true;
+        if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE') {
+           podeVer = true;
+        } else if (usuarioLogadoObj.role === 'LIDERANCA' || usuarioLogadoObj.cargo.includes('coord')) {
+           // No Clima, como não tem diretoria na aba de intervenção por enquanto, 
+           // abrimos a visualização ou limitamos a quem criou.
+           podeVer = true; 
+        } else {
+           if (emailCriador === emailLogado) podeVer = true;
+        }
 
         if (podeVer) {
           lista.push({
@@ -512,8 +532,15 @@ function listarTodosRegistrosUsuario() {
     if (dataDes && dataDes.length > 1) {
       for (let i = 1; i < dataDes.length; i++) {
         const emailCriador = dataDes[i][21] ? dataDes[i][21].toString().toLowerCase().trim() : '';
-        // Para a tabela normal de GP, mostramos tudo que ele criou
-        if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE' || emailCriador === emailLogado || usuarioLogadoObj.cargo.includes('coord')) {
+        
+        let podeVer = false;
+        if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE' || usuarioLogadoObj.role === 'LIDERANCA' || usuarioLogadoObj.cargo.includes('coord')) {
+           podeVer = true;
+        } else {
+           if (emailCriador === emailLogado) podeVer = true;
+        }
+
+        if (podeVer) {
           let dt = dataDes[i][1];
           if (dt instanceof Date) dt = dt.toLocaleDateString('pt-BR');
           lista.push({
@@ -683,7 +710,6 @@ function cancelarRegistroProcesso(payload) {
       }
     }
 
-    // Mesma logica para Desligamento
     sheet = ss.getSheetByName('HISTORICO_DESLIGAMENTO_F');
     if (sheet) {
       const vals = sheet.getDataRange().getValues();
