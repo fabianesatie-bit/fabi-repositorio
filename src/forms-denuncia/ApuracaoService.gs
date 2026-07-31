@@ -1,52 +1,41 @@
-// =============================================================================
-// REGRAS DE NEGÓCIO DE APURAÇÃO, RASCUNHOS DE COMITÊ E EDIÇÃO IN-PLACE
-// Subpasta GitHub: src/forms-denuncia/
-// Arquivo Apps Script: ApuracaoService.gs
-// =============================================================================
-
 function buscarRascunhosApuracoes() {
   try {
     const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-    if (!emailLogado) {
-      return [];
-    }
+    if (!emailLogado) return [];
 
-    const ehMaster = verificarEhAdminMaster(emailLogado);
+    const usuarioLogadoObj = obterUsuarioLogado(emailLogado);
+    if (usuarioLogadoObj.role === 'BLOQUEADO' || usuarioLogadoObj.role === 'GERENTE_LOJA') return [];
 
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheet = ss.getSheetByName('Rascunhos_Apuracoes');
-    if (!sheet) {
-      return [];
-    }
+    if (!sheet) return [];
     
     const data = sheet.getDataRange().getValues();
-    if (data.length <= 1) {
-      return [];
-    }
+    if (data.length <= 1) return [];
     
     const rascunhos = [];
     for (let i = 1; i < data.length; i++) {
       const emailCriador = data[i][31] ? data[i][31].toString().toLowerCase().trim() : '';
+      const regCaso = data[i][5] ? normalizarTexto(data[i][5]) : '';
+      const dirCaso = data[i][4] ? normalizarTexto(data[i][4]) : '';
 
-      // RESTRIÇÃO RIGOROSA DE PROPRIEDADE
-      if (!ehMaster && emailCriador !== emailLogado) {
-        continue;
+      let podeVer = false;
+      if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE') {
+        podeVer = true;
+      } else if (usuarioLogadoObj.role === 'LIDERANCA') {
+        if (usuarioLogadoObj.regionais.includes(regCaso) || usuarioLogadoObj.diretoria.includes(dirCaso)) podeVer = true;
+      } else {
+        if (emailCriador === emailLogado || usuarioLogadoObj.cargo.includes('coord')) podeVer = true;
       }
+
+      if (!podeVer) continue;
 
       let dataReg = data[i][1];
-      if (dataReg instanceof Date) {
-        dataReg = dataReg.toLocaleDateString('pt-BR');
-      }
-      
+      if (dataReg instanceof Date) dataReg = dataReg.toLocaleDateString('pt-BR');
       let dataRec = data[i][11];
-      if (dataRec instanceof Date) {
-        dataRec = Utilities.formatDate(dataRec, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-      }
-      
+      if (dataRec instanceof Date) dataRec = Utilities.formatDate(dataRec, Session.getScriptTimeZone(), 'yyyy-MM-dd');
       let dataFin = data[i][12];
-      if (dataFin instanceof Date) {
-        dataFin = Utilities.formatDate(dataFin, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-      }
+      if (dataFin instanceof Date) dataFin = Utilities.formatDate(dataFin, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 
       rascunhos.push({
         idRascunho: data[i][0] ? data[i][0].toString() : '',
@@ -91,7 +80,7 @@ function salvarRascunhoApuracao(dados, tipoAcao) {
     const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
 
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = ss.getSheetByName('Rascunhos_Apuracoes') || ss.insertSheet('Rascunhos_Apuracoes');
+    let sheet = ss.getSheetByName('Rascunhos_Apuracoes') || ss.insertSheet('Rascunhos_Apuracoes');
     
     const filial = normalizarFilialId(dados.filial);
     const contatos = obterContatosPorFilial(filial);
@@ -107,10 +96,6 @@ function salvarRascunhoApuracao(dados, tipoAcao) {
       const vals = sheet.getDataRange().getValues();
       for (let i = 1; i < vals.length; i++) {
         if (vals[i][0].toString() === idRascunho.toString()) {
-          const criadorOriginal = vals[i][31] ? vals[i][31].toString().toLowerCase().trim() : '';
-          if (criadorOriginal && criadorOriginal !== emailLogado && !verificarEhAdminMaster(emailLogado)) {
-            return { sucesso: false, erro: 'Acesso Negado: Apenas o criador original pode alterar este rascunho.' };
-          }
           rowIndex = i + 1;
           linkDocExistente = vals[i][8] ? vals[i][8].toString() : '';
           break;
@@ -122,11 +107,11 @@ function salvarRascunhoApuracao(dados, tipoAcao) {
       idRascunho = 'RASC-' + Utilities.getUuid().substring(0, 8).toUpperCase();
     }
 
-    const nomesDenunciadosArray = dados.denunciados ? dados.denunciados.map(function(d) { return d.nome; }).filter(function(n) { return n; }) : [];
+    const nomesDenunciadosArray = dados.denunciados.map(d => d.nome).filter(n => n);
     const stringDenunciadosUnificada = nomesDenunciadosArray.join(', ') || 'Não Informado';
 
     let linkDoc = linkDocExistente;
-    const statusEstado = (tipoAcao === 'comite') ? 'Sob Análise Comitê' : 'Rascunho Pessoal';
+    let statusEstado = (tipoAcao === 'comite') ? 'Sob Análise Comitê' : 'Rascunho Pessoal';
 
     if (tipoAcao === 'comite') {
       linkDoc = criarOuAtualizarDocPreliminarComite(idRascunho, linkDocExistente, dados, filial, diretoria, regional, stringDenunciadosUnificada, contatos);
@@ -137,15 +122,9 @@ function salvarRascunhoApuracao(dados, tipoAcao) {
       linkDoc, dados.nota_humor_antes || '', dados.tratativa || '', dados.data_recebimento || '', dados.data_finalizacao || '', dados.resumo || '',
       dados.diagnostico || '', dados.justificativa || '', dados.enviar_feedback_gerente || 'nao', dados.feedback_gerente || '',
       dados.gerente_id || '', dados.gerente_nome || '', dados.agendar_intervencao || 'nao', dados.detalhes_intervencao || '',
-      dados.denunciados && dados.denunciados[0] ? dados.denunciados[0].id : '',
-      dados.denunciados && dados.denunciados[0] ? dados.denunciados[0].nome : '',
-      dados.denunciados && dados.denunciados[0] ? dados.denunciados[0].filial : '',
-      dados.denunciados && dados.denunciados[1] ? dados.denunciados[1].id : '',
-      dados.denunciados && dados.denunciados[1] ? dados.denunciados[1].nome : '',
-      dados.denunciados && dados.denunciados[1] ? dados.denunciados[1].filial : '',
-      dados.denunciados && dados.denunciados[2] ? dados.denunciados[2].id : '',
-      dados.denunciados && dados.denunciados[2] ? dados.denunciados[2].nome : '',
-      dados.denunciados && dados.denunciados[2] ? dados.denunciados[2].filial : '',
+      dados.denunciados[0]?.id || '', dados.denunciados[0]?.nome || '', dados.denunciados[0]?.filial || '',
+      dados.denunciados[1]?.id || '', dados.denunciados[1]?.nome || '', dados.denunciados[1]?.filial || '',
+      dados.denunciados[2]?.id || '', dados.denunciados[2]?.nome || '', dados.denunciados[2]?.filial || '',
       emailLogado
     ];
     
@@ -173,16 +152,10 @@ function criarOuAtualizarDocPreliminarComite(idRascunho, linkExistente, dados, f
     let doc = null;
     let docId = '';
 
-    if (linkExistente && linkExistente.indexOf('document/d/') !== -1) {
+    if (linkExistente && linkExistente.includes('document/d/')) {
       const match = linkExistente.match(/[-\w]{25,}/);
-      if (match) {
-        docId = match[0];
-      }
-      try {
-        if (docId) {
-          doc = DocumentApp.openById(docId);
-        }
-      } catch (e) {}
+      if (match) docId = match[0];
+      try { if (docId) doc = DocumentApp.openById(docId); } catch(e){}
     }
 
     if (!doc) {
@@ -219,9 +192,6 @@ function criarOuAtualizarDocPreliminarComite(idRascunho, linkExistente, dados, f
 
     doc.saveAndClose();
 
-    const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-    aplicarPermissoesArquivo(docId, emailLogado, 'EDITOR');
-
     if (contatos) {
       aplicarPermissoesArquivo(docId, contatos.coordenador, 'LEITOR');
       aplicarPermissoesArquivo(docId, contatos.regionalEmail, 'LEITOR');
@@ -234,7 +204,6 @@ function criarOuAtualizarDocPreliminarComite(idRascunho, linkExistente, dados, f
 
     return DriveApp.getFileById(docId).getUrl();
   } catch (e) {
-    Logger.log("Erro ao gerar doc preliminar: " + e.message);
     return '';
   }
 }
@@ -242,37 +211,18 @@ function criarOuAtualizarDocPreliminarComite(idRascunho, linkExistente, dados, f
 function dispararAlertaComitePreliminar(contatos, filial, status, linkDoc, origem, denunciadosStr) {
   const lista = [];
   if (origem === 'Interna') {
-    if (contatos.coordenador) {
-      contatos.coordenador.split(',').forEach(function(e) { lista.push(e.trim()); });
-    }
-    if (contatos.regionalEmail) {
-      contatos.regionalEmail.split(',').forEach(function(e) { lista.push(e.trim()); });
-    }
+    if (contatos.coordenador) contatos.coordenador.split(',').forEach(e => lista.push(e.trim()));
+    if (contatos.regionalEmail) contatos.regionalEmail.split(',').forEach(e => lista.push(e.trim()));
   } else {
-    if (contatos.coordenador) {
-      contatos.coordenador.split(',').forEach(function(e) { lista.push(e.trim()); });
-    }
-    if (contatos.gerenteGP) {
-      contatos.gerenteGP.split(',').forEach(function(e) { lista.push(e.trim()); });
-    }
-    if (contatos.regionalEmail) {
-      contatos.regionalEmail.split(',').forEach(function(e) { lista.push(e.trim()); });
-    }
-    if (contatos.compliance) {
-      contatos.compliance.split(',').forEach(function(e) { lista.push(e.trim()); });
-    }
-    if (contatos.diretorRH) {
-      contatos.diretorRH.split(',').forEach(function(e) { lista.push(e.trim()); });
-    }
+    if (contatos.coordenador) contatos.coordenador.split(',').forEach(e => lista.push(e.trim()));
+    if (contatos.gerenteGP) contatos.gerenteGP.split(',').forEach(e => lista.push(e.trim()));
+    if (contatos.regionalEmail) contatos.regionalEmail.split(',').forEach(e => lista.push(e.trim()));
+    if (contatos.compliance) contatos.compliance.split(',').forEach(e => lista.push(e.trim()));
+    if (contatos.diretorRH) contatos.diretorRH.split(',').forEach(e => lista.push(e.trim()));
   }
 
-  const destinatarios = lista.filter(function(e, i, self) {
-    return e && self.indexOf(e) === i;
-  });
-  
-  if (destinatarios.length === 0) {
-    return;
-  }
+  const destinatarios = [...new Set(lista)].filter(e => e);
+  if (destinatarios.length === 0) return;
 
   const assunto = "[ANÁLISE COMITÊ] Apuração Pendente F." + filial + " (" + denunciadosStr + ")";
   const htmlBody = 
@@ -302,15 +252,8 @@ function processarNovaApuracao(dados) {
     const filial = normalizarFilialId(dados.filial);
     const contatos = obterContatosPorFilial(filial);
 
-    let diretoria = 'Não identificada';
-    let regional = 'Não identificada';
-    let emailCoord = '';
-    let emailGerGP = '';
-    let emailRegGP = '';
-    let emailGerenteLoja = '';
-    let emailCompliance = '';
-    let emailDirRH = '';
-    let emailDirOp = '';
+    let diretoria = 'Não identificada', regional = 'Não identificada';
+    let emailCoord = '', emailGerGP = '', emailRegGP = '', emailGerenteLoja = '', emailCompliance = '', emailDirRH = '', emailDirOp = '';
 
     if (contatos) {
       diretoria = contatos.diretoria || diretoria;
@@ -328,10 +271,10 @@ function processarNovaApuracao(dados) {
     if (dados.arquivosEvidencias && dados.arquivosEvidencias.length > 0) {
       linksEvidenciasDrive = salvarEvidenciasDrive(dados.arquivosEvidencias, filial);
     }
-    const anexoTexto = [dados.anexo || '', linksEvidenciasDrive].filter(function(x) { return x; }).join(' \n');
+    const anexoTexto = [dados.anexo || '', linksEvidenciasDrive].filter(x => x).join(' \n');
 
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const apuracaoSheet = ss.getSheetByName('HISTORICO_APURACAO') || ss.insertSheet('HISTORICO_APURACAO');
+    let apuracaoSheet = ss.getSheetByName('HISTORICO_APURACAO') || ss.insertSheet('HISTORICO_APURACAO');
     
     if (apuracaoSheet.getLastRow() === 0) {
       apuracaoSheet.appendRow([
@@ -346,7 +289,7 @@ function processarNovaApuracao(dados) {
     }
 
     const dataRegistro = new Date().toLocaleDateString('pt-BR');
-    const nomesDenunciadosArray = dados.denunciados ? dados.denunciados.map(function(d) { return d.nome; }).filter(function(n) { return n; }) : [];
+    const nomesDenunciadosArray = dados.denunciados.map(d => d.nome).filter(n => n);
     const stringDenunciadosUnificada = nomesDenunciadosArray.join(', ') || 'Não Informado';
 
     let idApuracaoDefinitiva = dados.idApuracao || dados.idRascunho || '';
@@ -359,11 +302,6 @@ function processarNovaApuracao(dados) {
         if (apData[i][0] && apData[i][0].toString().trim().toUpperCase() === idApuracaoDefinitiva.trim().toUpperCase()) {
           rowIndex = i + 1;
           docLinkExistente = apData[i][8] ? apData[i][8].toString() : '';
-          const criadorOriginal = apData[i][32] ? apData[i][32].toString().toLowerCase().trim() : '';
-          
-          if (criadorOriginal && criadorOriginal !== emailLogado && !verificarEhAdminMaster(emailLogado)) {
-            return { sucesso: false, erro: 'Acesso Negado: Apenas o criador original pode editar este registro.' };
-          }
           break;
         }
       }
@@ -371,7 +309,7 @@ function processarNovaApuracao(dados) {
 
     let docLink = docLinkExistente;
 
-    if (docLinkExistente && docLinkExistente.indexOf('document/d/') !== -1) {
+    if (docLinkExistente && docLinkExistente.includes('document/d/')) {
       const match = docLinkExistente.match(/[-\w]{25,}/);
       if (match) {
         try {
@@ -400,8 +338,7 @@ function processarNovaApuracao(dados) {
           body.appendParagraph("Evidências / Anexos: " + (anexoTexto || 'Sem evidências adicionais no Drive.'));
 
           doc.saveAndClose();
-          aplicarPermissoesArquivo(match[0], emailLogado, 'EDITOR');
-        } catch(errDoc) {}
+        } catch(errDoc){}
       }
     } else {
       const templateFile = DriveApp.getFileById(TEMPLATE_DOC_ID);
@@ -432,16 +369,13 @@ function processarNovaApuracao(dados) {
       
       docLink = copiedFile.getUrl();
 
-      aplicarPermissoesArquivo(newDocId, emailLogado, 'EDITOR');
       aplicarPermissoesArquivo(newDocId, emailCoord, 'LEITOR');
       aplicarPermissoesArquivo(newDocId, emailGerGP, 'LEITOR');
       if (dados.origem === 'Canal') {
         aplicarPermissoesArquivo(newDocId, emailCompliance, 'LEITOR');
         aplicarPermissoesArquivo(newDocId, emailDirRH, 'LEITOR');
       }
-      if (emailRegGP) {
-        aplicarPermissoesArquivo(newDocId, emailRegGP, 'LEITOR');
-      }
+      if (emailRegGP) aplicarPermissoesArquivo(newDocId, emailRegGP, 'LEITOR');
     }
 
     if (!idApuracaoDefinitiva || rowIndex === -1) {
@@ -453,15 +387,9 @@ function processarNovaApuracao(dados) {
       docLink, dados.nota_humor_antes || '', dados.tratativa, dados.data_recebimento, dados.data_finalizacao, dados.resumo,
       dados.diagnostico, dados.justificativa, dados.enviar_feedback_gerente || 'nao', dados.feedback_gerente,
       dados.gerente_id, dados.gerente_nome, dados.agendar_intervencao || 'nao', dados.detalhes_intervencao,
-      dados.denunciados && dados.denunciados[0] ? dados.denunciados[0].id : '',
-      dados.denunciados && dados.denunciados[0] ? dados.denunciados[0].nome : '',
-      dados.denunciados && dados.denunciados[0] ? dados.denunciados[0].filial : '',
-      dados.denunciados && dados.denunciados[1] ? dados.denunciados[1].id : '',
-      dados.denunciados && dados.denunciados[1] ? dados.denunciados[1].nome : '',
-      dados.denunciados && dados.denunciados[1] ? dados.denunciados[1].filial : '',
-      dados.denunciados && dados.denunciados[2] ? dados.denunciados[2].id : '',
-      dados.denunciados && dados.denunciados[2] ? dados.denunciados[2].nome : '',
-      dados.denunciados && dados.denunciados[2] ? dados.denunciados[2].filial : '',
+      dados.denunciados[0]?.id || '', dados.denunciados[0]?.nome || '', dados.denunciados[0]?.filial || '',
+      dados.denunciados[1]?.id || '', dados.denunciados[1]?.nome || '', dados.denunciados[1]?.filial || '',
+      dados.denunciados[2]?.id || '', dados.denunciados[2]?.nome || '', dados.denunciados[2]?.filial || '',
       new Date().toLocaleString('pt-BR'), emailLogado
     ];
 
@@ -472,7 +400,7 @@ function processarNovaApuracao(dados) {
     }
 
     if (dados.idRascunho) {
-      const rascSheet = ss.getSheetByName('Rascunhos_Apuracoes');
+      let rascSheet = ss.getSheetByName('Rascunhos_Apuracoes');
       if (rascSheet) {
         const rascVals = rascSheet.getDataRange().getValues();
         for (let i = 1; i < rascVals.length; i++) {
@@ -485,7 +413,7 @@ function processarNovaApuracao(dados) {
     }
 
     if (dados.enviar_feedback_gerente === 'sim') {
-      const fbSheet = ss.getSheetByName('Feedbacks_Gerentes') || ss.insertSheet('Feedbacks_Gerentes');
+      let fbSheet = ss.getSheetByName('Feedbacks_Gerentes') || ss.insertSheet('Feedbacks_Gerentes');
       if (fbSheet.getLastRow() === 0) {
         fbSheet.appendRow(['ID Feedback', 'Filial', 'Data Envio', 'Feedback Solicitado', 'E-mail Gerente', 'Status', 'Data Resposta', 'Considerações Gerente', 'Links Anexos', 'Nome Gerente', 'ID Gerente']);
       }
@@ -497,14 +425,10 @@ function processarNovaApuracao(dados) {
       const feedbackLink = webAppUrl + "?page=gerente&idFeedback=" + feedbackId;
       
       const copiados = [Session.getActiveUser().getEmail()];
-      if (emailRegGP) {
-        emailRegGP.split(',').forEach(function(e) { if (e.trim()) copiados.push(e.trim()); });
-      }
-      const copiasCC = copiados.filter(function(e, i, self) { return e && self.indexOf(e) === i; }).join(',');
+      if (emailRegGP) emailRegGP.split(',').forEach(e => { if (e.trim()) copiados.push(e.trim()) });
+      const copiasCC = [...new Set(copiados)].join(',');
 
-      if (emailGerenteLoja) {
-        enviarEmailGerenteFeedback(emailGerenteLoja, feedbackId, dados.feedback_gerente, feedbackLink, filial, copiasCC);
-      }
+      if (emailGerenteLoja) enviarEmailGerenteFeedback(emailGerenteLoja, feedbackId, dados.feedback_gerente, feedbackLink, filial, copiasCC);
     }
 
     return { sucesso: true, link: docLink, id: idApuracaoDefinitiva };
@@ -518,18 +442,33 @@ function processarNovaApuracao(dados) {
 function listarTodosRegistrosUsuario() {
   try {
     const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-    const ehMaster = verificarEhAdminMaster(emailLogado);
+    const usuarioLogadoObj = obterUsuarioLogado(emailLogado);
+    
+    if (usuarioLogadoObj.role === 'BLOQUEADO' || usuarioLogadoObj.role === 'GERENTE_LOJA') {
+      return [];
+    }
+
     const lista = [];
 
     const dataAp = getCachedSheetData(SPREADSHEET_ID, 'HISTORICO_APURACAO');
     if (dataAp && dataAp.length > 1) {
       for (let i = 1; i < dataAp.length; i++) {
         const emailCriador = dataAp[i][32] ? dataAp[i][32].toString().toLowerCase().trim() : '';
-        if (ehMaster || emailCriador === emailLogado) {
+        const dirCaso = dataAp[i][4] ? normalizarTexto(dataAp[i][4]) : '';
+        const regCaso = dataAp[i][5] ? normalizarTexto(dataAp[i][5]) : '';
+
+        let podeVer = false;
+        if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE') {
+          podeVer = true;
+        } else if (usuarioLogadoObj.role === 'LIDERANCA') {
+          if (usuarioLogadoObj.regionais.includes(regCaso) || usuarioLogadoObj.diretoria.includes(dirCaso)) podeVer = true;
+        } else {
+          if (emailCriador === emailLogado || usuarioLogadoObj.cargo.includes('coord')) podeVer = true;
+        }
+
+        if (podeVer) {
           let dt = dataAp[i][1];
-          if (dt instanceof Date) {
-            dt = dt.toLocaleDateString('pt-BR');
-          }
+          if (dt instanceof Date) dt = dt.toLocaleDateString('pt-BR');
           lista.push({
             tipo: 'apuracao',
             tipoLabel: 'Apuração',
@@ -548,7 +487,13 @@ function listarTodosRegistrosUsuario() {
     if (dataInt && dataInt.length > 1) {
       for (let i = 1; i < dataInt.length; i++) {
         const emailCriador = dataInt[i][16] ? dataInt[i][16].toString().toLowerCase().trim() : '';
-        if (ehMaster || emailCriador === emailLogado) {
+        
+        let podeVer = false;
+        if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE') podeVer = true;
+        else if (usuarioLogadoObj.role === 'LIDERANCA') podeVer = true; // Liderança ve clima geral
+        else if (emailCriador === emailLogado || usuarioLogadoObj.cargo.includes('coord')) podeVer = true;
+
+        if (podeVer) {
           lista.push({
             tipo: 'intervencao',
             tipoLabel: 'Feedback Clima',
@@ -567,11 +512,10 @@ function listarTodosRegistrosUsuario() {
     if (dataDes && dataDes.length > 1) {
       for (let i = 1; i < dataDes.length; i++) {
         const emailCriador = dataDes[i][21] ? dataDes[i][21].toString().toLowerCase().trim() : '';
-        if (ehMaster || emailCriador === emailLogado) {
+        // Para a tabela normal de GP, mostramos tudo que ele criou
+        if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE' || emailCriador === emailLogado || usuarioLogadoObj.cargo.includes('coord')) {
           let dt = dataDes[i][1];
-          if (dt instanceof Date) {
-            dt = dt.toLocaleDateString('pt-BR');
-          }
+          if (dt instanceof Date) dt = dt.toLocaleDateString('pt-BR');
           lista.push({
             tipo: 'desligamento',
             tipoLabel: 'Desligamento',
@@ -594,12 +538,12 @@ function listarTodosRegistrosUsuario() {
 
 function buscarRegistroParaEdicao(id) {
   try {
-    if (!id) {
-      return { erro: 'ID do registro não fornecido para edição.' };
-    }
+    if (!id) return { erro: 'ID do registro não fornecido para edição.' };
     const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-    const ehMaster = verificarEhAdminMaster(emailLogado);
+    const usuarioLogadoObj = obterUsuarioLogado(emailLogado);
     const idBuscado = id.toString().trim().toUpperCase();
+
+    const isReadOnlyMode = (usuarioLogadoObj.role === 'COMPLIANCE' || usuarioLogadoObj.role === 'LIDERANCA');
 
     const dataApuracao = getCachedSheetData(SPREADSHEET_ID, 'HISTORICO_APURACAO');
     if (dataApuracao && dataApuracao.length > 1) {
@@ -607,22 +551,21 @@ function buscarRegistroParaEdicao(id) {
         if (dataApuracao[i][0] && dataApuracao[i][0].toString().trim().toUpperCase() === idBuscado) {
           const emailCriador = dataApuracao[i][32] ? dataApuracao[i][32].toString().toLowerCase().trim() : '';
           
-          if (!ehMaster && emailCriador && emailCriador !== emailLogado) {
-            return { erro: 'Acesso Negado: Apenas o criador original deste registro pode editá-lo.' };
+          if (usuarioLogadoObj.role !== 'MASTER' && usuarioLogadoObj.role !== 'COMPLIANCE' && usuarioLogadoObj.role !== 'LIDERANCA') {
+            if (emailCriador && emailCriador !== emailLogado && !usuarioLogadoObj.cargo.includes('coord')) {
+              return { erro: 'Acesso Negado: Você não possui privilégio de edição para este registro.' };
+            }
           }
 
           let dataRec = dataApuracao[i][11];
-          if (dataRec instanceof Date) {
-            dataRec = Utilities.formatDate(dataRec, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-          }
+          if (dataRec instanceof Date) dataRec = Utilities.formatDate(dataRec, Session.getScriptTimeZone(), 'yyyy-MM-dd');
           
           let dataFin = dataApuracao[i][12];
-          if (dataFin instanceof Date) {
-            dataFin = Utilities.formatDate(dataFin, Session.getScriptTimeZone(), 'yyyy-MM-dd');
-          }
+          if (dataFin instanceof Date) dataFin = Utilities.formatDate(dataFin, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 
           return {
             tipo: 'apuracao',
+            somenteLeitura: isReadOnlyMode,
             id: dataApuracao[i][0].toString(),
             dataRegistro: dataApuracao[i][1] ? dataApuracao[i][1].toString() : '',
             origem: dataApuracao[i][2] ? dataApuracao[i][2].toString() : 'Canal',
@@ -656,6 +599,57 @@ function buscarRegistroParaEdicao(id) {
       }
     }
 
+    const dataDesligamento = getCachedSheetData(SPREADSHEET_ID, 'HISTORICO_DESLIGAMENTO_F');
+    if (dataDesligamento && dataDesligamento.length > 1) {
+      for (let i = 1; i < dataDesligamento.length; i++) {
+        if (dataDesligamento[i][0] && dataDesligamento[i][0].toString().trim().toUpperCase() === idBuscado) {
+          return {
+            tipo: 'desligamento',
+            somenteLeitura: isReadOnlyMode,
+            id: dataDesligamento[i][0].toString(),
+            filial: dataDesligamento[i][2] ? dataDesligamento[i][2].toString() : '',
+            colaboradorNome: dataDesligamento[i][3] ? dataDesligamento[i][3].toString() : '',
+            colaboradorId: dataDesligamento[i][4] ? dataDesligamento[i][4].toString() : '',
+            tempoEmpresa: dataDesligamento[i][5] ? dataDesligamento[i][5].toString() : '',
+            colaboradorCargo: dataDesligamento[i][6] ? dataDesligamento[i][6].toString() : '',
+            resultados: dataDesligamento[i][7] ? dataDesligamento[i][7].toString() : '',
+            justificativa: dataDesligamento[i][8] ? dataDesligamento[i][8].toString() : '',
+            evidencias: dataDesligamento[i][9] ? dataDesligamento[i][9].toString() : '',
+            parecerCoordenador: dataDesligamento[i][10] ? dataDesligamento[i][10].toString() : '',
+            coordenadorNome: dataDesligamento[i][18] ? dataDesligamento[i][18].toString() : '',
+            linkDoc: dataDesligamento[i][20] ? dataDesligamento[i][20].toString() : ''
+          };
+        }
+      }
+    }
+
+    const dataIntervencao = getCachedSheetData(SPREADSHEET_ID, 'Intervencoes_Feedback');
+    if (dataIntervencao && dataIntervencao.length > 1) {
+      for (let i = 1; i < dataIntervencao.length; i++) {
+        if (dataIntervencao[i][0] && dataIntervencao[i][0].toString().trim().toUpperCase() === idBuscado) {
+          let dataProg = dataIntervencao[i][6];
+          if (dataProg instanceof Date) dataProg = Utilities.formatDate(dataProg, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+
+          return {
+            tipo: 'intervencao',
+            somenteLeitura: isReadOnlyMode,
+            id: dataIntervencao[i][0].toString(),
+            filial: dataIntervencao[i][1] ? dataIntervencao[i][1].toString() : '',
+            linkDoc: dataIntervencao[i][2] ? dataIntervencao[i][2].toString() : '',
+            statusEvolucao: dataIntervencao[i][3] ? dataIntervencao[i][3].toString() : '',
+            detalhes: dataIntervencao[i][4] ? dataIntervencao[i][4].toString() : '',
+            notaHumorDepois: dataIntervencao[i][5] ? dataIntervencao[i][5].toString() : '',
+            novaDataProgramada: dataProg ? dataProg.toString() : '',
+            colaboradores: [
+              { id: dataIntervencao[i][7] ? dataIntervencao[i][7].toString() : '', nome: dataIntervencao[i][8] ? dataIntervencao[i][8].toString() : '', filial: dataIntervencao[i][9] ? dataIntervencao[i][9].toString() : '' },
+              { id: dataIntervencao[i][10] ? dataIntervencao[i][10].toString() : '', nome: dataIntervencao[i][11] ? dataIntervencao[i][11].toString() : '', filial: dataIntervencao[i][12] ? dataIntervencao[i][12].toString() : '' },
+              { id: dataIntervencao[i][13] ? dataIntervencao[i][13].toString() : '', nome: dataIntervencao[i][14] ? dataIntervencao[i][14].toString() : '', filial: dataIntervencao[i][15] ? dataIntervencao[i][15].toString() : '' }
+            ]
+          };
+        }
+      }
+    }
+
     return { erro: 'Registro ' + id + ' não localizado nas bases.' };
   } catch (e) {
     return { erro: 'Erro ao buscar registro: ' + e.toString() };
@@ -667,9 +661,13 @@ function cancelarRegistroProcesso(payload) {
   try {
     lock.waitLock(15000);
     const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-    const ehMaster = verificarEhAdminMaster(emailLogado);
+    const userObj = obterUsuarioLogado(emailLogado);
     const idBuscado = payload.id.toString().trim().toUpperCase();
     const motivo = payload.motivo || 'Lançado Incorretamente / Anulado';
+
+    if (userObj.role === 'COMPLIANCE' || userObj.role === 'LIDERANCA' || userObj.role === 'GERENTE_LOJA') {
+       return { sucesso: false, erro: 'Acesso Negado. O seu perfil possui visualização restrita ou de leitura apenas.' };
+    }
 
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
@@ -678,12 +676,34 @@ function cancelarRegistroProcesso(payload) {
       const vals = sheet.getDataRange().getValues();
       for (let i = 1; i < vals.length; i++) {
         if (vals[i][0] && vals[i][0].toString().trim().toUpperCase() === idBuscado) {
-          const criador = vals[i][32] ? vals[i][32].toString().toLowerCase().trim() : '';
-          if (!ehMaster && criador && criador !== emailLogado) {
-            return { sucesso: false, erro: 'Acesso Negado: Apenas o criador pode anular este registro.' };
-          }
           sheet.getRange(i + 1, 8).setValue('CANCELADO');
           sheet.getRange(i + 1, 16).setValue('CANCELADO / MOTIVO: ' + motivo);
+          return { sucesso: true };
+        }
+      }
+    }
+
+    // Mesma logica para Desligamento
+    sheet = ss.getSheetByName('HISTORICO_DESLIGAMENTO_F');
+    if (sheet) {
+      const vals = sheet.getDataRange().getValues();
+      for (let i = 1; i < vals.length; i++) {
+        if (vals[i][0] && vals[i][0].toString().trim().toUpperCase() === idBuscado) {
+          sheet.getRange(i + 1, 13).setValue('CANCELADO');
+          sheet.getRange(i + 1, 16).setValue('CANCELADO');
+          sheet.getRange(i + 1, 9).setValue('CANCELADO / MOTIVO: ' + motivo);
+          return { sucesso: true };
+        }
+      }
+    }
+
+    sheet = ss.getSheetByName('Intervencoes_Feedback');
+    if (sheet) {
+      const vals = sheet.getDataRange().getValues();
+      for (let i = 1; i < vals.length; i++) {
+        if (vals[i][0] && vals[i][0].toString().trim().toUpperCase() === idBuscado) {
+          sheet.getRange(i + 1, 4).setValue('CANCELADO');
+          sheet.getRange(i + 1, 5).setValue('CANCELADO / MOTIVO: ' + motivo);
           return { sucesso: true };
         }
       }
@@ -695,11 +715,7 @@ function cancelarRegistroProcesso(payload) {
       for (let i = 1; i < vals.length; i++) {
         if (vals[i][0] && vals[i][0].toString().trim().toUpperCase() === idBuscado) {
           const criador = vals[i][31] ? vals[i][31].toString().toLowerCase().trim() : '';
-          if (!ehMaster && criador && criador !== emailLogado) {
-            return { sucesso: false, erro: 'Acesso Negado: Apenas o criador pode anular este rascunho.' };
-          }
-
-          const apurSheet = ss.getSheetByName('HISTORICO_APURACAO') || ss.insertSheet('HISTORICO_APURACAO');
+          let apurSheet = ss.getSheetByName('HISTORICO_APURACAO') || ss.insertSheet('HISTORICO_APURACAO');
           apurSheet.appendRow([
             vals[i][0], vals[i][1], vals[i][2], vals[i][3], vals[i][4], vals[i][5], vals[i][6], 'CANCELADO',
             vals[i][8], vals[i][9], vals[i][10], vals[i][11], vals[i][12], vals[i][13],
@@ -710,7 +726,6 @@ function cancelarRegistroProcesso(payload) {
             vals[i][28], vals[i][29], vals[i][30],
             new Date().toLocaleString('pt-BR'), criador
           ]);
-
           sheet.deleteRow(i + 1);
           return { sucesso: true };
         }
@@ -723,106 +738,4 @@ function cancelarRegistroProcesso(payload) {
   } finally {
     lock.releaseLock();
   }
-}
-
-function estruturarTextoNativo(textoBruto) {
-  if (!textoBruto) {
-    return {
-      resumo: '',
-      diagnostico: '',
-      justificativa: '',
-      tratativa: '',
-      feedback_gerente: ''
-    };
-  }
-
-  const texto = textoBruto.toString().trim();
-  let resumo = '';
-  let diagnostico = '';
-  let justificativa = '';
-  let tratativa = '';
-  let feedback_gerente = '';
-
-  if (texto.indexOf('#') !== -1) {
-    const blocos = texto.split('#');
-    blocos.forEach(function(b) {
-      if (!b.trim()) {
-        return;
-      }
-      const primeiraEspaco = b.trim().indexOf(' ');
-      const tag = primeiraEspaco !== -1 ? b.trim().substring(0, primeiraEspaco).toLowerCase() : b.trim().toLowerCase();
-      const conteudo = primeiraEspaco !== -1 ? b.trim().substring(primeiraEspaco).trim() : '';
-
-      if (tag.indexOf('relato') !== -1 || tag.indexOf('resumo') !== -1 || tag.indexOf('denuncia') !== -1) {
-        resumo = conteudo;
-      } else if (tag.indexOf('diag') !== -1 || tag.indexOf('fato') !== -1 || tag.indexOf('constata') !== -1) {
-        diagnostico = conteudo;
-      } else if (tag.indexOf('just') !== -1 || tag.indexOf('parecer') !== -1 || tag.indexOf('fundam') !== -1) {
-        justificativa = conteudo;
-      } else if (tag.indexOf('acao') !== -1 || tag.indexOf('tratativa') !== -1 || tag.indexOf('plano') !== -1) {
-        tratativa = conteudo;
-      } else if (tag.indexOf('feed') !== -1 || tag.indexOf('gerente') !== -1 || tag.indexOf('diretri') !== -1) {
-        feedback_gerente = conteudo;
-      }
-    });
-  }
-
-  if (!resumo || !diagnostico) {
-    const matchFilial = texto.match(/(?:loja|filial)\s*(\d+)/i);
-    const numFilial = matchFilial ? matchFilial[1] : '';
-
-    const matchDenunciante = texto.match(/denunciante\s*([a-zà-ú]+)/i) || texto.match(/colaborador\s*([a-zà-ú]+)/i);
-    const nomeDenunciante = matchDenunciante ? matchDenunciante[1].toUpperCase() : 'Denunciante';
-
-    const matchDenunciado = texto.match(/lideran[çc]a\s*([a-zà-ú]+)/i) || texto.match(/gerente\s*([a-zà-ú]+)/i);
-    const nomeDenunciado = matchDenunciado ? matchDenunciado[1].toUpperCase() : 'Gestora Local';
-
-    const temRelacionamento = /relacionamento|ficam|carro|bolsa|esposo|marido|bar/i.test(texto);
-
-    if (temRelacionamento) {
-      if (!resumo) {
-        resumo = "Acolheu-se o relato do colaborador " + nomeDenunciante + (numFilial ? " (Filial " + numFilial + ")" : "") +
-          ", alegando postura diferenciada, tratamento desproporcional e interferência na distribuição de atendimentos por parte da liderança direta, Sra. " + nomeDenunciado + ".";
-      }
-
-      if (!diagnostico) {
-        diagnostico = "Realizadas entrevistas detalhadas com a equipe local e envolvidos. Constatou-se relacionamento interpessoal prévio e desalinhamento de conduta operacional no salão de vendas.";
-      }
-    } else {
-      const paragrafos = texto.split('\n').map(function(p) { return p.trim(); }).filter(function(p) { return p.length > 0; });
-      if (!resumo && paragrafos.length >= 1) {
-        resumo = paragrafos[0];
-      }
-      if (!diagnostico && paragrafos.length >= 2) {
-        diagnostico = paragrafos.slice(1, Math.min(4, paragrafos.length)).join('\n\n');
-      }
-    }
-  }
-
-  if (!resumo) {
-    resumo = texto.substring(0, 400);
-  }
-  if (!diagnostico) {
-    diagnostico = "Com base nos relatos colhidos, identificou-se desalinhamento de conduta e fragilidade na comunicação direta.";
-  }
-  
-  if (!justificativa) {
-    justificativa = "A apuração evidencia inconformidade com as diretrizes do Código de Ética e Conduta Corporativo.";
-  }
-
-  if (!tratativa) {
-    tratativa = "1. Readequação de Subordinação Direta.\n2. Orientação Pedagógica à Liderança.\n3. Monitoramento Contínuo de Clima.";
-  }
-
-  if (!feedback_gerente) {
-    feedback_gerente = "Prezado(a) Gestor(a),\n\nAlinhamos as diretrizes executivas para cumprimento imediato em sua unidade.";
-  }
-
-  return {
-    resumo: resumo,
-    diagnostico: diagnostico,
-    justificativa: justificativa,
-    tratativa: tratativa,
-    feedback_gerente: feedback_gerente
-  };
 }

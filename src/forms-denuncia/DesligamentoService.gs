@@ -1,12 +1,3 @@
-// =============================================================================
-// FLUXO DE DESLIGAMENTOS E ALÇADAS DE APROVAÇÃO
-// Subpasta GitHub: src/forms-denuncia/
-// Arquivo Apps Script: DesligamentoService.gs
-// =============================================================================
-
-/**
- * Processa e cria um novo dossiê de desligamento com alçadas de aprovação.
- */
 function processarNovoDesligamento(dados) {
   const lock = LockService.getScriptLock();
   try {
@@ -44,10 +35,6 @@ function processarNovoDesligamento(dados) {
       const desData = fullDesligamentoSheet.getDataRange().getValues();
       for (let i = 1; i < desData.length; i++) {
         if (desData[i][0] && desData[i][0].toString().trim().toUpperCase() === idDesligamento.trim().toUpperCase()) {
-          const criadorOriginal = desData[i][21] ? desData[i][21].toString().toLowerCase().trim() : '';
-          if (criadorOriginal && criadorOriginal !== emailLogado && !verificarEhAdminMaster(emailLogado)) {
-            return { sucesso: false, erro: 'Acesso Negado: Apenas o criador original pode editar este registro.' };
-          }
           rowIndex = i + 1;
           docLinkExistente = desData[i][20] ? desData[i][20].toString() : '';
           break;
@@ -61,13 +48,10 @@ function processarNovoDesligamento(dados) {
       dados.arquivos_resultados.forEach((arq, index) => {
         if (arq.dados && arq.dados.includes(',')) {
           const splitData = arq.dados.split(',');
-          const match = splitData[0].match(/:(.*?);/);
-          const contentType = match ? match[1] : 'image/png';
+          const contentType = splitData[0].match(/:(.*?);/)[1];
           const rawData = Utilities.base64Decode(splitData[1]);
           const fileName = "Resultados_F" + filial + "_" + dados.colaborador_id + "_" + index + "_" + (arq.nome || ".png");
-          const imgFile = folder.createFile(Utilities.newBlob(rawData, contentType, fileName));
-          imgFile.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
-          linksImagens.push(imgFile.getUrl());
+          linksImagens.push(folder.createFile(Utilities.newBlob(rawData, contentType, fileName)).getUrl());
         }
       });
     }
@@ -100,8 +84,8 @@ function processarNovoDesligamento(dados) {
       docLink = copiedFile.getUrl();
 
       aplicarPermissoesArquivo(newDocId, emailLogado, 'EDITOR');
-      aplicarPermissoesArquivo(newDocId, emailRegionalGP, 'LEITOR');
-      aplicarPermissoesArquivo(newDocId, emailDiretorOp, 'LEITOR');
+      aplicarPermissoesArquivo(newDocId, emailRegionalGP, 'EDITOR'); // Editor para emitir parecer
+      aplicarPermissoesArquivo(newDocId, emailDiretorOp, 'EDITOR');
       aplicarPermissoesArquivo(newDocId, emailDiretorRH, 'LEITOR');
     }
 
@@ -119,6 +103,10 @@ function processarNovoDesligamento(dados) {
       fullDesligamentoSheet.getRange(rowIndex, 1, 1, rowData.length).setValues([rowData]);
     } else {
       fullDesligamentoSheet.appendRow(rowData);
+      // Disparo de notificação aos Diretores/Regionais que um dossiê foi submetido.
+      if (emailRegionalGP || emailDiretorOp) {
+        dispararEmailAlcadaDesligamento(emailRegionalGP, emailDiretorOp, filial, dados.colaborador_nome, docLink);
+      }
     }
 
     return { sucesso: true, link: docLink, id: idDesligamento };
@@ -127,4 +115,144 @@ function processarNovoDesligamento(dados) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function listarDesligamentosPendentesLideranca() {
+  try {
+    const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
+    const userObj = obterUsuarioLogado(emailLogado);
+
+    if (userObj.role !== 'LIDERANCA' && userObj.role !== 'MASTER') {
+      return [];
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('HISTORICO_DESLIGAMENTO_F');
+    if (!sheet) return [];
+
+    const data = sheet.getDataRange().getValues();
+    const pendentes = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const emailReg = data[i][11] ? data[i][11].toString().toLowerCase().trim() : '';
+      const statusReg = data[i][12] ? data[i][12].toString() : '';
+      const emailDir = data[i][14] ? data[i][14].toString().toLowerCase().trim() : '';
+      const statusDir = data[i][15] ? data[i][15].toString() : '';
+
+      // Verifica se o login está nas alçadas e está pendente
+      let exigeAlcadaLocal = false;
+      if (emailReg === emailLogado && statusReg === 'Pendente') exigeAlcadaLocal = true;
+      if (emailDir === emailLogado && statusDir === 'Pendente') exigeAlcadaLocal = true;
+      
+      if (userObj.role === 'MASTER' && (statusReg === 'Pendente' || statusDir === 'Pendente')) {
+         exigeAlcadaLocal = true;
+      }
+
+      if (exigeAlcadaLocal) {
+        let dt = data[i][1];
+        if (dt instanceof Date) dt = dt.toLocaleDateString('pt-BR');
+        pendentes.push({
+          id: data[i][0].toString(),
+          data: dt,
+          filial: data[i][2].toString(),
+          nome: data[i][3].toString(),
+          cargo: data[i][6].toString(),
+          linkDoc: data[i][20].toString()
+        });
+      }
+    }
+    return pendentes;
+  } catch (e) {
+    Logger.log("Erro: " + e.message);
+    return [];
+  }
+}
+
+function salvarParecerDesligamentoLideranca(idDesligamento, parecerTexto) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('HISTORICO_DESLIGAMENTO_F');
+    const data = sheet.getDataRange().getValues();
+
+    let rowIndex = -1;
+    let docId = '';
+    let emailCriador = '';
+
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] && data[i][0].toString().toUpperCase() === idDesligamento.toUpperCase()) {
+        rowIndex = i + 1;
+        const emailReg = data[i][11] ? data[i][11].toString().toLowerCase().trim() : '';
+        const emailDir = data[i][14] ? data[i][14].toString().toLowerCase().trim() : '';
+        emailCriador = data[i][21] ? data[i][21].toString() : '';
+        const docLink = data[i][20] ? data[i][20].toString() : '';
+
+        if (docLink && docLink.includes('document/d/')) {
+          docId = docLink.match(/[-\w]{25,}/)[0];
+        }
+
+        if (emailReg === emailLogado) {
+          sheet.getRange(rowIndex, 13).setValue('Aprovado/Parecer Emitido');
+          sheet.getRange(rowIndex, 14).setValue(parecerTexto);
+        } else if (emailDir === emailLogado) {
+          sheet.getRange(rowIndex, 16).setValue('Aprovado/Parecer Emitido');
+          sheet.getRange(rowIndex, 17).setValue(parecerTexto);
+        } else {
+          sheet.getRange(rowIndex, 16).setValue('Parecer Master');
+          sheet.getRange(rowIndex, 17).setValue(parecerTexto);
+        }
+        break;
+      }
+    }
+
+    if (rowIndex === -1) return { sucesso: false, erro: 'Registro não localizado.' };
+
+    // Escreve o parecer diretamente no documento gerado
+    if (docId) {
+      try {
+        const doc = DocumentApp.openById(docId);
+        const body = doc.getBody();
+        body.appendParagraph("\nPARECER DE LIDERANÇA / ALÇADA").setHeading(DocumentApp.ParagraphHeading.HEADING2);
+        body.appendParagraph("Responsável: " + emailLogado);
+        body.appendParagraph("Data: " + new Date().toLocaleString('pt-BR'));
+        body.appendParagraph(parecerTexto);
+        doc.saveAndClose();
+      } catch (errDoc) {
+        Logger.log("Falha ao registrar doc: " + errDoc.message);
+      }
+    }
+
+    if (emailCriador) {
+       MailApp.sendEmail({
+         to: emailCriador,
+         subject: "[GP] Novo Parecer de Desligamento Recebido",
+         htmlBody: "A liderança acabou de inserir o parecer de desligamento no processo " + idDesligamento + ". Acesse o painel ou o relatório Docs para checar."
+       });
+    }
+
+    return { sucesso: true };
+  } catch (err) {
+    return { sucesso: false, erro: err.toString() };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function dispararEmailAlcadaDesligamento(regEmail, dirEmail, filial, nome, linkDoc) {
+  const emails = [regEmail, dirEmail].filter(e => e).join(',');
+  if (!emails) return;
+
+  const assunto = "[ALÇADA PENDENTE] Relatório de Desligamento Submetido - F." + filial;
+  const htmlBody = 
+    '<div style="font-family: Arial; padding: 20px;">' +
+    '<h2 style="color: #0086FF;">Aprovação Pendente de Desligamento</h2>' +
+    '<p>Prezada Liderança, o dossiê referente ao colaborador <strong>' + nome + '</strong> da Filial <strong>' + filial + '</strong> foi gerado.</p>' +
+    '<p>Acesse o painel GP Magalu para inserir seu parecer formal de aprovação.</p>' +
+    '<a href="' + linkDoc + '" style="background: #0086FF; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Ler Relatório no Docs</a>' +
+    '</div>';
+
+  try { MailApp.sendEmail({ to: emails, subject: assunto, htmlBody: htmlBody }); } catch(e){}
 }

@@ -1,9 +1,3 @@
-// =============================================================================
-// AUTENTICAÇÃO, CONTROLE DE ACESSO E AUTORIZAÇÃO
-// Subpasta GitHub: src/forms-denuncia/
-// Arquivo Apps Script: Auth.gs
-// =============================================================================
-
 function doGet(e) {
   let emailLogado = '';
   try {
@@ -40,8 +34,8 @@ function obterSessaoInicial(pageReq) {
   let usuario = null;
 
   try {
-    autorizado = verificarAutorizacao(email, pageReq);
     usuario = obterUsuarioLogado(email);
+    autorizado = verificarAutorizacao(usuario, pageReq);
   } catch (err) {
     Logger.log("Erro na validação de sessão: " + err.message);
   }
@@ -49,125 +43,106 @@ function obterSessaoInicial(pageReq) {
   return { email: email, autorizado: autorizado, usuario: usuario };
 }
 
-function verificarAutorizacao(email, pageReq) {
-  if (!email) return false;
-  email = email.toLowerCase().trim();
+function verificarAutorizacao(userObj, pageReq) {
+  if (!userObj || !userObj.email) return false;
+  if (pageReq === 'gerente') return true; 
 
-  if (pageReq === 'gerente') {
-    return true;
+  if (userObj.role === 'BLOQUEADO' || userObj.role === 'GERENTE_LOJA' || userObj.role === 'DESCONHECIDO') {
+    return false;
   }
-
-  if (email === 'fabiane.satie@magazineluiza.com.br' || email === 'gplojas@magazineluiza.com.br') {
-    return true;
-  }
-
-  try {
-    const dataUsuarios = getCachedSheetData(SPREADSHEET_ID, 'DADOS_USUARIOS');
-    if (!dataUsuarios) return false;
-
-    const headers = dataUsuarios[0];
-    const colEmail = obterIndiceCabecalho(headers, ['email'], 0);
-    const colHierarquia = obterIndiceCabecalho(headers, ['cargo'], 2);
-    const colNivel = obterIndiceCabecalho(headers, ['nivel_acesso'], 5);
-
-    for (let i = 1; i < dataUsuarios.length; i++) {
-      const emailCadastrado = dataUsuarios[i][colEmail] ? dataUsuarios[i][colEmail].toString().toLowerCase().trim() : '';
-      if (emailCadastrado === email) {
-        const hierarquia = dataUsuarios[i][colHierarquia] ? normalizarTexto(dataUsuarios[i][colHierarquia]) : '';
-        const nivel = dataUsuarios[i][colNivel] ? normalizarTexto(dataUsuarios[i][colNivel]) : '';
-
-        // BLOQUEIO RIGOROSO: Checa níveis restritivos antes de aprovar por cargo
-        if (nivel.includes('bloqueado') || nivel.includes('inativo') || nivel.includes('sem acesso')) {
-          return false;
-        }
-
-        if (hierarquia.includes('diretor op') || hierarquia.includes('diretoria op') || hierarquia.includes('gerente regional op') || hierarquia.includes('regional op')) {
-          return true;
-        }
-
-        if (hierarquia.includes('gp') || hierarquia.includes('coord') || hierarquia.includes('diretor')) {
-          return true;
-        }
-
-        if (/gerente.*loja/i.test(hierarquia) || hierarquia === 'gerente') return false;
-        
-        return true; 
-      }
-    }
-  } catch (err) {}
-  return false;
+  return true;
 }
 
 function verificarEhAdminMaster(email) {
   if (!email) return false;
-  email = email.toLowerCase().trim();
-
-  if (email === 'fabiane.satie@magazineluiza.com.br' || email === 'gplojas@magazineluiza.com.br') {
-    return true;
-  }
-
-  try {
-    const dataUsuarios = getCachedSheetData(SPREADSHEET_ID, 'DADOS_USUARIOS');
-    if (!dataUsuarios) return false;
-
-    const headers = dataUsuarios[0];
-    const colEmail = obterIndiceCabecalho(headers, ['email'], 0);
-    const colNivel = obterIndiceCabecalho(headers, ['nivel_acesso'], 5);
-
-    for (let i = 1; i < dataUsuarios.length; i++) {
-      const emailCadastrado = dataUsuarios[i][colEmail] ? dataUsuarios[i][colEmail].toString().toLowerCase().trim() : '';
-      if (emailCadastrado === email) {
-        const nivel = dataUsuarios[i][colNivel] ? normalizarTexto(dataUsuarios[i][colNivel]) : '';
-        if (nivel.includes('admin') || nivel.includes('master')) {
-          return true;
-        }
-      }
-    }
-  } catch (e) {
-    Logger.log("Erro na checagem de Admin Master: " + e.message);
-  }
-  return false;
+  const user = obterUsuarioLogado(email);
+  return user.role === 'MASTER';
 }
 
 function obterUsuarioLogado(email) {
-  if (!email) return { email: '', nome: 'COORDENADOR GP', apelido: 'GP', cargo: 'GP', ehRegionalOuDiretor: false };
-  let apelido = email.split('@')[0];
-  if (apelido.includes('.')) {
-    const parts = apelido.split('.');
-    apelido = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
-  } else {
-    apelido = apelido.charAt(0).toUpperCase() + apelido.slice(1);
-  }
+  if (!email) return { email: '', nome: 'Visitante', role: 'BLOQUEADO' };
+  email = email.toLowerCase().trim();
+  let apelido = email.split('@')[0].split('.')[0];
+  apelido = apelido.charAt(0).toUpperCase() + apelido.slice(1);
 
-  let cargoCadastrado = 'GP';
-  let ehRegionalOuDiretor = false;
+  let userObj = {
+    email: email,
+    nome: apelido,
+    apelido: apelido,
+    cargo: 'Não Cadastrado',
+    role: 'DESCONHECIDO',
+    regionais: '',
+    diretoria: '',
+    nivelAcesso: 'sem acesso'
+  };
+
+  // Regra Chumbada para Compliance
+  if (email === 'angelica@magazineluiza.com.br' || email === 'tarsila.mendonca@magazineluiza.com.br') {
+    userObj.role = 'COMPLIANCE';
+    userObj.cargo = 'Compliance';
+    userObj.nivelAcesso = 'ativo';
+    return userObj;
+  }
 
   try {
     const dataUsuarios = getCachedSheetData(SPREADSHEET_ID, 'DADOS_USUARIOS');
     if (dataUsuarios && dataUsuarios.length > 1) {
-      const headers = dataUsuarios[0];
-      const colEmail = obterIndiceCabecalho(headers, ['email'], 0);
-      const colCargo = obterIndiceCabecalho(headers, ['cargo'], 2);
+      
+      // Utilização de índices hardcoded da imagem DADOS_USUARIOS para evitar falha de leitura
+      const COL_EMAIL = 0;
+      const COL_NOME = 1;
+      const COL_CARGO = 2;
+      const COL_DIR = 3;
+      const COL_REG = 4;
+      const COL_NIVEL = 5;
 
       for (let i = 1; i < dataUsuarios.length; i++) {
-        const emailCad = dataUsuarios[i][colEmail] ? dataUsuarios[i][colEmail].toString().toLowerCase().trim() : '';
-        if (emailCad === email.toLowerCase().trim()) {
-          cargoCadastrado = dataUsuarios[i][colCargo] ? dataUsuarios[i][colCargo].toString().trim() : 'GP';
-          const cargoNorm = normalizarTexto(cargoCadastrado);
-          if (cargoNorm.includes('gerente regional op') || cargoNorm.includes('regional op') || cargoNorm.includes('diretor op') || cargoNorm.includes('diretoria op')) {
-            ehRegionalOuDiretor = true;
+        const row = dataUsuarios[i];
+        const emailCadastrado = row[COL_EMAIL] ? row[COL_EMAIL].toString().toLowerCase().trim() : '';
+        
+        if (emailCadastrado === email) {
+          userObj.nome = row[COL_NOME] ? row[COL_NOME].toString().trim() : apelido;
+          userObj.cargo = row[COL_CARGO] ? normalizarTexto(row[COL_CARGO]) : '';
+          userObj.diretoria = row[COL_DIR] ? normalizarTexto(row[COL_DIR]) : '';
+          userObj.regionais = row[COL_REG] ? normalizarTexto(row[COL_REG]) : '';
+          userObj.nivelAcesso = row[COL_NIVEL] ? normalizarTexto(row[COL_NIVEL]) : '';
+
+          // 1. AVALIAÇÃO DE BLOQUEIO ABSOLUTO (Suprema)
+          if (userObj.nivelAcesso.includes('bloqueado') || userObj.nivelAcesso.includes('sem acesso') || userObj.nivelAcesso.includes('inativo')) {
+            userObj.role = 'BLOQUEADO';
+          } 
+          // 2. AVALIAÇÃO MASTER
+          else if (userObj.nivelAcesso.includes('admin') || userObj.nivelAcesso.includes('master') || email === 'fabiane.satie@magazineluiza.com.br' || email === 'gplojas@magazineluiza.com.br') {
+            userObj.role = 'MASTER';
+          } 
+          // 3. AVALIAÇÃO LIDERANÇA (Diretores e Regionais OP)
+          else if (userObj.cargo.includes('diretor op') || userObj.cargo.includes('diretoria') || userObj.cargo.includes('regional op')) {
+            userObj.role = 'LIDERANCA';
+          } 
+          // 4. AVALIAÇÃO COMPLIANCE GENÉRICO
+          else if (userObj.cargo.includes('compliance') || userObj.cargo.includes('etica')) {
+            userObj.role = 'COMPLIANCE';
+          } 
+          // 5. AVALIAÇÃO GERENTE DE LOJA (Não acessa painel principal)
+          else if (userObj.cargo.includes('gerente')) {
+            userObj.role = 'GERENTE_LOJA';
+          } 
+          // 6. EQUIPE GP
+          else {
+            userObj.role = 'GP';
           }
-          break;
+          break; // Usuário encontrado
         }
       }
     }
-  } catch (e) {}
+  } catch (err) {
+    Logger.log("Erro na validação do usuário: " + err.message);
+  }
 
-  return {
-    email: email,
-    nome: email.split('@')[0].replace('.', ' ').toUpperCase(),
-    apelido: apelido,
-    cargo: cargoCadastrado,
-    ehRegionalOuDiretor: ehRegionalOuDiretor
-  };
+  // Fallback para Fabiane se ela for removida da planilha acidentalmente
+  if (userObj.role === 'DESCONHECIDO' && (email === 'fabiane.satie@magazineluiza.com.br' || email === 'gplojas@magazineluiza.com.br')) {
+     userObj.role = 'MASTER';
+  }
+
+  return userObj;
 }
