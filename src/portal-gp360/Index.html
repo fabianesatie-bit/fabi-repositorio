@@ -1,0 +1,1681 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Portal GP 360</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    if (typeof google === 'undefined') {
+        console.warn("Ambiente Google Apps Script não detectado. Iniciando modo Mock para Preview.");
+        window.google = {
+            script: {
+                run: {
+                    registrarAuditoria: function(evt, det) { console.log("Auditoria Mock:", evt, det); return this; },
+                    withSuccessHandler: function(callback) {
+                        return {
+                            obterDadosIniciais: function() {
+                                setTimeout(() => callback({
+                                    bloqueado: false,
+                                    usuario: { nome: "Usuário Preview", cargo: "Administrador", infoLinha2: "Visão Preview", regionais: ["Regional Teste"], diretoriasAtendidas: ["Diretoria Teste"], isAdmin: true, isSuperAdmin: true, isConfigAdmin: true, isGerenteGP: true, foto: "" },
+                                    lojas: [{id: 1001, nome: "Loja Preview 1", regional: "Regional Teste"}],
+                                    qtdLojasCarteira: 1, qtdVisitas: 5, moedas: 125, moedasMes: 85, faseMontanha: 3, badges: [{id:'1', nome:'Bronze', meta:40, icone:'🥉'}], gastos: 120.00, historico: [], avisos: [], ranking: [], naturezas: ["Integração Preview"], diretorias: ["Diretoria Teste"]
+                                }), 500);
+                            },
+                            buscarIndicadoresLoja: function() {
+                                setTimeout(() => callback({sucesso: true, venda: "110%", nps: "95", bancoHoras: "10 h", quadro: "0", txdes: "1.5%"}), 500);
+                            },
+                            getEvidenciasUsuario: function() { setTimeout(() => callback([]), 500); },
+                            getDicionarioPremios: function() { setTimeout(() => callback([]), 500); },
+                            registrarAtividade: function() { setTimeout(() => callback({sucesso: true}), 500); },
+                            publicarAviso: function() { setTimeout(() => callback({sucesso: true}), 500); },
+                            adicionarNatureza: function() { setTimeout(() => callback({sucesso: true, naturezas: ["Nova Natureza Mock"]}), 500); },
+                            excluirNatureza: function() { setTimeout(() => callback({sucesso: true, naturezas: []}), 500); },
+                            excluirLancamento: function() { setTimeout(() => callback({sucesso: true}), 500); }
+                        };
+                    }
+                }
+            }
+        };
+    }
+  </script>
+  <style>
+      :root { --main-color: #0086ff; --bg-color: #f4f7fb; --card-bg: #ffffff; --text-color: #333; }
+      body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+
+      .sidebar { width: 260px; background: white; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; transition: all 0.3s ease; z-index: 50; }
+      .sidebar-header { padding: 20px; text-align: center; border-bottom: 1px solid #e5e7eb; }
+      .sidebar-header img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 3px solid var(--main-color); background-color: #f0f0f0; }
+      .sidebar-nav { flex: 1; overflow-y: auto; padding: 15px 0; }
+      .nav-item { display: flex; align-items: center; padding: 12px 20px; color: #555; text-decoration: none; font-weight: 500; transition: 0.2s; cursor: pointer; border-left: 4px solid transparent; }
+      .nav-item i { width: 24px; text-align: center; margin-right: 10px; font-size: 18px; }
+      .nav-item:hover { background-color: #f8fafc; color: var(--main-color); }
+      .nav-item.active { background-color: #eef2ff; color: var(--main-color); border-left-color: var(--main-color); }
+
+      .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+      .topbar { background: white; height: 60px; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; border-bottom: 1px solid #e5e7eb; }
+      .menu-toggle { font-size: 24px; cursor: pointer; color: #555; display: none; }
+      .content-area { flex: 1; padding: 20px; overflow-y: auto; }
+
+      .card { background: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; }
+
+      .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
+      .stat-card { background: white; padding: 20px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-left: 5px solid var(--main-color); }
+      .stat-icon { width: 50px; height: 50px; border-radius: 10px; background: #eef2ff; color: var(--main-color); display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; }
+      .stat-info h4 { margin: 0; font-size: 14px; color: #777; font-weight: normal; }
+      .stat-info h2 { margin: 5px 0 0 0; font-size: 24px; color: #333; }
+      .indicadores-mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-top: 10px; }
+      .ind-card { background: white; padding: 15px 10px; border-radius: 8px; text-align: center; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: transform 0.2s;}
+      .ind-card:hover { transform: translateY(-3px); }
+      .ind-card h5 { margin: 0 0 5px 0; color: #555; font-size: 12px; font-weight: normal; }
+      .ind-card .valor { font-size: 20px; font-weight: bold; color: var(--text-color); }
+      .loading-ind { text-align: center; font-size: 12px; color: #888; padding: 10px; font-style: italic; }
+      .form-group { margin-bottom: 15px; }
+      .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #555; font-size: 14px;}
+      .form-control { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; outline: none; transition: border 0.3s; box-sizing: border-box; }
+      .form-control:focus { border-color: var(--main-color); }
+
+      .pill-btn { display: inline-block; padding: 6px 12px; background: white; border: 1px solid #cbd5e1; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold; color: #475569; transition: all 0.2s; user-select: none; }
+      .chk-abrangencia:checked + .pill-btn, .chk-tema:checked + .pill-btn { background-color: var(--main-color); color: white; border-color: #0284c7; }
+      .check-label input { display: none; }
+      .btn-primary { background-color: var(--main-color); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; display: inline-block; text-align: center;}
+      .btn-primary:hover { background-color: #006bce; }
+      .btn-secondary { background-color: #e5e7eb; color: #333; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+      .btn-secondary:hover { background-color: #d1d5db; }
+      .btn-danger { background-color: #ef4444; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+      .btn-danger:hover { background-color: #dc2626; }
+
+      .history-list { list-style: none; padding: 0; margin: 0; }
+      .history-item { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--main-color); box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative;}
+      .history-date { font-size: 12px; color: #888; margin-bottom: 5px; }
+      .history-title { font-weight: bold; color: #333; font-size: 15px;}
+      .history-desc { font-size: 13px; color: #666; margin-top: 5px;}
+      .delete-btn { position: absolute; right: 15px; top: 15px; color: #ef4444; cursor: pointer; font-size: 18px;}
+      .lock-btn { position: absolute; right: 15px; top: 15px; color: #ccc; cursor: not-allowed; font-size: 18px;}
+
+      /* LAYOUT DO RANKING COM ALINHAMENTO EM PILHA */
+      .ranking-list { list-style: none; padding: 0; margin: 0; }
+      .ranking-item { display: flex; align-items: center; padding: 14px 0; border-bottom: 1px solid #f1f5f9; }
+      .ranking-item:last-child { border-bottom: none; }
+      .ranking-pos { width: 32px; font-weight: bold; color: #888; flex-shrink: 0; }
+      .ranking-item:nth-child(1) .ranking-pos { color: #fbbf24; font-size: 18px; }
+      .ranking-item:nth-child(2) .ranking-pos { color: #9ca3af; font-size: 16px; }
+      .ranking-item:nth-child(3) .ranking-pos { color: #b45309; font-size: 16px; }
+      .ranking-img { width: 46px; height: 44px; border-radius: 50%; object-fit: cover; margin-right: 15px; background-color: #f0f0f0; flex-shrink: 0;}
+      .ranking-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+      .ranking-nome { font-weight: 700; color: #1e293b; font-size: 14px; line-height: 1.2; margin-bottom: 4px; }
+      .ranking-moedas { font-weight: 800; color: #0284c7; flex-shrink: 0; margin-left: 12px; font-size: 16px; }
+      .mural-avisos { background: #fff3cd; border-left: 5px solid #ffcc00; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+      .aviso-item { border-bottom: 1px solid #ffe680; padding-bottom: 10px; margin-bottom: 10px; position:relative; }
+      .aviso-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+      .aviso-meta { font-size: 11px; color: #856404; margin-bottom: 3px; font-weight: bold; }
+      .btn-del-aviso { position: absolute; right: 0; top: 0; color: #dc3545; cursor: pointer; font-size: 14px; }
+      .paste-zone { border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 8px; background: #fafafa; color: #777; transition: 0.3s; cursor: text; margin-bottom: 10px;}
+      .paste-zone:focus { border-color: var(--main-color); background: #f0f9ff; outline:none;}
+      .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index: 9999; }
+      .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--main-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      .toast { position: fixed; bottom: 20px; right: 20px; background: #333; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 1000; }
+      .toast.show { transform: translateY(0); opacity: 1; }
+      .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index: 1000; }
+      .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; }
+      .blocked-screen { position: fixed; top:0; left:0; width:100%; height:100%; background-color:#b91c1c; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index: 10000; color: white; text-align: center; padding: 20px; display: none; }
+
+      .galeria-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+      .galeria-card { background: white; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s; }
+      .galeria-card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
+      .galeria-thumb { width: 100%; height: 120px; object-fit: cover; background: #f1f5f9; }
+      .galeria-info { padding: 8px 10px; font-size: 11px; color: #475569; }
+
+      @media (max-width: 768px) {
+        .sidebar { position: fixed; left: -260px; height: 100%; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
+        .sidebar.open { left: 0; }
+        .menu-toggle { display: block; }
+      }
+  </style>
+  <script>
+    function usarIniciaisComoFallback(imgElement) {
+        let nome = imgElement.getAttribute('data-nome');
+        if(!nome) nome = 'Usuario GP';
+        imgElement.outerHTML = usarIniciais(nome);
+    }
+    function usarIniciais(nome) {
+        let iniciais = nome.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        return '<div style="width:100%;height:100%;border-radius:50%;background:#0086ff;color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:24px;border:3px solid #0086ff;">' + iniciais + '</div>';
+    }
+  </script>
+</head>
+<body>
+
+  <div id="bloqueio-tela" class="blocked-screen">
+      <i class="fa-solid fa-lock" style="font-size: 60px; margin-bottom: 20px;"></i>
+      <h1 style="margin: 0 0 10px 0; font-size: 28px;">Acesso Negado</h1>
+      <p style="font-size: 16px; opacity: 0.9;" id="txt-motivo-bloqueio">Seu usuário não possui permissões ativas para navegar no Portal.</p>
+  </div>
+
+  <div id="loading-splash" class="loading-overlay">
+    <div class="spinner"></div>
+    <h3 style="color:#555; font-weight:normal;" id="loading-text">Sincronizando portal...</h3>
+  </div>
+
+  <div id="app-container" style="display:none; width:100%; height:100%;">
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div style="width:80px;height:80px;margin:0 auto 10px;" id="user-photo-container"></div>
+        <h3 style="margin:0;font-size:16px;color:#333;" id="user-name">Carregando...</h3>
+        <p style="margin:5px 0 0 0;font-size:12px;color:#888;" id="user-role">...</p>
+        <p style="margin:2px 0 0 0;font-size:11px;color:var(--main-color);font-weight:bold;" id="user-info2"></p>
+      </div>
+      <div class="sidebar-nav">
+        <a class="nav-item active" onclick="mudarAba('home', this)"><i class="fa-solid fa-house"></i> Início</a>
+        <a class="nav-item" onclick="mudarAba('lancamento', this)"><i class="fa-solid fa-plus-circle"></i> Lançar Atividade</a>
+        <a class="nav-item" onclick="mudarAba('gestao', this)"><i class="fa-solid fa-list-check"></i> Gestão de Atividades</a>
+        <a class="nav-item" onclick="mudarAba('galeria', this)"><i class="fa-solid fa-images"></i> Galeria de Evidências</a>
+        <a class="nav-item" onclick="mudarAba('historico', this)"><i class="fa-solid fa-receipt"></i> Extrato e Despesas</a>
+        <a class="nav-item" onclick="mudarAba('consultas', this)"><i class="fa-solid fa-magnifying-glass"></i> Consultas Gerais</a>
+        <a class="nav-item" href="https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw2uNji5U57BZnGUerQ899Syqwjb_JwMV2nQug_yAQqgGH-nlw-i-y-fdzpuoMOi6uEkA/exec" target="_blank" onclick="google.script.run.registrarAuditoria('Painel Externo', 'Visão Geral GP (Sidebar)')"><i class="fa-solid fa-chart-pie"></i> Visão Geral GP</a>
+
+        <div id="menu-admin" style="display:none; border-top:1px solid #eee; margin-top:10px; padding-top:10px;">
+           <p style="margin:0 0 10px 20px; font-size:11px; color:#aaa; font-weight:bold; text-transform:uppercase;">Administração</p>
+           <a class="nav-item" onclick="mudarAba('configuracoes', this)"><i class="fa-solid fa-gear"></i> Configurações</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="topbar">
+        <i class="fa-solid fa-bars menu-toggle" onclick="toggleMenu()"></i>
+        <h2 style="margin:0; font-size:18px; color:#333;">Portal GP 360</h2>
+        <div style="display:flex; align-items:center; gap:10px; font-weight:bold; color:#fbbf24;">
+          <i class="fa-solid fa-coins"></i> <span id="user-coins">0</span>
+        </div>
+      </div>
+
+      <div class="content-area">
+
+        <!-- ABA HOME & GAMIFICAÇÃO METÁFORA MONTANHA -->
+        <div id="aba-home" class="view-aba">
+
+          <!-- WIDGET TRILHA / ESCALADA DA MONTANHA -->
+          <div class="card" style="background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%); border: 1px solid #bbf7d0; margin-bottom: 20px;">
+             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                   <div style="display: flex; align-items: center; gap: 10px;">
+                      <h3 style="margin: 0; color: #166534; font-size: 18px;"><i class="fa-solid fa-mountain"></i> Sua Escalada de Governança</h3>
+                      <span id="arvore-fase-badge" style="background: #dcfce7; color: #15803d; font-size: 11px; font-weight: bold; padding: 3px 10px; border-radius: 12px; border: 1px solid #86efac;">Fase 1</span>
+                   </div>
+                   <p style="margin: 5px 0 0 0; font-size: 13px; color: #4b5563;">
+                      Moedas do Mês Vigente: <strong id="arvore-moedas-mes" style="color: #16a34a; font-size: 16px;">0</strong> | Total Acumulado: <strong id="arvore-moedas-total" style="color: #1f2937;">0</strong>
+                   </p>
+                   <div style="margin-top: 10px;">
+                      <span style="font-size: 11px; font-weight: bold; color: #6b7280; text-transform: uppercase; display: block; margin-bottom: 4px;">Conquistas Desbloqueadas:</span>
+                      <div id="badges-container" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+                   </div>
+                </div>
+                <div id="arvore-visual-box" style="width: 85px; height: 80px; background: white; border-radius: 50%; border: 3px solid #4ade80; display: flex; align-items: center; justify-content: center; font-size: 42px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                   🥾
+                </div>
+             </div>
+          </div>
+
+          <div id="mural-avisos-container" class="mural-avisos" style="display:none;">
+             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="margin:0; color:#856404;"><i class="fa-solid fa-bullhorn"></i> Quadro de Avisos</h4>
+                <button id="btn-add-aviso" class="btn-primary" style="width:auto; padding:5px 10px; font-size:12px; display:none;" onclick="abrirModalAviso()">+ Novo</button>
+             </div>
+             <div id="lista-avisos"></div>
+          </div>
+
+          <div class="dash-grid">
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fa-solid fa-store"></i></div>
+              <div class="stat-info"><h4>Lojas na Carteira</h4><h2 id="dash-lojas">0</h2></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fa-solid fa-route"></i></div>
+              <div class="stat-info"><h4>Visitas (In Loco)</h4><h2 id="dash-visitas">0</h2></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#fff3cd; color:#f59e0b;"><i class="fa-solid fa-money-bill-wave"></i></div>
+              <div class="stat-info"><h4>Reembolso Estimado (Mês)</h4><h2 id="dash-gastos">R$ 0,00</h2></div>
+            </div>
+          </div>
+
+          <div class="dash-grid">
+             <div class="card" style="margin-bottom:0;">
+                <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:10px;"><i class="fa-solid fa-trophy" style="color:#fbbf24;"></i> Top Engajamento (Top 5)</h3>
+                <ul class="ranking-list" id="lista-ranking"></ul>
+             </div>
+             <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+                <i class="fa-solid fa-rocket" style="font-size:40px; color:var(--main-color); margin-bottom:15px;"></i>
+                <h3 style="margin:0 0 10px 0;">Bora pro Campo!</h3>
+                <p style="color:#666; font-size:14px; margin-bottom:20px;">Lembre-se de registrar suas visitas e interações para manter a operação na mesma página e acumular moedas.</p>
+                <button class="btn-primary" onclick="mudarAba('lancamento', document.querySelectorAll('.nav-item')[1])">Registrar Agora</button>
+             </div>
+          </div>
+        </div>
+
+        <!-- ABA LANÇAMENTO -->
+        <div id="aba-lancamento" class="view-aba" style="display:none;">
+          <div class="card" style="max-width: 650px; margin: 0 auto;">
+            <h2 style="margin-top:0; color:var(--main-color);"><i class="fa-solid fa-file-pen"></i> Nova Atividade</h2>
+            <p style="color:#666; font-size:14px; margin-bottom:20px;">Preencha os detalhes do seu roteiro ou interação.</p>
+            <div class="form-group">
+              <label>Data da Atividade/Viagem</label>
+              <input type="date" id="lanc-data" class="form-control">
+            </div>
+            <div style="display:flex; gap:15px; margin-bottom:15px;">
+               <div class="form-group" style="flex:1; margin-bottom:0;">
+                  <label>Este atendimento foi para:</label>
+                  <select id="lanc-escopo" class="form-control" onchange="alternarEscopo(this.value)">
+                    <option value="filial">Uma Filial Específica</option>
+                    <option value="regional">Regional</option>
+                    <option value="diretoria">Diretoria</option>
+                  </select>
+               </div>
+               <div class="form-group" style="flex:1; margin-bottom:0;">
+                  <label>Tipo de Roteiro:</label>
+                  <select id="lanc-roteiro" class="form-control" onchange="verificarCamposDinamicos()">
+                    <option value="Presencial (Visita in loco)">Presencial (Visita in loco)</option>
+                    <option value="Online">Online</option>
+                    <option value="Presencial (evento/reuniões)">Presencial (evento/reuniões)</option>
+                    <option value="Hibrido">Híbrido</option>
+                  </select>
+               </div>
+            </div>
+            <div class="form-group" id="grupo-filial">
+              <label>Destino (Filial)</label>
+              <select id="lanc-destino" class="form-control" onchange="mostrarIndicadoresLancamento(this.value)">
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+            <div class="form-group" id="grupo-abrangencia-lancamento" style="display: none; background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">
+              <label style="color:#0f172a;" id="lbl-abrangencia"><i class="fa-solid fa-map-location-dot"></i> Selecione:</label>
+              <div style="margin-bottom: 10px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
+                 <label style="display:flex; align-items:center; gap:5px; font-size:13px; font-weight:bold; color:var(--main-color); cursor:pointer;">
+                    <input type="checkbox" id="check-todas-abrangencia" onchange="toggleTodasAbrangencias(this)">
+                    Selecionar Todas as Opções Abaixo
+                 </label>
+              </div>
+              <div id="container-pilulas-abrangencia" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+            </div>
+            <div id="painel-indicadores-lancamento" style="display: none; margin-top: 15px; margin-bottom: 15px;">
+               <label style="color: var(--main-color);"><i class="fa-solid fa-bolt"></i> Painel de Bordo Rápido:</label>
+               <div id="loading-indicadores-lanc" class="loading-ind" style="display:none;">Buscando indicadores da loja...</div>
+               <div class="indicadores-mini-grid" id="grid-indicadores-lanc">
+                  <div class="ind-card" style="border-bottom:4px solid #00c853;"><h5>💰 Vendas</h5><div class="valor" id="ind-rec-val">-</div></div>
+                  <div class="ind-card" style="border-bottom:4px solid #0086ff;"><h5>⭐ NPS Atual</h5><div class="valor" id="ind-nps-val">-</div></div>
+                  <div class="ind-card" style="border-bottom:4px solid #ff8800;"><h5>⏰ B. Horas</h5><div class="valor" id="ind-bh-val">-</div></div>
+                  <div class="ind-card" style="border-bottom:4px solid #607d8b;"><h5>👥 Vagas</h5><div class="valor" id="ind-quadro-val">-</div></div>
+                  <div class="ind-card" style="border-bottom:4px solid #f44336;"><h5>📉 Tx Deslig.</h5><div class="valor" id="ind-txdes-val">-</div></div>
+               </div>
+            </div>
+            <div class="form-group">
+              <label>Qual a natureza deste atendimento?</label>
+              <select id="lanc-motivo" class="form-control" onchange="verificarCamposDinamicos()">
+                 <optgroup label="Reuniões e Treinamentos">
+                   <option value="Reunião regional">Reunião regional</option>
+                   <option value="Treinamentos">Treinamentos</option>
+                 </optgroup>
+                 <optgroup label="Seleção e Celebração">
+                   <option value="Celebrações/Ritão/Reconhecimento">Celebrações/Ritão/Reconhecimento</option>
+                   <option value="Recrutamento e seleção - 1º liderança">Recrutamento e seleção - 1º liderança</option>
+                   <option value="Recrutamento e seleção - Processo Externo">Recrutamento e seleção - Processo Externo</option>
+                 </optgroup>
+                 <optgroup label="Conselhos">
+                   <option value="Reunião Conselho E Conselho consultivo">Reunião Conselho E Conselho consultivo</option>
+                 </optgroup>
+                 <optgroup label="Metas e Indicadores">
+                   <option value="NPS - Lojas">NPS - Lojas</option>
+                   <option value="Receita de Mercadoria">Receita (Vendas)</option>
+                   <option value="GMD - Operações de Loja">GMD - Operações de Loja</option>
+                 </optgroup>
+                 <optgroup label="⚖️ Apurações e Feedback">
+                   <option value="Relatorios/Feedback/Acompanhamento">Relatórios/Feedback/Acompanhamento</option>
+                   <option value="Atendimento Social">Atendimento Social</option>
+                 </optgroup>
+                 <optgroup id="optgroup-dinamico" label="🌟 Outras Atividades" style="display:none;"></optgroup>
+              </select>
+            </div>
+            <div id="sub-reuniao" class="form-group" style="display:none; background:#f0f9ff; padding:15px; border-radius:8px; border:1px solid #bae6fd;">
+              <label style="color:#0369a1; margin-bottom:10px;"><i class="fa-solid fa-tags"></i> Temas da Reunião (Múltipla Escolha):</label>
+              <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                <label class="check-label"><input type="checkbox" value="NPS" class="chk-tema"><span class="pill-btn">NPS</span></label>
+                <label class="check-label"><input type="checkbox" value="GMD" class="chk-tema"><span class="pill-btn">GMD</span></label>
+                <label class="check-label"><input type="checkbox" value="Banco de Horas" class="chk-tema"><span class="pill-btn">Banco de Horas</span></label>
+                <label class="check-label"><input type="checkbox" value="PCD" class="chk-tema"><span class="pill-btn">PCD</span></label>
+                <label class="check-label"><input type="checkbox" value="Quadro" class="chk-tema"><span class="pill-btn">Quadro</span></label>
+                <label class="check-label"><input type="checkbox" value="Lixo Eletrônico" class="chk-tema"><span class="pill-btn">Lixo Eletrônico</span></label>
+                <label class="check-label"><input type="checkbox" value="Campanha Sazonais" class="chk-tema"><span class="pill-btn">Campanha Sazonais</span></label>
+                <label class="check-label"><input type="checkbox" value="Agente Integrador" class="chk-tema"><span class="pill-btn">Agente Integrador</span></label>
+              </div>
+            </div>
+            <div id="sub-treinamento" class="form-group" style="display:none; background:#f0f9ff; padding:15px; border-radius:8px; border:1px solid #bae6fd;">
+              <label style="color:#0369a1;"><i class="fa-solid fa-chalkboard-user"></i> Tema do Treinamento:</label>
+              <select id="treinamento-tema" class="form-control">
+                <option value="Liderança">Liderança</option>
+                <option value="Assedio">Assédio</option>
+                <option value="Juridico">Jurídico</option>
+                <option value="Auditoria">Auditoria</option>
+                <option value="Integração">Integração</option>
+                <option value="Atendimento 10 estrelas">Atendimento 10 estrelas</option>
+                <option value="Motivacional">Motivacional</option>
+                <option value="Feedback">Feedback</option>
+                <option value="Inegociaveis">Inegociáveis</option>
+                <option value="Apontamento">Apontamento</option>
+              </select>
+            </div>
+            <div id="grupo-metricas-impacto" style="display:block;">
+                <div style="display:flex; gap:15px; margin-bottom:15px;">
+                  <div class="form-group" style="flex:1; margin-bottom:0;">
+                    <label>Pessoas Impactadas</label>
+                    <input type="number" id="lanc-pessoas" class="form-control" min="0" step="1" placeholder="Ex: 15">
+                  </div>
+                  <div class="form-group" style="flex:1; margin-bottom:0;">
+                    <label>Tempo Gasto (Horas)</label>
+                    <input type="number" id="lanc-tempo" class="form-control" min="0" step="0.5" placeholder="Ex: 2 ou 1.5">
+                  </div>
+                </div>
+                <p style="font-size:11px; color:#ef4444; margin-top:-10px; margin-bottom:15px; font-style:italic;">* O tempo gasto deve incluir preparação de materiais e execução.</p>
+            </div>
+
+            <div id="grupo-km" style="display:block; background:#fff3cd; padding:15px; border-radius:8px; margin-bottom:15px; border:1px solid #ffe69c;">
+              <h4 style="color:#856404; margin-top:0; margin-bottom:15px; font-size:15px;"><i class="fa-solid fa-car"></i> Deslocamento e Despesas da Visita</h4>
+              <div style="display:flex; gap:10px; margin-bottom:10px;">
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#856404;">Valor do KM (R$)</label>
+                    <input type="number" id="km-valor" class="form-control" value="1.20" step="0.01" oninput="calcularDespesas()">
+                 </div>
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#856404;">Qtd de KM</label>
+                    <input type="number" id="km-qtd" class="form-control" value="0" step="1" oninput="calcularDespesas()">
+                 </div>
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#856404;">Custo KM (R$)</label>
+                    <input type="number" id="km-custo-display" class="form-control" readonly placeholder="0.00" style="background:#eee; font-weight:bold;">
+                 </div>
+              </div>
+              <h5 style="font-size:13px; color:#856404; border-top:1px dashed #e5c877; padding-top:10px; margin-top:10px;"><i class="fa-solid fa-receipt"></i> Outros Gastos (Opcional)</h5>
+              <div style="display:flex; gap:10px; margin-bottom:10px;">
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#856404;">Alimentação (R$)</label>
+                    <input type="number" id="gasto-alimentacao" class="form-control" min="0" step="0.01" oninput="calcularDespesas()">
+                 </div>
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#856404;">Hospedagem (R$)</label>
+                    <input type="number" id="gasto-hospedagem" class="form-control" min="0" step="0.01" oninput="calcularDespesas()">
+                 </div>
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#856404;">Aéreo (R$)</label>
+                    <input type="number" id="gasto-aereo" class="form-control" min="0" step="0.01" oninput="calcularDespesas()">
+                 </div>
+              </div>
+              <div style="display:flex; gap:10px;">
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#856404;">Pedágio (R$)</label>
+                    <input type="number" id="gasto-pedagio" class="form-control" min="0" step="0.01" oninput="calcularDespesas()">
+                 </div>
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#856404;">Estacion. (R$)</label>
+                    <input type="number" id="gasto-estacionamento" class="form-control" min="0" step="0.01" oninput="calcularDespesas()">
+                 </div>
+              </div>
+              <div style="text-align:right; font-weight:bold; color:#856404; font-size:16px; margin-top:15px; border-top:1px solid #e5c877; padding-top:10px;">
+                 Gasto Total: R$ <span id="gasto-total-display">0,00</span>
+              </div>
+            </div>
+            <div class="form-group" id="grupo-evidencia" style="background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:15px;">
+              <label style="color:#0f172a; margin-bottom:10px;"><i class="fa-solid fa-paperclip"></i> Evidência da Atividade <span style="font-size:11px; color:#888; font-weight:normal;">(Selecione apenas 1 opção)</span></label>
+
+              <div style="margin-bottom:10px;">
+                 <label style="font-size:11px; color:#555;">Opção 1: Enviar Arquivo (PC/Celular)</label>
+                 <input type="file" id="lanc-arquivo" class="form-control" accept="image/*,.pdf" onchange="limparOutrasEvidencias('file')">
+              </div>
+              <div style="margin-bottom:10px;">
+                 <label style="font-size:11px; color:#555;">Opção 2: Colar Imagem da Área de Transferência</label>
+                 <div id="paste-zone" class="paste-zone" tabindex="0" onfocus="limparOutrasEvidencias('paste')">Clique aqui e aperte Ctrl+V para colar a imagem</div>
+                 <div id="paste-preview" style="margin-top:5px; text-align:center;"></div>
+              </div>
+              <div>
+                 <label style="font-size:11px; color:#555;">Opção 3: Link do Google Drive (Público)</label>
+                 <input type="text" id="lanc-link-drive" class="form-control" placeholder="Cole o link da imagem/pdf aqui" oninput="limparOutrasEvidencias('link')">
+              </div>
+            </div>
+            <div class="form-group" id="grupo-obs">
+              <label>Observações</label>
+              <textarea id="lanc-obs" class="form-control" rows="3"></textarea>
+            </div>
+
+            <button class="btn-primary" onclick="salvarAtividade()" id="btn-salvar"><i class="fa-solid fa-coins"></i> Salvar e Ganhar Moeda</button>
+          </div>
+        </div>
+
+        <!-- ABA GESTÃO -->
+        <div id="aba-gestao" class="view-aba" style="display:none;">
+           <h2 style="margin-top:0;">Gestão de Atividades</h2>
+           <p style="color:#666; font-size:14px; margin-bottom:20px;">Linha do tempo operacional e controle de envios (Visitas, Online e Portais Externos).</p>
+           <ul class="history-list" id="lista-gestao"></ul>
+        </div>
+
+        <!-- ABA GALERIA DE EVIDÊNCIAS -->
+        <div id="aba-galeria" class="view-aba" style="display:none;">
+           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+              <h2 style="margin:0;"><i class="fa-solid fa-images" style="color:var(--main-color);"></i> Minha Galeria de Evidências</h2>
+              <button class="btn-secondary" onclick="carregarGaleria()"><i class="fa-solid fa-rotate"></i> Atualizar Galeria</button>
+           </div>
+           <p style="color:#666; font-size:14px; margin-bottom:20px;">Visualize, baixe ou copie as capturas de tela e comprovantes de todas as suas atividades registradas.</p>
+
+           <div id="galeria-loading" style="display:none; text-align:center; padding:40px; color:#888;">
+              <i class="fa-solid fa-spinner fa-spin" style="font-size:30px; margin-bottom:10px;"></i>
+              <p>Buscando evidências do Google Drive...</p>
+           </div>
+
+           <div id="galeria-grid" class="galeria-grid"></div>
+        </div>
+
+        <!-- ABA HISTÓRICO E EXTRATO -->
+        <div id="aba-historico" class="view-aba" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap: wrap; gap:10px;">
+             <h2 style="margin:0;">Extrato de Reembolso e Despesas</h2>
+             <div style="display:flex; gap:10px;">
+                <button class="btn-secondary" style="background-color: #ff8800; color: white; border-color: #ff8800;" onclick="abrirModalAvulso()"><i class="fa-solid fa-car-side"></i> KM Avulso</button>
+                <button class="btn-secondary" onclick="imprimirRelatorioKM()"><i class="fa-solid fa-print"></i> Imprimir Extrato</button>
+             </div>
+          </div>
+          <div id="modal-km-avulso" style="display: none; background: #fff5e6; border: 2px solid #ff8800; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+             <h4 style="margin-top:0; color:#ff8800;"><i class="fa-solid fa-route"></i> Lançamento de KM Avulso (Sede/Eventos)</h4>
+             <div style="display:flex; gap:15px; margin-bottom:15px;">
+                <div class="form-group" style="flex:1; margin-bottom:0;"><label>Data da Viagem:</label><input type="date" id="avulso-data" class="form-control"></div>
+                <div class="form-group" style="flex:2; margin-bottom:0;"><label>Destino (Livre):</label><input type="text" id="avulso-destino" class="form-control" placeholder="Ex: Reunião na Sede Franca"></div>
+             </div>
+
+             <div style="display:flex; gap:15px; margin-bottom:15px;">
+                <div class="form-group" style="flex:1; margin-bottom:0;"><label>Valor KM:</label><input type="number" id="avulso-valor" class="form-control" step="0.01" value="1.20" oninput="calcularDespesasAvulso()"></div>
+                <div class="form-group" style="flex:1; margin-bottom:0;"><label>Qtd (KM):</label><input type="number" id="avulso-qtd" class="form-control" min="0" step="0.1" oninput="calcularDespesasAvulso()"></div>
+             </div>
+             <h5 style="font-size:13px; color:#856404; border-top:1px dashed #e5c877; padding-top:10px; margin-top:10px;"><i class="fa-solid fa-receipt"></i> Outros Gastos (Opcional)</h5>
+             <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <div style="flex:1;"><label style="font-size:11px; color:#856404;">Alimentação (R$)</label><input type="number" id="avulso-alimentacao" class="form-control" min="0" step="0.01" oninput="calcularDespesasAvulso()"></div>
+                <div style="flex:1;"><label style="font-size:11px; color:#856404;">Hospedagem (R$)</label><input type="number" id="avulso-hospedagem" class="form-control" min="0" step="0.01" oninput="calcularDespesasAvulso()"></div>
+                <div style="flex:1;"><label style="font-size:11px; color:#856404;">Aéreo (R$)</label><input type="number" id="avulso-aereo" class="form-control" min="0" step="0.01" oninput="calcularDespesasAvulso()"></div>
+             </div>
+             <div style="display:flex; gap:10px;">
+                <div style="flex:1;"><label style="font-size:11px; color:#856404;">Pedágio (R$)</label><input type="number" id="avulso-pedagio" class="form-control" min="0" step="0.01" oninput="calcularDespesasAvulso()"></div>
+                <div style="flex:1;"><label style="font-size:11px; color:#856404;">Estacion. (R$)</label><input type="number" id="avulso-estacionamento" class="form-control" min="0" step="0.01" oninput="calcularDespesasAvulso()"></div>
+             </div>
+             <div style="text-align:right; font-weight:bold; color:#856404; font-size:16px; margin-top:15px; border-top:1px solid #e5c877; padding-top:10px;">
+                Gasto Total: R$ <span id="avulso-total-display">0,00</span>
+             </div>
+
+             <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+                <button class="btn-secondary" style="width:auto;" onclick="document.getElementById('modal-km-avulso').style.display='none'">Cancelar</button>
+                <button class="btn-primary" style="width:auto; background-color:#ff8800;" onclick="salvarKMAvulso()">Salvar KM Avulso</button>
+             </div>
+          </div>
+
+          <div style="display:flex; gap:10px; margin-bottom:15px; align-items:flex-end;">
+             <div class="form-group" style="margin-bottom:0; flex:1;">
+                <label>Data Início:</label>
+                <input type="date" id="filtro-dt-inicio" class="form-control" onchange="renderizarHistoricos()">
+             </div>
+             <div class="form-group" style="margin-bottom:0; flex:1;">
+                <label>Data Fim:</label>
+                <input type="date" id="filtro-dt-fim" class="form-control" onchange="renderizarHistoricos()">
+             </div>
+             <button class="btn-secondary" onclick="limparFiltroDatas()"><i class="fa-solid fa-eraser"></i> Limpar</button>
+          </div>
+
+          <ul class="history-list" id="lista-historico"></ul>
+        </div>
+
+        <!-- ABA CONSULTAS -->
+        <div id="aba-consultas" class="view-aba" style="display:none;">
+           <h2 style="margin-top:0;">Consultas Gerais</h2>
+           <p style="color:#666; margin-bottom:20px;">Acesse rapidamente outros painéis e recursos corporativos.</p>
+
+           <div class="dash-grid">
+              <div class="card" style="text-align:center; cursor:pointer; transition:transform 0.2s;" onclick="abrirPainelExterno('Agente Integrador', 'fa-users-gear', '#4caf50', 'https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbySeCo0Pao_eydyF9ZZfetcSf6Rc-kgmdCiXjJkhf4O1r0jnQI6yRCWG_tGkIgwBzXY2A/exec')">
+                 <i class="fa-solid fa-users-gear" style="font-size:40px; color:#4caf50; margin-bottom:15px;"></i>
+                 <h3 style="margin:0 0 5px 0;">Agente Integrador</h3>
+                 <p style="font-size:12px; color:#888;">Acessar painel interno</p>
+              </div>
+              <div class="card" style="text-align:center; cursor:pointer; transition:transform 0.2s;" onclick="abrirPainelExterno('Banco de Horas', 'fa-clock', '#9c27b0', 'https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzWpN0-LZa_Lvd6VugBL5k3tWbHa5jdwKhJyD4UCH4Ml00BeNzved493zspKCgZAmz5Vg/exec')">
+                 <i class="fa-solid fa-clock" style="font-size:40px; color:#9c27b0; margin-bottom:15px;"></i>
+                 <h3 style="margin:0 0 5px 0;">Banco de Horas</h3>
+                 <p style="font-size:12px; color:#888;">Acessar painel interno</p>
+              </div>
+              <div class="card" style="text-align:center; cursor:pointer; transition:transform 0.2s;" onclick="abrirPainelExterno('Base Rol', 'fa-database', '#3f51b5', 'https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbx8faffOLaa2D34yPcmyCTh1k4twGCvH-8GoUaKqOMejk9n6CBJbYA0khBu4Yd2WCai/exec')">
+                 <i class="fa-solid fa-database" style="font-size:40px; color:#3f51b5; margin-bottom:15px;"></i>
+                 <h3 style="margin:0 0 5px 0;">Base Rol</h3>
+                 <p style="font-size:12px; color:#888;">Acessar painel interno</p>
+              </div>
+              <div class="card" style="text-align:center; cursor:pointer; transition:transform 0.2s;" onclick="window.open('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbybafdaQteFy4FuWwPxIQLGJDGWUsac8jo_agut6PlF42-1ta3mW8uyyjdbtLYGsgWn/exec', '_blank'); google.script.run.registrarAuditoria('Painel Externo (Nova Aba)', 'Coleta Lixo Eletrônico');">
+                 <i class="fa-solid fa-recycle" style="font-size:40px; color:#22c55e; margin-bottom:15px;"></i>
+                 <h3 style="margin:0 0 5px 0;">Lixo Eletrônico</h3>
+                 <p style="font-size:12px; color:#888;">Abrir na Web (Nova Guia)</p>
+              </div>
+           </div>
+           <div id="container-iframe-externo" style="display:none; margin-top:20px; width:100%; height:800px; border-radius:12px; overflow:hidden; border:1px solid #ccc;">
+               <div style="background:#f4f7fb; padding:10px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #ddd;">
+                  <h3 style="margin:0; font-size:16px; color:#333;"><i id="iframe-icon" class="fa-solid fa-globe" style="color:#333;"></i> <span id="iframe-title">Painel Externo</span></h3>
+                  <button class="btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="fecharPainelExterno()">Fechar Painel</button>
+               </div>
+               <iframe id="iframe-externo" src="" style="width:100%; height:100%; border:none;"></iframe>
+           </div>
+        </div>
+
+        <!-- ABA CONFIGURAÇÕES & ADMIN GERENTEGP -->
+        <div id="aba-configuracoes" class="view-aba" style="display:none;">
+           <h2 style="margin-top:0;">Configurações do Sistema</h2>
+           <p style="color:#666; font-size:14px; margin-bottom:20px;">Gerencie as naturezas extras de atividade e o dicionário de prêmios da gamificação.</p>
+
+           <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+              <!-- BLOCO 1: NATUREZAS EXTRAS -->
+              <div class="card" style="flex: 1; min-width: 300px;">
+                 <h3 style="margin-top:0; font-size:16px;"><i class="fa-solid fa-tags"></i> Naturezas Extras Customizadas</h3>
+                 <div style="display:flex; gap:10px; margin-bottom:15px;">
+                    <input type="text" id="nova-natureza" class="form-control" placeholder="Nova natureza (Ex: Integração RH)">
+                    <button class="btn-primary" style="width:auto;" onclick="addNatureza()">Adicionar</button>
+                 </div>
+                 <ul id="lista-naturezas-admin" class="history-list"></ul>
+              </div>
+
+              <!-- BLOCO 2: ADMIN GERENTEGP - DICIONÁRIO DE PRÊMIOS -->
+              <div class="card" id="painel-admin-gerentegp" style="flex: 1; min-width: 320px; border-top: 4px solid #9333ea;">
+                 <h3 style="margin-top:0; font-size:16px; color: #7e22ce;"><i class="fa-solid fa-award"></i> Gestão de Prêmios (GerenteGP)</h3>
+                 <p style="font-size: 12px; color: #6b7280; margin-bottom: 15px;">Cadastre novas metas corporativas e badges de reconhecimento.</p>
+
+                 <div style="background: #f3e8ff; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #d8b4fe;">
+                    <input type="hidden" id="premio-id">
+                    <div style="margin-bottom: 8px;">
+                       <label style="font-size: 11px; font-weight: bold; color: #6b21a8;">Nome do Prêmio:</label>
+                       <input type="text" id="premio-nome" class="form-control" placeholder="Ex: Almoço com Diretoria" style="background: white;">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                       <div style="flex: 1;">
+                          <label style="font-size: 11px; font-weight: bold; color: #6b21a8;">Meta Moedas:</label>
+                          <input type="number" id="premio-meta" class="form-control" placeholder="Ex: 80" style="background: white;">
+                       </div>
+                       <div style="flex: 1;">
+                          <label style="font-size: 11px; font-weight: bold; color: #6b21a8;">Ícone/Emoji:</label>
+                          <input type="text" id="premio-icone" class="form-control" placeholder="Ex: 🥇" style="background: white;">
+                       </div>
+                    </div>
+                    <button class="btn-primary" style="background: #9333ea;" onclick="salvarPremioAdmin()">Salvar Prêmio</button>
+                 </div>
+
+                 <ul id="lista-premios-admin" class="history-list"></ul>
+              </div>
+           </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Mensagem salva com sucesso!</div>
+
+  <!-- MODAL LIGHTBOX EVIDÊNCIA -->
+  <div id="modal-lightbox" class="modal-overlay" style="display:none; z-index: 10000; background: rgba(0,0,0,0.85);">
+      <div style="position: relative; max-width: 90%; max-height: 90vh; background: white; border-radius: 12px; padding: 20px; text-align: center; overflow: auto;">
+          <i class="fa-solid fa-xmark" onclick="fecharLightbox()" style="position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: pointer; color: #666;"></i>
+          <h3 id="lightbox-titulo" style="margin-top:0; margin-bottom: 10px; color: #333; font-size: 16px;">Visualização de Evidência</h3>
+          <img id="lightbox-img" src="" style="max-width: 100%; max-height: 60vh; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ddd;">
+
+          <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+             <a id="lightbox-btn-download" href="" target="_blank" class="btn-primary" style="width: auto; background: #0284c7; text-decoration: none;"><i class="fa-solid fa-download"></i> Baixar Original</a>
+             <button id="lightbox-btn-copiar" class="btn-primary" style="width: auto; background: #16a34a;" onclick="copiarImagemLightbox()"><i class="fa-solid fa-copy"></i> Copiar Imagem</button>
+          </div>
+      </div>
+  </div>
+
+  <!-- MODAL NOVO AVISO -->
+  <div id="modal-novo-aviso" class="modal-overlay" style="display:none;">
+      <div class="modal-content">
+          <h3 style="margin-top:0; color:var(--main-color);">Novo Recado</h3>
+          <p style="font-size:12px; color:#666; margin-bottom:15px;">Escreva uma mensagem para fixar no mural e notificar por e-mail.</p>
+          <div class="form-group">
+              <label>Público Alvo (Diretoria):</label>
+              <select id="aviso-diretoria" class="form-control"></select>
+          </div>
+          <div class="form-group">
+             <label>Mensagem:</label>
+             <textarea id="texto-novo-aviso" class="form-control" rows="4" placeholder="Digite o recado..."></textarea>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+              <button class="btn-secondary" style="width:auto;" onclick="fecharModalAviso()">Cancelar</button>
+              <button class="btn-primary" style="width:auto;" onclick="salvarNovoAviso()" id="btn-salvar-aviso">Publicar Aviso</button>
+          </div>
+      </div>
+  </div>
+
+  <script>
+      let dadosGlobais = null; 
+      let arquivoColadoMemoria = null;
+      let fileIdLightboxAtivo = null;
+
+      const urlsRedirecionamento = {
+          "Relatorios/Feedback/Acompanhamento": "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec",
+          "Atendimento Social": "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec"
+      };
+      const motivosRedirecionamento = Object.keys(urlsRedirecionamento);
+
+      document.getElementById('paste-zone').addEventListener('paste', function(e) {
+          let items = e.clipboardData.items;
+          for (let i = 0; i < items.length; i++) {
+              if (items[i].type.indexOf('image') !== -1) {
+                  let blob = items[i].getAsFile();
+                  let reader = new FileReader();
+                  reader.onload = function(event) {
+                      arquivoColadoMemoria = { fileName: 'colado_' + Date.now() + '.png', mimeType: blob.type, base64: event.target.result.split(',')[1] };
+                      document.getElementById('paste-preview').innerHTML = `<img src="${event.target.result}" style="max-height:100px; border-radius:8px;">`;
+                      document.getElementById('paste-zone').innerText = "Imagem capturada com sucesso!";
+                      document.getElementById('paste-zone').style.borderColor = "#00c853";
+                  };
+                  reader.readAsDataURL(blob);
+              }
+          }
+      });
+
+      function limparOutrasEvidencias(origem) {
+          if(origem !== 'file') document.getElementById('lanc-arquivo').value = '';
+          if(origem !== 'paste') {
+              arquivoColadoMemoria = null;
+              document.getElementById('paste-preview').innerHTML = '';
+              document.getElementById('paste-zone').innerText = "Clique aqui e aperte Ctrl+V para colar a imagem";
+              document.getElementById('paste-zone').style.borderColor = "#ccc";
+          }
+          if(origem !== 'link') document.getElementById('lanc-link-drive').value = '';
+      }
+
+      function customConfirm(message, onConfirm) {
+          let boxConfirm = document.createElement('div');
+          boxConfirm.style.cssText = "position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; color:#333; padding:25px; border-radius:12px; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.2); text-align:center; min-width:320px;";
+          boxConfirm.innerHTML = `
+              <div style="margin-bottom:15px; color:#ef4444; font-size:30px;"><i class="fa-solid fa-circle-exclamation"></i></div>
+              <h3 style="margin-top:0; color:#333; font-size:18px;">Atenção</h3>
+              <p style="color:#666; font-size:14px; margin-bottom:20px;">${message}</p>
+              <div style="display:flex; gap:10px; justify-content:center;">
+                  <button id="btn-cancelar-modal" class="btn-secondary" style="width:auto;">Cancelar</button>
+                  <button id="btn-confirmar-modal" class="btn-danger" style="width:auto;">Sim, Confirmar</button>
+              </div>
+          `;
+          document.body.appendChild(boxConfirm);
+          document.getElementById('btn-cancelar-modal').onclick = () => boxConfirm.remove();
+          document.getElementById('btn-confirmar-modal').onclick = () => {
+              boxConfirm.remove();
+              onConfirm();
+          };
+      }
+
+      function abrirPainelExterno(titulo, icone, cor, url) {
+         document.getElementById('iframe-title').innerText = titulo;
+         document.getElementById('iframe-icon').className = 'fa-solid ' + icone;
+         document.getElementById('iframe-icon').style.color = cor;
+         document.getElementById('iframe-externo').src = url;
+         document.getElementById('container-iframe-externo').style.display = 'block';
+         setTimeout(() => { document.getElementById('container-iframe-externo').scrollIntoView({ behavior: 'smooth' }); }, 100);
+         google.script.run.registrarAuditoria("Painel Externo", titulo);
+      }
+
+      function fecharPainelExterno() {
+         document.getElementById('container-iframe-externo').style.display = 'none';
+         document.getElementById('iframe-externo').src = '';
+      }
+
+      function mostrarToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+      }
+
+      function toggleMenu() {
+        document.getElementById('sidebar').classList.toggle('open');
+      }
+
+      function mudarAba(abaId, element) {
+        document.querySelectorAll('.view-aba').forEach(el => el.style.display = 'none');
+        document.getElementById('aba-' + abaId).style.display = 'block';
+        if (element) {
+          document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+          element.classList.add('active');
+        }
+        if (abaId === 'galeria') carregarGaleria();
+        if (abaId === 'configuracoes') carregarPremiosAdmin();
+        if(window.innerWidth <= 768) { document.getElementById('sidebar').classList.remove('open'); }
+      }
+
+      window.onload = function() {
+        document.getElementById('lanc-data').valueAsDate = new Date(); 
+        let h = new Date().getHours();
+        let saudacao = h < 12 ? "Bom dia" : (h < 18 ? "Boa tarde" : "Boa noite");
+        google.script.run.withSuccessHandler(function(res) {
+           document.getElementById('loading-splash').style.display = 'none';
+
+           if(res.bloqueado) {
+              document.getElementById('bloqueio-tela').style.display = 'flex';
+              if(res.mensagem) document.getElementById('txt-motivo-bloqueio').innerText = res.mensagem;
+              return;
+           }
+
+           if(res.erro) {
+              mostrarToast(res.erro);
+              document.getElementById('app-container').style.display = 'flex';
+              document.getElementById('user-name').innerText = "Erro no Login";
+              return;
+           }
+           document.getElementById('app-container').style.display = 'flex';
+           dadosGlobais = res;
+
+           document.getElementById('user-name').innerText = saudacao + ", " + res.usuario.nome.split(' ')[0];
+           document.getElementById('user-role').innerText = res.usuario.cargo;
+           document.getElementById('user-info2').innerText = res.usuario.infoLinha2;
+           document.getElementById('user-coins').innerText = res.moedas;
+           let divFoto = document.getElementById('user-photo-container');
+           if (res.usuario.foto) {
+               divFoto.innerHTML = '<img src="' + res.usuario.foto + '" alt="Foto" data-nome="' + res.usuario.nome + '" onerror="usarIniciaisComoFallback(this)">';
+           } else {
+               divFoto.innerHTML = usarIniciais(res.usuario.nome);
+           }
+           if (res.usuario.isAdmin || res.usuario.isSuperAdmin) {
+               document.getElementById('btn-add-aviso').style.display = 'block';
+           }
+           if (res.usuario.isConfigAdmin || res.usuario.isGerenteGP) {
+               document.getElementById('menu-admin').style.display = 'block';
+           }
+
+           renderizarGamificacaoVisual(res);
+
+           document.getElementById('dash-lojas').innerText = res.qtdLojasCarteira || res.lojas.length;
+           document.getElementById('dash-visitas').innerText = res.qtdVisitas || 0; 
+           document.getElementById('dash-gastos').innerText = 'R$ ' + res.gastos.toFixed(2).replace('.', ',');
+           let selectDestino = document.getElementById('lanc-destino');
+           res.lojas.forEach(loja => {
+              let opt = document.createElement('option');
+              opt.value = loja.id;
+              opt.text = loja.id + ' - ' + loja.nome;
+              selectDestino.add(opt);
+           });
+           
+           atualizarSelectNaturezas(res.naturezas);
+           renderizarRanking(res.ranking);
+           renderizarAvisos(res.avisos);
+           renderizarHistoricos();
+           renderizarListaAdmin(res.naturezas);
+        }).obterDadosIniciais();
+      };
+
+      function renderizarGamificacaoVisual(res) {
+          document.getElementById('arvore-moedas-mes').innerText = res.moedasMes || 0;
+          document.getElementById('arvore-moedas-total').innerText = res.moedas || 0;
+
+          let emoji = '🥾';
+          let nomeFase = 'Fase 1: Acampamento Base';
+          if (res.faseMontanha === 2) { emoji = '🧗'; nomeFase = 'Fase 2: Subida da Montanha'; }
+          else if (res.faseMontanha === 3) { emoji = '🏔️'; nomeFase = 'Fase 3: Cume Alcançado'; }
+          else if (res.faseMontanha === 4) { emoji = '🏔️⚡'; nomeFase = 'Fase Final: Bandeira no Everest'; }
+
+          document.getElementById('arvore-visual-box').innerText = emoji;
+          document.getElementById('arvore-fase-badge').innerText = nomeFase;
+
+          let containerBadges = document.getElementById('badges-container');
+          containerBadges.innerHTML = '';
+          if (res.badges && res.badges.length > 0) {
+              res.badges.forEach(b => {
+                  containerBadges.innerHTML += `<span style="background:#fef3c7; color:#92400e; font-size:11px; font-weight:bold; padding:2px 8px; border-radius:12px; border:1px solid #fde68a;">${b.icone} ${b.nome}</span>`;
+              });
+          } else {
+              containerBadges.innerHTML = '<span style="font-size:11px; color:#9ca3af; font-style:italic;">Nenhum prêmio desbloqueado neste ciclo.</span>';
+          }
+      }
+
+      function toggleTodasAbrangencias(checkbox) {
+         document.querySelectorAll('.chk-abrangencia').forEach(chk => chk.checked = checkbox.checked);
+      }
+
+      function alternarEscopo(valor) {
+        document.getElementById('grupo-filial').style.display = valor === 'filial' ? 'block' : 'none';
+        document.getElementById('grupo-abrangencia-lancamento').style.display = (valor === 'regional' || valor === 'diretoria') ? 'block' : 'none';
+        if(valor !== 'filial') document.getElementById('painel-indicadores-lancamento').style.display = 'none';
+        
+        let containerPils = document.getElementById('container-pilulas-abrangencia');
+        let lblAbrangencia = document.getElementById('lbl-abrangencia');
+        
+        if (containerPils && dadosGlobais) {
+            containerPils.innerHTML = '';
+            let checkTodas = document.getElementById('check-todas-abrangencia');
+            if(checkTodas) checkTodas.checked = false;
+
+            let arrayBase = [];
+            if (valor === 'regional') {
+                lblAbrangencia.innerHTML = '<i class="fa-solid fa-map-location-dot"></i> Selecione as Regionais:';
+                arrayBase = dadosGlobais.usuario.isSuperAdmin ? [...new Set(dadosGlobais.lojas.map(l => l.regional))].sort() : dadosGlobais.usuario.regionais;
+            } else if (valor === 'diretoria') {
+                lblAbrangencia.innerHTML = '<i class="fa-solid fa-sitemap"></i> Selecione as Diretorias:';
+                arrayBase = dadosGlobais.usuario.isSuperAdmin ? dadosGlobais.diretorias : dadosGlobais.usuario.diretoriasAtendidas;
+            }
+            if (arrayBase && arrayBase.length > 0) {
+                arrayBase.forEach(r => {
+                    containerPils.innerHTML += `<label class="check-label"><input type="checkbox" value="${r}" class="chk-abrangencia"><span class="pill-btn">${r}</span></label>`;
+                });
+            }
+        }
+        verificarCamposDinamicos();
+      }
+
+      function atualizarSelectNaturezas(naturezas) {
+         let optgroup = document.getElementById('optgroup-dinamico');
+         optgroup.innerHTML = "";
+         if(naturezas && naturezas.length > 0) {
+             optgroup.style.display = 'block';
+             naturezas.forEach(item => { optgroup.innerHTML += `<option value="${item}">${item}</option>`; });
+         } else {
+             optgroup.style.display = 'none';
+         }
+      }
+
+      function verificarCamposDinamicos() {
+         const motivo = document.getElementById('lanc-motivo').value;
+         const roteiro = document.getElementById('lanc-roteiro').value;
+         const escopo = document.getElementById('lanc-escopo').value;
+         const isRedirect = motivosRedirecionamento.includes(motivo);
+
+         if (motivo === "Reunião regional") {
+             document.getElementById('sub-reuniao').style.display = 'block';
+             document.getElementById('sub-treinamento').style.display = 'none';
+         } else if (motivo === "Treinamentos") {
+             document.getElementById('sub-reuniao').style.display = 'none';
+             document.getElementById('sub-treinamento').style.display = 'block';
+         } else {
+             document.getElementById('sub-reuniao').style.display = 'none';
+             document.getElementById('sub-treinamento').style.display = 'none';
+             document.querySelectorAll('.chk-tema').forEach(chk => chk.checked = false);
+         }
+         
+         // Modificação estrutural: Métrica de Pessoas e Observações sempre ativas mesmo para redirect
+         if (isRedirect) {
+             document.getElementById('grupo-evidencia').style.display = 'none';
+             document.getElementById('grupo-obs').style.display = 'block';
+             document.getElementById('grupo-metricas-impacto').style.display = 'block';
+         } else {
+             document.getElementById('grupo-evidencia').style.display = 'block';
+             document.getElementById('grupo-obs').style.display = 'block';
+             document.getElementById('grupo-metricas-impacto').style.display = 'block';
+         }
+         
+         if (roteiro.includes('Presencial')) {
+             document.getElementById('grupo-km').style.display = 'block';
+         } else {
+             document.getElementById('grupo-km').style.display = 'none';
+             document.getElementById('km-qtd').value = 0;
+             document.getElementById('gasto-alimentacao').value = '';
+             document.getElementById('gasto-hospedagem').value = '';
+             document.getElementById('gasto-aereo').value = '';
+             document.getElementById('gasto-pedagio').value = '';
+             document.getElementById('gasto-estacionamento').value = '';
+             calcularDespesas();
+         }
+         
+         const btnSalvar = document.getElementById('btn-salvar');
+         if (isRedirect) {
+             mostrarToast("Atenção: Ação requer envio via Portal Externo!");
+             btnSalvar.innerHTML = '<i class="fa-solid fa-external-link-alt"></i> Ir para Portal Externo (+1 Moeda)';
+             btnSalvar.style.backgroundColor = "#ff5252";
+         } else {
+             btnSalvar.innerHTML = '<i class="fa-solid fa-coins"></i> Salvar e Ganhar Moeda';
+             btnSalvar.style.backgroundColor = "var(--main-color)";
+         }
+      }
+
+      function calcularDespesas() {
+         let kmValor = parseFloat(document.getElementById('km-valor').value) || 0;
+         let kmQtd = parseFloat(document.getElementById('km-qtd').value) || 0;
+         let kmCusto = kmValor * kmQtd;
+         document.getElementById('km-custo-display').value = kmCusto.toFixed(2);
+
+         let alimentacao = parseFloat(document.getElementById('gasto-alimentacao').value) || 0;
+         let hospedagem = parseFloat(document.getElementById('gasto-hospedagem').value) || 0;
+         let aereo = parseFloat(document.getElementById('gasto-aereo').value) || 0;
+         let pedagio = parseFloat(document.getElementById('gasto-pedagio').value) || 0;
+         let estacionamento = parseFloat(document.getElementById('gasto-estacionamento').value) || 0;
+
+         let total = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
+         document.getElementById('gasto-total-display').innerText = total.toFixed(2).replace('.', ',');
+      }
+
+      function calcularDespesasAvulso() {
+         let kmValor = parseFloat(document.getElementById('avulso-valor').value) || 0;
+         let kmQtd = parseFloat(document.getElementById('avulso-qtd').value) || 0;
+         let kmCusto = kmValor * kmQtd;
+
+         let alimentacao = parseFloat(document.getElementById('avulso-alimentacao').value) || 0;
+         let hospedagem = parseFloat(document.getElementById('avulso-hospedagem').value) || 0;
+         let aereo = parseFloat(document.getElementById('avulso-aereo').value) || 0;
+         let pedagio = parseFloat(document.getElementById('avulso-pedagio').value) || 0;
+         let estacionamento = parseFloat(document.getElementById('avulso-estacionamento').value) || 0;
+
+         let total = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
+         document.getElementById('avulso-total-display').innerText = total.toFixed(2).replace('.', ',');
+      }
+
+      function mostrarIndicadoresLancamento(filialId) {
+          const painel = document.getElementById('painel-indicadores-lancamento');
+          const loading = document.getElementById('loading-indicadores-lanc');
+          const grid = document.getElementById('grid-indicadores-lanc');
+          if (!filialId) { painel.style.display = 'none'; return; }
+
+          painel.style.display = 'block';
+          loading.style.display = 'block';
+          grid.style.display = 'none';
+
+          document.getElementById('ind-nps-val').innerText = '-';
+          document.getElementById('ind-rec-val').innerText = '-';
+          document.getElementById('ind-bh-val').innerText = '-';
+          document.getElementById('ind-quadro-val').innerText = '-';
+          document.getElementById('ind-txdes-val').innerText = '-';
+          google.script.run.withSuccessHandler(function(res){
+              loading.style.display = 'none';
+              grid.style.display = 'grid'; 
+              if(res.erro || !res.sucesso) return mostrarToast("Erro ao buscar: " + res.erro);
+
+              document.getElementById('ind-nps-val').innerText = res.nps;
+              document.getElementById('ind-rec-val').innerText = res.venda;
+              document.getElementById('ind-bh-val').innerText = res.bancoHoras !== "-" ? res.bancoHoras + " h" : "-";
+              document.getElementById('ind-quadro-val').innerText = res.quadro;
+              document.getElementById('ind-txdes-val').innerText = res.txdes;
+          }).buscarIndicadoresLoja(filialId);
+      }
+
+      function salvarAtividade() {
+         let btn = document.getElementById('btn-salvar');
+         const escopo = document.getElementById('lanc-escopo').value;
+         const motivo = document.getElementById('lanc-motivo').value;
+         
+         let destino = "";
+         if (escopo === 'filial') {
+             destino = document.getElementById('lanc-destino').value;
+         } else {
+             let selecionadas = [];
+             document.querySelectorAll('.chk-abrangencia:checked').forEach(cb => selecionadas.push(cb.value));
+             if(selecionadas.length === 0) return mostrarToast("Selecione pelo menos uma opção!");
+             let prefixo = escopo === 'regional' ? 'REGIONAL - ' : 'DIRETORIA - ';
+             destino = prefixo + selecionadas.join(' / ');
+         }
+         
+         let subTema = "";
+         try {
+             if (motivo === "Reunião regional") {
+                 let temasR = [];
+                 document.querySelectorAll('.chk-tema:checked').forEach(cb => temasR.push(cb.value));
+                 subTema = temasR.join(', ');
+             } else if (motivo === "Treinamentos") {
+                 let elemTreino = document.getElementById('treinamento-tema');
+                 if(elemTreino) subTema = elemTreino.value;
+             }
+         } catch(e) {}
+         
+         let dataAtiv = document.getElementById('lanc-data').value;
+         if(!dataAtiv || !destino || !motivo) {
+             return mostrarToast("Preencha Data, Destino e Motivo!");
+         }
+         
+         let pessoasImpactadas = 0;
+         try { let p = document.getElementById('lanc-pessoas'); if(p && p.value) pessoasImpactadas = parseInt(p.value, 10); } catch(e){}
+
+         let tempoGasto = 0;
+         try { let t = document.getElementById('lanc-tempo'); if(t && t.value) tempoGasto = parseFloat(t.value); } catch(e){}
+         let observacoes = "";
+         try { let o = document.getElementById('lanc-obs'); if(o && o.value) observacoes = o.value; } catch(e){}
+         
+         let gastoTotalFormatado = parseFloat(document.getElementById('gasto-total-display').innerText.replace(',', '.')) || 0;
+         let linkInputDrive = "";
+         try { let ld = document.getElementById('lanc-link-drive'); if(ld && ld.value) linkInputDrive = ld.value; } catch(e){}
+
+         if (motivosRedirecionamento.includes(motivo)) {
+             window.open(urlsRedirecionamento[motivo], "_blank");
+             mostrarToast("Redirecionando para painel externo...");
+
+             let dRedir = {
+                 dataAtividade: document.getElementById('lanc-data').value || new Date().toISOString().split('T')[0],
+                 roteiro: document.getElementById('lanc-roteiro').value || "Não informado",
+                 destino: destino,
+                 motivo: motivo,
+                 observacoes: observacoes ? observacoes + " (Redirecionamento efetuado via formulário do Portal GP 360)" : "Redirecionamento efetuado via formulário do Portal GP 360",
+                 notaChecklist: "",
+                 moedas: 1, 
+                 kmValor: parseFloat(document.getElementById('km-valor').value) || 0,
+                 kmQtd: parseFloat(document.getElementById('km-qtd').value) || 0,
+                 kmCusto: parseFloat(document.getElementById('km-custo-display').value) || 0,
+                 alimentacao: parseFloat(document.getElementById('gasto-alimentacao').value) || 0,
+                 hospedagem: parseFloat(document.getElementById('gasto-hospedagem').value) || 0,
+                 aereo: parseFloat(document.getElementById('gasto-aereo').value) || 0,
+                 pedagio: parseFloat(document.getElementById('gasto-pedagio').value) || 0,
+                 estacionamento: parseFloat(document.getElementById('gasto-estacionamento').value) || 0,
+                 gastoTotal: gastoTotalFormatado,
+                 subTema: subTema, 
+                 pessoasImpactadas: isNaN(pessoasImpactadas) ? 0 : pessoasImpactadas, 
+                 tempoGasto: isNaN(tempoGasto) ? 0 : tempoGasto, 
+                 linkEvidenciaExterna: ""
+             };
+             btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Registrando..."; btn.disabled = true;
+             chamarBackendSalvar(dRedir, null, btn);
+             document.getElementById('lanc-motivo').value = '';
+             verificarCamposDinamicos();
+             return; 
+         }
+         
+         let d = {
+            dataAtividade: dataAtiv,
+            roteiro: document.getElementById('lanc-roteiro').value || "",
+            destino: destino,
+            motivo: motivo,
+            observacoes: observacoes,
+            notaChecklist: "",
+            moedas: 1, 
+            kmValor: parseFloat(document.getElementById('km-valor').value) || 0,
+            kmQtd: parseFloat(document.getElementById('km-qtd').value) || 0,
+            kmCusto: parseFloat(document.getElementById('km-custo-display').value) || 0,
+            alimentacao: parseFloat(document.getElementById('gasto-alimentacao').value) || 0,
+            hospedagem: parseFloat(document.getElementById('gasto-hospedagem').value) || 0,
+            aereo: parseFloat(document.getElementById('gasto-aereo').value) || 0,
+            pedagio: parseFloat(document.getElementById('gasto-pedagio').value) || 0,
+            estacionamento: parseFloat(document.getElementById('gasto-estacionamento').value) || 0,
+            gastoTotal: gastoTotalFormatado,
+            subTema: subTema,
+            pessoasImpactadas: isNaN(pessoasImpactadas) ? 0 : pessoasImpactadas,
+            tempoGasto: isNaN(tempoGasto) ? 0 : tempoGasto,
+            linkEvidenciaExterna: linkInputDrive
+         };
+         btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Salvando..."; btn.disabled = true;
+
+         let fileInput = document.getElementById('lanc-arquivo');
+         if (fileInput && fileInput.files && fileInput.files[0]) {
+             let file = fileInput.files[0];
+             let fr = new FileReader();
+             fr.onload = function(e) {
+                 let data = e.target.result.split(",");
+                 let fileData = { fileName: file.name, mimeType: file.type, base64: data[1] };
+                 chamarBackendSalvar(d, fileData, btn);
+             };
+             fr.readAsDataURL(file);
+         } else if (arquivoColadoMemoria) {
+             chamarBackendSalvar(d, arquivoColadoMemoria, btn);
+         } else {
+             chamarBackendSalvar(d, null, btn);
+         }
+      }
+
+      function chamarBackendSalvar(dados, fileData, btn) {
+         google.script.run.withSuccessHandler(function(res){
+             if(res.erro) { mostrarToast("Erro: " + res.erro); btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-coins"></i> Salvar e Ganhar Moeda'; return; }
+
+             dispararConfetes();
+             mostrarToast("Ação salva com sucesso!");
+             btn.disabled = false;
+             setTimeout(function() {
+                 document.getElementById('lanc-data').valueAsDate = new Date();
+                 document.getElementById('lanc-destino').value = '';
+                 let obsEl = document.getElementById('lanc-obs'); if(obsEl) obsEl.value = '';
+                 let pesEl = document.getElementById('lanc-pessoas'); if(pesEl) pesEl.value = '';
+                 let tmpEl = document.getElementById('lanc-tempo'); if(tmpEl) tmpEl.value = '';
+                 document.getElementById('km-qtd').value = 0;
+                 document.getElementById('gasto-alimentacao').value = '';
+                 document.getElementById('gasto-hospedagem').value = '';
+                 document.getElementById('gasto-aereo').value = '';
+                 document.getElementById('gasto-pedagio').value = '';
+                 document.getElementById('gasto-estacionamento').value = '';
+                 document.querySelectorAll('.chk-abrangencia').forEach(chk => chk.checked = false);
+                 let checkTodas = document.getElementById('check-todas-abrangencia'); if(checkTodas) checkTodas.checked = false;
+                 limparOutrasEvidencias('all');
+                 calcularDespesas();
+                 document.getElementById('painel-indicadores-lancamento').style.display = 'none';
+
+                 verificarCamposDinamicos();
+                 google.script.run.withSuccessHandler(function(newData){
+                     dadosGlobais = newData;
+                     renderizarGamificacaoVisual(newData);
+                     renderizarHistoricos();
+                     renderizarRanking(newData.ranking);
+
+                     let domMoedas = document.getElementById('user-coins');
+                     if(domMoedas) domMoedas.innerText = newData.moedas;
+
+                     let domGastos = document.getElementById('dash-gastos');
+                     if(domGastos) domGastos.innerText = "R$ " + newData.gastos.toFixed(2).replace('.', ',');
+                     let domVisitas = document.getElementById('dash-visitas');
+                     if(domVisitas) domVisitas.innerText = newData.qtdVisitas;
+
+                     mudarAba('home', document.querySelector('.nav-item'));
+                 }).obterDadosIniciais();
+             }, 1000);
+         }).registrarAtividade(dados, fileData);
+      }
+
+      function dispararConfetes() {
+         try { if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, zIndex: 9999 }); } catch(e) {}
+      }
+
+      function carregarGaleria() {
+          let grid = document.getElementById('galeria-grid');
+          let loading = document.getElementById('galeria-loading');
+          grid.innerHTML = '';
+          loading.style.display = 'block';
+
+          google.script.run.withSuccessHandler(function(evidencias){
+              loading.style.display = 'none';
+              if (!evidencias || evidencias.length === 0) {
+                  grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#94a3b8; padding:30px;">Nenhuma evidência armazenada para este perfil.</div>';
+                  return;
+              }
+              evidencias.forEach(ev => {
+                  let card = document.createElement('div');
+                  card.className = 'galeria-card';
+                  card.onclick = () => abrirLightbox(ev);
+                  card.innerHTML = `
+                      <img src="${ev.thumbUrl}" class="galeria-thumb" loading="lazy" decoding="async" onerror="this.src='https://via.placeholder.com/150?text=Evidencia'">
+                      <div class="galeria-info">
+                          <strong style="display:block; color:#1e293b; font-size:12px;" class="truncate">${ev.motivo}</strong>
+                          <span style="color:#64748b; font-size:11px;">${ev.data} • ${ev.destino}</span>
+                      </div>
+                  `;
+                  grid.appendChild(card);
+              });
+          }).getEvidenciasUsuario();
+      }
+
+      function abrirLightbox(ev) {
+          fileIdLightboxAtivo = ev.id;
+          document.getElementById('lightbox-titulo').innerText = ev.motivo + " (" + ev.data + ")";
+          document.getElementById('lightbox-img').src = ev.thumbUrl;
+          document.getElementById('lightbox-btn-download').href = ev.downloadUrl;
+          document.getElementById('modal-lightbox').style.display = 'flex';
+      }
+
+      function fecharLightbox() {
+          document.getElementById('modal-lightbox').style.display = 'none';
+          fileIdLightboxAtivo = null;
+      }
+
+      function copiarImagemLightbox() {
+          if (!fileIdLightboxAtivo) return;
+          let btn = document.getElementById('lightbox-btn-copiar');
+          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Copiando...';
+          btn.disabled = true;
+
+          google.script.run.withSuccessHandler(function(res){
+              if (res && res.sucesso) {
+                  fetch(`data:${res.mimeType};base64,${res.base64}`)
+                      .then(r => r.blob())
+                      .then(blob => {
+                          const item = new ClipboardItem({ [blob.type]: blob });
+                          navigator.clipboard.write([item]).then(() => {
+                              btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
+                              setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copiar Imagem'; btn.disabled = false; }, 2000);
+                          });
+                      }).catch(() => { mostrarToast("Erro ao processar blob da imagem."); btn.disabled = false; });
+              } else {
+                  mostrarToast("Falha ao obter imagem do Drive.");
+                  btn.disabled = false;
+              }
+          }).getImagemBase64(fileIdLightboxAtivo);
+      }
+
+      function abrirModalAvulso() {
+          document.getElementById('avulso-data').valueAsDate = new Date();
+          document.getElementById('avulso-destino').value = '';
+          document.getElementById('avulso-qtd').value = '';
+          document.getElementById('avulso-alimentacao').value = '';
+          document.getElementById('avulso-hospedagem').value = '';
+          document.getElementById('avulso-aereo').value = '';
+          document.getElementById('avulso-pedagio').value = '';
+          document.getElementById('avulso-estacionamento').value = '';
+          document.getElementById('avulso-total-display').innerText = '0,00';
+          document.getElementById('modal-km-avulso').style.display='block';
+      }
+
+      function salvarKMAvulso() {
+         const data = document.getElementById('avulso-data').value; 
+         const destino = document.getElementById('avulso-destino').value; 
+         const valor = parseFloat(document.getElementById('avulso-valor').value) || 0; 
+         const qtd = parseFloat(document.getElementById('avulso-qtd').value) || 0;
+         const kmCusto = valor * qtd;
+
+         const alimentacao = parseFloat(document.getElementById('avulso-alimentacao').value) || 0;
+         const hospedagem = parseFloat(document.getElementById('avulso-hospedagem').value) || 0;
+         const aereo = parseFloat(document.getElementById('avulso-aereo').value) || 0;
+         const pedagio = parseFloat(document.getElementById('avulso-pedagio').value) || 0;
+         const estacionamento = parseFloat(document.getElementById('avulso-estacionamento').value) || 0;
+
+         const totalFloat = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
+         if(!data || !destino || totalFloat <= 0) { 
+             mostrarToast("Preencha data, destino e ao menos um gasto válido!"); 
+             return; 
+         }
+         const payload = { 
+           destino: "AVULSO: " + destino, 
+           motivo: "Deslocamento Avulso (Sede/Evento)", 
+           dataViagem: data, 
+           kmValor: valor, 
+           kmQtd: qtd, 
+           kmCusto: kmCusto, 
+           alimentacao: alimentacao,
+           hospedagem: hospedagem,
+           aereo: aereo,
+           pedagio: pedagio,
+           estacionamento: estacionamento,
+           gastoTotal: totalFloat, 
+           moedas: 0,
+           roteiro: "Presencial (KM Avulso)",
+           linkEvidenciaExterna: ""
+         };
+         document.getElementById('modal-km-avulso').style.display='none';
+         mostrarToast("Salvando KM Avulso...");
+         google.script.run.withSuccessHandler(function(res){ 
+             if(res.erro) { mostrarToast(res.erro); return; }
+             dispararConfetes();
+             mostrarToast("KM Avulso registrado!"); 
+             google.script.run.withSuccessHandler(function(newData){
+                 dadosGlobais = newData;
+                 renderizarHistoricos();
+                 let domGastos = document.getElementById('dash-gastos');
+                 if(domGastos) domGastos.innerText = "R$ " + newData.gastos.toFixed(2).replace('.', ',');
+             }).obterDadosIniciais(); 
+         }).registrarAtividade(payload, null);
+      }
+
+      function parseDataBR(dataString) {
+          if (!dataString) return 0;
+          if (dataString.includes('-')) return new Date(dataString + "T00:00:00").getTime();
+          let partes = dataString.split('/');
+          if (partes.length === 3) return new Date(partes[2], partes[1] - 1, partes[0]).getTime();
+          return 0;
+      }
+
+      function limparFiltroDatas() {
+          document.getElementById('filtro-dt-inicio').value = '';
+          document.getElementById('filtro-dt-fim').value = '';
+          renderizarHistoricos();
+      }
+
+      function renderizarHistoricos() {
+         const ulHistoricoFinanceiro = document.getElementById('lista-historico');
+         const ulGestao = document.getElementById('lista-gestao');
+
+         ulHistoricoFinanceiro.innerHTML = '';
+         ulGestao.innerHTML = '';
+         if (!dadosGlobais || !dadosGlobais.historico) return;
+         let dtInicioInput = document.getElementById('filtro-dt-inicio').value;
+         let dtFimInput = document.getElementById('filtro-dt-fim').value;
+         let dtInicio = parseDataBR(dtInicioInput);
+         let dtFim = parseDataBR(dtFimInput);
+         if (dtFim) dtFim += 86399000; 
+         let temItensFin = false;
+         let temItensGes = false;
+
+         dadosGlobais.historico.forEach(h => {
+            let dataTimestamp = parseDataBR(h.dataViagem || h.dataRegistro);
+            let dentroDoFiltro = true;
+            if (dtInicio && dataTimestamp < dtInicio) dentroDoFiltro = false;
+            if (dtFim && dataTimestamp > dtFim) dentroDoFiltro = false;
+
+            let badgeGastos = h.gastoTotal > 0 ? "<span style='background:#fff3cd; color:#856404; padding:2px 8px; border-radius:10px; font-size:11px; margin-left:10px;'><i class='fa-solid fa-receipt'></i> R$ " + h.gastoTotal.toFixed(2).replace('.', ',') + "</span>" : "";
+            let detalhesDespesas = "";
+            if (h.gastoTotal > 0 || h.kmCusto > 0) {
+               detalhesDespesas = `<div style="margin-top: 10px; padding: 10px; background: #fffcf0; border: 1px dashed #e5c877; border-radius: 6px; font-size: 11px; color: #856404; display:flex; gap:15px; flex-wrap:wrap;">`;
+               if (h.kmCusto > 0) detalhesDespesas += `<span><i class="fa-solid fa-car"></i> KM: R$ ${h.kmCusto.toFixed(2).replace('.',',')}</span>`;
+               if (h.alimentacao > 0) detalhesDespesas += `<span><i class="fa-solid fa-utensils"></i> Alim: R$ ${h.alimentacao.toFixed(2).replace('.',',')}</span>`;
+               if (h.hospedagem > 0) detalhesDespesas += `<span><i class="fa-solid fa-bed"></i> Hosp: R$ ${h.hospedagem.toFixed(2).replace('.',',')}</span>`;
+               if (h.aereo > 0) detalhesDespesas += `<span><i class="fa-solid fa-plane"></i> Aéreo: R$ ${h.aereo.toFixed(2).replace('.',',')}</span>`;
+               if (h.pedagio > 0) detalhesDespesas += `<span><i class="fa-solid fa-road"></i> Pedágio: R$ ${h.pedagio.toFixed(2).replace('.',',')}</span>`;
+               if (h.estacionamento > 0) detalhesDespesas += `<span><i class="fa-solid fa-square-parking"></i> Estacion.: R$ ${h.estacionamento.toFixed(2).replace('.',',')}</span>`;
+               detalhesDespesas += `</div>`;
+            }
+            let subTemaHtml = h.subTema ? ` - <span style="color:var(--main-color);">${h.subTema}</span>` : '';
+            let linhaHtmlBase = '<div class="history-date">' + (h.dataViagem || h.dataRegistro) + ' • Lançado por: ' + h.autorNome + '</div>' +
+                                '<div class="history-title">Local: ' + h.destino + ' ' + badgeGastos + '</div>' +
+                                '<div class="history-desc"><strong>Motivo:</strong> ' + h.motivo + subTemaHtml + '</div>' +
+                                detalhesDespesas;
+
+            let isExternal = motivosRedirecionamento.includes(h.motivo);
+            let btnAcaoGestao = "";
+            if (h.isOwner || dadosGlobais.usuario.isAdmin || dadosGlobais.usuario.isSuperAdmin) {
+                if (isExternal) {
+                    btnAcaoGestao = `<i class='fa-solid fa-lock lock-btn' title='Registro Externo: A exclusão deve ser solicitada ao Administrador do portal de origem.'></i>`;
+                } else {
+                    btnAcaoGestao = `<i class='fa-solid fa-trash delete-btn' onclick="deletarHistorico('${h.id}')" title='Excluir Lançamento'></i>`;
+                }
+            }
+            let liGes = document.createElement('li');
+            liGes.className = 'history-item';
+            liGes.id = 'linha-gestao-' + h.id;
+            liGes.innerHTML = btnAcaoGestao + linhaHtmlBase;
+            ulGestao.appendChild(liGes);
+            temItensGes = true;
+
+            if (dentroDoFiltro && h.gastoTotal > 0) {
+                temItensFin = true;
+                let liFin = document.createElement('li');
+                liFin.className = 'history-item';
+                liFin.id = 'linha-fin-' + h.id;
+                liFin.innerHTML = linhaHtmlBase;
+                ulHistoricoFinanceiro.appendChild(liFin);
+            }
+         });
+
+         if (!temItensFin) ulHistoricoFinanceiro.innerHTML = '<li style="text-align:center;color:#888;padding:20px;">Nenhum registro de custo encontrado neste período.</li>';
+         if (!temItensGes) ulGestao.innerHTML = '<li style="text-align:center;color:#888;padding:20px;">Nenhuma atividade registrada.</li>';
+      }
+
+      function deletarHistorico(id) {
+         customConfirm("Excluir este lançamento permanentemente?", function() {
+             let linhaG = document.getElementById('linha-gestao-' + id);
+             let linhaF = document.getElementById('linha-fin-' + id);
+             if (linhaG) linhaG.style.opacity = '0.5';
+             if (linhaF) linhaF.style.opacity = '0.5';
+
+             google.script.run.withSuccessHandler(function(res){
+                 if(res.erro) { mostrarToast(res.erro); return; }
+                 mostrarToast("Excluído com sucesso!");
+                 dadosGlobais.historico = dadosGlobais.historico.filter(h => h.id !== id);
+                 renderizarHistoricos();
+
+                 google.script.run.withSuccessHandler(function(newData){
+                     dadosGlobais = newData;
+                     let domGastos = document.getElementById('dash-gastos');
+                     if(domGastos) domGastos.innerText = "R$ " + newData.gastos.toFixed(2).replace('.', ',');
+                 }).obterDadosIniciais();
+
+             }).excluirLancamento(id);
+         });
+      }
+
+      function imprimirRelatorioKM() {
+         if (!dadosGlobais || !dadosGlobais.historico) return mostrarToast("Sem dados para imprimir.");
+
+         let dtInicioInput = document.getElementById('filtro-dt-inicio').value;
+         let dtFimInput = document.getElementById('filtro-dt-fim').value;
+
+         let dtInicio = parseDataBR(dtInicioInput);
+         let dtFim = parseDataBR(dtFimInput);
+         if (dtFim) dtFim += 86399000;
+         let descPeriodo = "Todos os Períodos";
+         if(dtInicioInput && dtFimInput) {
+            descPeriodo = "De " + dtInicioInput.split('-').reverse().join('/') + " até " + dtFimInput.split('-').reverse().join('/');
+         } else if (dtInicioInput) {
+            descPeriodo = "A partir de " + dtInicioInput.split('-').reverse().join('/');
+         } else if (dtFimInput) {
+            descPeriodo = "Até " + dtFimInput.split('-').reverse().join('/');
+         }
+         let html = '<html><head><title>Relatório de Despesas e KM</title>';
+         html += '<style>body{font-family:Arial,sans-serif;padding:20px;} table{width:100%;border-collapse:collapse;margin-top:20px;} th,td{border:1px solid #ddd;padding:10px;text-align:left;} th{background-color:#f4f4f4;} .header{text-align:center;margin-bottom:30px;} .total{font-size:18px;font-weight:bold;margin-top:20px;text-align:right;} .obs-box{border:1px dashed #777; height: 120px; margin-top: 30px; padding: 15px; border-radius: 8px; color: #555;}</style>';
+         html += '</head><body>';
+         html += '<div class="header"><h2>Relatório de Despesas de Viagem e KM</h2><p>Usuário: ' + dadosGlobais.usuario.nome + '</p><p>Período: ' + descPeriodo + '</p></div>';
+         html += '<table><thead><tr><th>Data Viagem</th><th>Local</th><th>Motivo</th><th>Qtd KM</th><th>Gasto Total (R$)</th></tr></thead><tbody>';
+         
+         let totalGeral = 0;
+         let temDados = false;
+         
+         let arrParaImpressao = [];
+         dadosGlobais.historico.forEach(function(item) {
+             let dataTimestamp = parseDataBR(item.dataViagem || item.dataRegistro);
+             let dentroDoPeriodo = true;
+             if (dtInicio && dataTimestamp < dtInicio) dentroDoPeriodo = false;
+             if (dtFim && dataTimestamp > dtFim) dentroDoPeriodo = false;
+             
+             let gastoLinha = item.gastoTotal;
+             if (dentroDoPeriodo && gastoLinha > 0) {
+                 arrParaImpressao.push({ item: item, ts: dataTimestamp });
+             }
+         });
+         
+         // Algoritmo de Ordenação Ascendente (Mais antigo para Mais novo)
+         arrParaImpressao.sort((a, b) => a.ts - b.ts);
+         
+         arrParaImpressao.forEach(function(d) {
+             let item = d.item;
+             let gastoLinha = item.gastoTotal;
+             temDados = true;
+             totalGeral += gastoLinha;
+             html += '<tr><td>' + (item.dataViagem || item.dataRegistro) + '</td><td>' + item.destino + '</td><td>' + item.motivo + '</td><td>' + item.kmQtd + '</td><td>R$ ' + gastoLinha.toFixed(2).replace('.', ',') + '</td></tr>';
+         });
+         
+         html += '</tbody></table>';
+         if (!temDados) {
+             html += '<p style="text-align:center;margin-top:20px;">Nenhum registro de custo encontrado neste período.</p>';
+         } else {
+             html += '<div class="total">Total a Reembolsar: R$ ' + totalGeral.toFixed(2).replace('.', ',') + '</div>';
+             html += '<div class="obs-box"><strong>Observações Extras:</strong></div>';
+             html += '<br><br><p style="text-align:center;margin-top:50px;">------------------------------------<br>Assinatura Digital</p>';
+         }
+         html += '</body></html>';
+         let win = window.open('', '', 'width=800,height=600');
+         win.document.write(html);
+         win.document.close();
+         win.print();
+         google.script.run.registrarAuditoria("Impressão KM", descPeriodo);
+      }
+
+      function renderizarListaAdmin(naturezas) {
+         let ul = document.getElementById('lista-naturezas-admin');
+         ul.innerHTML = '';
+         if(!naturezas || naturezas.length === 0) {
+            ul.innerHTML = '<li style="text-align:center; color:#999; font-size:12px; padding:10px;">Nenhuma natureza extra.</li>';
+            return;
+         }
+         naturezas.forEach(n => {
+             let li = document.createElement('li');
+             li.className = 'history-item';
+             li.innerHTML = '<span class="history-title">' + n + '</span>' +
+                            '<i class="fa-solid fa-trash delete-btn" onclick="delNatureza(\''+n+'\')" title="Excluir"></i>';
+             ul.appendChild(li);
+         });
+      }
+
+      function addNatureza() {
+         let input = document.getElementById('nova-natureza');
+         let val = input.value.trim();
+         if(!val) return;
+         google.script.run.withSuccessHandler(function(res){
+             if(res.erro) { mostrarToast(res.erro); return; }
+             input.value = '';
+             dadosGlobais.naturezas = res.naturezas;
+             atualizarSelectNaturezas(res.naturezas);
+             renderizarListaAdmin(res.naturezas);
+             mostrarToast("Natureza adicionada!");
+         }).adicionarNatureza(val);
+      }
+
+      function delNatureza(texto) {
+         customConfirm("Tem certeza que deseja excluir a natureza '" + texto + "'?", function() {
+             google.script.run.withSuccessHandler(function(res){
+                 if(res.erro) { mostrarToast(res.erro); return; }
+                 dadosGlobais.naturezas = res.naturezas;
+                 atualizarSelectNaturezas(res.naturezas);
+                 renderizarListaAdmin(res.naturezas);
+                 mostrarToast("Natureza removida!");
+             }).excluirNatureza(texto);
+         });
+      }
+
+      function carregarPremiosAdmin() {
+          google.script.run.withSuccessHandler(function(premios){
+              renderizarPremiosAdmin(premios);
+          }).getDicionarioPremios();
+      }
+
+      function renderizarPremiosAdmin(premios) {
+          let ul = document.getElementById('lista-premios-admin');
+          if(!ul) return;
+          ul.innerHTML = '';
+          if (!premios || premios.length === 0) {
+              ul.innerHTML = '<li style="text-align:center; color:#999; font-size:12px; padding:10px;">Nenhum prêmio cadastrado.</li>';
+              return;
+          }
+          premios.forEach(p => {
+              let li = document.createElement('li');
+              li.className = 'history-item';
+              li.style.borderLeftColor = '#9333ea';
+              li.innerHTML = `<span class="history-title">${p.icone} ${p.nome}</span>` +
+                             `<div class="history-desc">Meta: <strong>${p.meta} moedas</strong></div>` +
+                             `<i class="fa-solid fa-trash delete-btn" onclick="deletarPremioAdmin('${p.id}')" title="Excluir Prêmio"></i>`;
+              ul.appendChild(li);
+          });
+      }
+
+      function salvarPremioAdmin() {
+          let nome = document.getElementById('premio-nome').value.trim();
+          let meta = parseInt(document.getElementById('premio-meta').value, 10);
+          let icone = document.getElementById('premio-icone').value.trim() || '🏆';
+          let id = document.getElementById('premio-id').value;
+
+          if (!nome || isNaN(meta) || meta <= 0) {
+              return mostrarToast("Preencha o nome e uma meta de moedas válida!");
+          }
+
+          let premioObj = { id: id, nome: nome, meta: meta, icone: icone };
+          google.script.run.withSuccessHandler(function(res){
+              if (res.sucesso) {
+                  mostrarToast("Prêmio salvo!");
+                  document.getElementById('premio-nome').value = '';
+                  document.getElementById('premio-meta').value = '';
+                  document.getElementById('premio-icone').value = '';
+                  document.getElementById('premio-id').value = '';
+                  renderizarPremiosAdmin(res.premios);
+              } else {
+                  mostrarToast(res.erro || "Erro ao salvar prêmio.");
+              }
+          }).salvarPremio(premioObj);
+      }
+
+      function deletarPremioAdmin(id) {
+          customConfirm("Remover este prêmio do dicionário?", function() {
+              google.script.run.withSuccessHandler(function(res){
+                  if(res.sucesso) {
+                      mostrarToast("Prêmio excluído!");
+                      renderizarPremiosAdmin(res.premios);
+                  } else {
+                      mostrarToast(res.erro);
+                  }
+              }).deletarPremio(id);
+          });
+      }
+
+      function renderizarRanking(ranking) {
+          const ul = document.getElementById('lista-ranking');
+          if(!ul) return;
+          ul.innerHTML = '';
+          if (!ranking || ranking.length === 0) {
+              ul.innerHTML = '<li style="padding:10px;text-align:center;color:#888;">Nenhum engajamento registrado.</li>';
+              return;
+          }
+
+          // Filtro estrito: Apenas os 5 primeiros colocados
+          const top5 = ranking.slice(0, 5);
+          const nomesFaseMontanha = { 
+            1: '🥾 Acampamento Base', 
+            2: '🧗 Subida da Montanha', 
+            3: '🏔️ Cume Alcançado', 
+            4: '🏔️⚡ Bandeira no Everest' 
+          };
+
+          top5.forEach((user, index) => {
+              let pos = index + 1;
+              let posHtml = `<div class="ranking-pos">${pos}º</div>`;
+              let fotoHtml = user.foto ? `<img src="${user.foto}" class="ranking-img" onerror="usarIniciaisComoFallback(this)" data-nome="${user.nome}">` : `<div class="ranking-img">${usarIniciais(user.nome)}</div>`;
+
+              let badgesHtml = user.badges && user.badges.length > 0 ? user.badges.join(' ') : '';
+              let statusTag = `<span style="font-size:10px; font-weight:bold; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:10px; display:inline-block;">${nomesFaseMontanha[user.fase || 1]}</span>`;
+
+              let li = document.createElement('li');
+              li.className = 'ranking-item';
+              // Alinhamento em pilha vertical (nome em cima, status e prêmios embaixo)
+              li.innerHTML = posHtml + fotoHtml +
+                             `<div class="ranking-info">
+                                <div class="ranking-nome">${user.nome}</div>
+                                <div style="display:flex; align-items:center; gap:6px; margin-top:3px; flex-wrap:wrap;">
+                                  ${statusTag} ${badgesHtml ? `<span style="font-size:12px;">${badgesHtml}</span>` : ''}
+                                </div>
+                              </div>
+                              <div class="ranking-moedas"><i class="fa-solid fa-coins" style="color:#fbbf24;"></i> ${user.moedas}</div>`;
+              ul.appendChild(li);
+          });
+      }
+
+      function renderizarAvisos(avisos) {
+          const container = document.getElementById('mural-avisos-container');
+          const lista = document.getElementById('lista-avisos');
+          if (!container || !lista) return;
+          lista.innerHTML = '';
+          if (!avisos || avisos.length === 0) {
+              container.style.display = 'none';
+              return;
+          }
+          container.style.display = 'block';
+          avisos.forEach(a => {
+              let btnDel = (dadosGlobais && dadosGlobais.usuario && (dadosGlobais.usuario.isAdmin || dadosGlobais.usuario.isSuperAdmin)) 
+                           ? `<i class="fa-solid fa-xmark btn-del-aviso" onclick="deletarAviso('${a.data}', '${a.mensagem}')" title="Excluir Aviso"></i>` : '';
+              let div = document.createElement('div');
+              div.className = 'aviso-item';
+              div.innerHTML = `<div class="aviso-meta"><i class="fa-regular fa-clock"></i> ${a.data} • ${a.autor}</div>
+                               <div style="font-size:13px; color:#333;">${a.mensagem}</div>
+                               ${btnDel}`;
+              lista.appendChild(div);
+          });
+      }
+
+      function abrirModalAviso() {
+          let selectDir = document.getElementById('aviso-diretoria');
+          selectDir.innerHTML = '<option value="Todos">Todas as Diretorias</option>';
+          if (dadosGlobais && dadosGlobais.diretorias) {
+              dadosGlobais.diretorias.forEach(d => {
+                  selectDir.add(new Option(d, d));
+              });
+          }
+          document.getElementById('texto-novo-aviso').value = '';
+          document.getElementById('modal-novo-aviso').style.display = 'flex';
+      }
+
+      function fecharModalAviso() {
+          document.getElementById('modal-novo-aviso').style.display = 'none';
+      }
+
+      function salvarNovoAviso() {
+          let msg = document.getElementById('texto-novo-aviso').value.trim();
+          let dir = document.getElementById('aviso-diretoria').value;
+          if (!msg) return mostrarToast('Digite a mensagem!');
+          let btn = document.getElementById('btn-salvar-aviso');
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
+
+          google.script.run.withSuccessHandler(function(res){
+              btn.disabled = false;
+              btn.innerHTML = 'Publicar Aviso';
+              if (res.erro) { mostrarToast(res.erro); return; }
+              mostrarToast('Recado publicado!');
+              fecharModalAviso();
+              google.script.run.withSuccessHandler(function(newData){
+                  dadosGlobais = newData;
+                  renderizarAvisos(newData.avisos);
+              }).obterDadosIniciais();
+          }).publicarAviso(msg, dir);
+      }
+
+      function deletarAviso(data, msg) {
+          customConfirm("Tem certeza que deseja apagar este recado?", function() {
+              google.script.run.withSuccessHandler(function(res){
+                  if (res.erro) { mostrarToast(res.erro); return; }
+                  mostrarToast('Recado excluído!');
+                  google.script.run.withSuccessHandler(function(newData){
+                      dadosGlobais = newData;
+                      renderizarAvisos(newData.avisos);
+                  }).obterDadosIniciais();
+              }).excluirAvisoPlanilha(data, msg);
+          });
+      }
+  </script>
+</body>
+</html>
