@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consulta de Funcionários - Painel Corporativo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="text-gray-800 antialiased p-4 md:p-8 bg-gray-100">
+
+  <main class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+    <div class="bg-slate-800 text-white p-6">
+      <h1 class="text-2xl font-semibold tracking-tight">Sistema de Consulta de Colaboradores</h1>
+      <p class="text-slate-300 text-sm mt-1">Insira os parâmetros abaixo para buscar na base de dados.</p>
+    </div>
+
+    <div class="p-6">
+      <form id="searchForm" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        
+        <div class="flex flex-col">
+          <label for="filial" class="text-sm font-medium text-gray-600 mb-1">Filial</label>
+          <input type="text" id="filial" list="filiaisList" placeholder="Selecione ou digite..." autocomplete="off" class="border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+          <datalist id="filiaisList"></datalist>
+        </div>
+
+        <div class="flex flex-col">
+          <label for="id" class="text-sm font-medium text-gray-600 mb-1">ID (Matrícula)</label>
+          <input type="text" id="id" placeholder="Ex: 98765" class="border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+        </div>
+
+        <div class="flex flex-col">
+          <label for="nome" class="text-sm font-medium text-gray-600 mb-1">Nome do Colaborador</label>
+          <input type="text" id="nome" placeholder="Nome completo ou parcial" class="border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+        </div>
+
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium p-2.5 rounded-lg shadow transition-colors flex justify-center items-center h-[46px]">
+          <span id="btnText">Consultar Banco</span>
+          <svg id="loadingSpinner" class="hidden animate-spin h-5 w-5 text-white ml-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </button>
+      </form>
+    </div>
+
+    <div class="border-t border-gray-200 overflow-x-auto w-full">
+      <table class="min-w-full text-left text-sm">
+        <thead class="bg-gray-50 border-b border-gray-200 whitespace-nowrap">
+          <tr>
+            <th scope="col" class="px-6 py-4 font-semibold text-gray-600">ID</th>
+            <th scope="col" class="px-6 py-4 font-semibold text-gray-600">Nome</th>
+            <th scope="col" class="px-6 py-4 font-semibold text-gray-600">Filial</th>
+            <th scope="col" class="px-6 py-4 font-semibold text-gray-600">Cargo</th>
+            <th scope="col" class="px-6 py-4 font-semibold text-gray-600">Situação</th>
+            <th scope="col" class="px-6 py-4 font-semibold text-gray-600">Tempo</th>
+            <th scope="col" class="px-6 py-4 font-semibold text-gray-600">Login</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody" class="divide-y divide-gray-200 bg-white">
+          <tr>
+            <td colspan="7" class="px-6 py-8 text-center text-gray-400">Aguardando parâmetros de busca...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    const form = document.getElementById('searchForm');
+    const tableBody = document.getElementById('tableBody');
+    const btnText = document.getElementById('btnText');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const filiaisList = document.getElementById('filiaisList');
+
+    document.addEventListener("DOMContentLoaded", () => {
+      if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler(opcoes => {
+            if(opcoes && opcoes.length > 0) {
+              const fragment = document.createDocumentFragment();
+              opcoes.forEach(opt => {
+                const optionNode = document.createElement('option');
+                optionNode.value = opt;
+                fragment.appendChild(optionNode);
+              });
+              filiaisList.appendChild(fragment);
+            }
+          })
+          .getFiliaisDistintas();
+      }
+    });
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const queryParams = {
+        filial: document.getElementById('filial').value,
+        id: document.getElementById('id').value,
+        nome: document.getElementById('nome').value
+      };
+
+      if(!queryParams.filial && !queryParams.id && !queryParams.nome) {
+        exibirMensagem("Por favor, preencha pelo menos um campo para filtrar.");
+        return;
+      }
+
+      setLoading(true);
+
+      if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+          .withSuccessHandler(renderizarResultados)
+          .withFailureHandler(tratarErroServidor)
+          .buscarDados(queryParams);
+      } else {
+        console.warn("Ambiente Google Apps Script não detectado. Simulando array vazio.");
+        setTimeout(() => renderizarResultados([]), 1000);
+      }
+    });
+
+    function renderizarResultados(dados) {
+      setLoading(false);
+      tableBody.innerHTML = '';
+
+      if (dados && dados.error) {
+        tratarErroServidor(dados.message);
+        return;
+      }
+
+      if (!dados || dados.length === 0) {
+        exibirMensagem("Nenhum registro encontrado para os filtros informados.");
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+
+      dados.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-blue-50 transition-colors";
+
+        const configuracaoColunas = [
+          { valor: row.id, wrap: false },
+          { valor: row.nome, wrap: true },
+          { valor: row.filial, wrap: false },
+          { valor: row.cargo, wrap: true },
+          { valor: row.situacao, wrap: false },
+          { valor: row.tempo_empresa, wrap: false },
+          { valor: row.login, wrap: false }
+        ];
+
+        configuracaoColunas.forEach(col => {
+          const td = document.createElement('td');
+          td.className = `px-6 py-4 text-gray-700 ${col.wrap ? 'whitespace-normal break-words min-w-[200px]' : 'whitespace-nowrap'}`;
+          td.textContent = col.valor || '-';
+          tr.appendChild(td);
+        });
+
+        fragment.appendChild(tr);
+      });
+
+      tableBody.appendChild(fragment);
+    }
+
+    function tratarErroServidor(erro) {
+      setLoading(false);
+      tableBody.innerHTML = '';
+      
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 7;
+      td.className = "px-6 py-8 text-center text-red-600 font-semibold";
+      td.textContent = "Erro na execução do servidor: " + erro;
+      
+      tr.appendChild(td);
+      tableBody.appendChild(tr);
+    }
+
+    function exibirMensagem(mensagem) {
+      tableBody.innerHTML = '';
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 7;
+      td.className = "px-6 py-8 text-center text-gray-500";
+      td.textContent = mensagem;
+      tr.appendChild(td);
+      tableBody.appendChild(tr);
+    }
+
+    function setLoading(isLoading) {
+      const button = form.querySelector('button');
+      if (isLoading) {
+        button.disabled = true;
+        button.classList.add('opacity-75', 'cursor-not-allowed');
+        btnText.textContent = "Processando...";
+        loadingSpinner.classList.remove('hidden');
+        exibirMensagem("Buscando registros na matriz...");
+      } else {
+        button.disabled = false;
+        button.classList.remove('opacity-75', 'cursor-not-allowed');
+        btnText.textContent = "Consultar Banco";
+        loadingSpinner.classList.add('hidden');
+      }
+    }
+  </script>
+</body>
+</html>
