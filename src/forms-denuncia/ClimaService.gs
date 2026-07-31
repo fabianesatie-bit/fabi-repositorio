@@ -5,11 +5,62 @@
 // =============================================================================
 
 /**
+ * MOTOR DE VISIBILIDADE PARA FILIAIS (CLIMA)
+ * Garante que Coordenação e Liderança só vejam a linha do tempo de suas praças.
+ */
+function usuarioPodeVerFilial(userObj, regFilial, dirFilial) {
+  if (userObj.role === 'MASTER' || userObj.role === 'COMPLIANCE') return true;
+
+  const cargo = userObj.cargo ? userObj.cargo.toLowerCase() : '';
+  const isGestaoLimitada = userObj.role === 'LIDERANCA' ||
+                           cargo.includes('coord') ||
+                           cargo.includes('gtgp') ||
+                           cargo.includes('gerente gp') ||
+                           cargo.includes('gerentegp');
+
+  if (isGestaoLimitada) {
+    const usrReg = normalizarTexto(userObj.regionais);
+    const usrDir = normalizarTexto(userObj.diretoria);
+    const fReg = normalizarTexto(regFilial);
+    const fDir = normalizarTexto(dirFilial);
+
+    if (usrReg === 'todas' || usrDir === 'todas') return true;
+
+    // Trava de Soberania: Se possui Regionais, ignora a Diretoria
+    if (usrReg !== '') {
+      if (fReg !== '' && usrReg.includes(fReg)) return true;
+      return false; // Bloqueia sumariamente se não bater a regional
+    } 
+    // Se não tem Regional, avalia pela Diretoria
+    else if (usrDir !== '') {
+      if (fDir !== '' && usrDir.includes(fDir)) return true;
+      return false;
+    }
+    
+    return false; // Gestão com cadastro vazio não vê nada por segurança
+  }
+
+  // Analistas GP sem cargo de liderança operam a nível Brasil para registros
+  return true; 
+}
+
+/**
  * Busca a linha do tempo completa de clima para uma filial (Apurações PAI + Feedbacks).
  */
 function buscarHistoricoCompletoClima(filial) {
   try {
-    var filialNorm = normalizarFilialId(filial);
+    const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
+    const userObj = obterUsuarioLogado(emailLogado);
+    const filialNorm = normalizarFilialId(filial);
+    const contatos = obterContatosPorFilial(filialNorm);
+
+    // BLINDAGEM DE ACESSO
+    if (contatos) {
+      if (!usuarioPodeVerFilial(userObj, contatos.regional, contatos.diretoria)) {
+        return [{ erro: 'ACESSO RESTRITO: A Filial ' + filialNorm + ' pertence à regional "' + contatos.regional + '", que está fora da sua alçada de visão.' }];
+      }
+    }
+
     var eventos = [];
 
     var dataApuracao = getCachedSheetData(SPREADSHEET_ID, 'HISTORICO_APURACAO');
@@ -83,9 +134,19 @@ function buscarHistoricoCompletoClima(filial) {
  */
 function buscarCasosRecentesPorFilial(filial) {
   try {
+    const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
+    const userObj = obterUsuarioLogado(emailLogado);
     var filialNorm = normalizarFilialId(filial);
-    var resultados = [];
+    const contatos = obterContatosPorFilial(filialNorm);
 
+    // BLINDAGEM DE ACESSO
+    if (contatos) {
+      if (!usuarioPodeVerFilial(userObj, contatos.regional, contatos.diretoria)) {
+        return [{ erro: 'ACESSO RESTRITO' }];
+      }
+    }
+
+    var resultados = [];
     var dataApuracao = getCachedSheetData(SPREADSHEET_ID, 'HISTORICO_APURACAO');
     if (dataApuracao && dataApuracao.length > 1) {
       var headers = dataApuracao[0].map(function(h) { return normalizarTexto(h); });
@@ -98,7 +159,6 @@ function buscarCasosRecentesPorFilial(filial) {
       for (var i = 1; i < dataApuracao.length; i++) {
         var fVal = dataApuracao[i][colFilial] ? dataApuracao[i][colFilial].toString().trim() : '';
         if (normalizarFilialId(fVal) === filialNorm) {
-          var contatos = obterContatosPorFilial(filial);
           var dataStr = '';
           if (dataApuracao[i][colDate] instanceof Date) {
             dataStr = dataApuracao[i][colDate].toLocaleDateString('pt-BR');
@@ -141,7 +201,7 @@ function processarNovaIntervencao(dados) {
     var emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
     var userObj = obterUsuarioLogado(emailLogado);
     
-    // TRAVA ABSOLUTA DE GRAVAÇÃO: Apenas GTGP, Coordenadores e Diretor RH (e Master)
+    // TRAVA ABSOLUTA DE GRAVAÇÃO: Apenas GTGP, Coordenadores, Diretor RH e Master
     var cargoNorm = userObj.cargo ? userObj.cargo.toLowerCase() : '';
     var ehPermitido = false;
     
@@ -158,6 +218,13 @@ function processarNovaIntervencao(dados) {
     }
 
     var filial = normalizarFilialId(dados.filial);
+    var contatos = obterContatosPorFilial(filial);
+
+    // BLINDAGEM DE GRAVAÇÃO CROSS-REGIONAL
+    if (contatos && !usuarioPodeVerFilial(userObj, contatos.regional, contatos.diretoria)) {
+        return { sucesso: false, erro: 'Acesso Negado: Você não tem permissão para registrar ou editar clima em uma regional fora da sua alçada (' + contatos.regional + ').' };
+    }
+
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var sheet = ss.getSheetByName('Intervencoes_Feedback') || ss.insertSheet('Intervencoes_Feedback');
     
@@ -179,8 +246,13 @@ function processarNovaIntervencao(dados) {
       for (var i = 1; i < vals.length; i++) {
         if (vals[i][0] && vals[i][0].toString().trim().toUpperCase() === idIntervencao.trim().toUpperCase()) {
           var criadorOriginal = vals[i][16] ? vals[i][16].toString().toLowerCase().trim() : '';
-          if (criadorOriginal && criadorOriginal !== emailLogado && !verificarEhAdminMaster(emailLogado)) {
-            return { sucesso: false, erro: 'Acesso Negado: Apenas o criador original pode editar este registro.' };
+          if (criadorOriginal && criadorOriginal !== emailLogado && userObj.role !== 'MASTER') {
+             // Coordenadores podem editar os registros da equipe deles? 
+             // Se sim, removemos essa trava. Mas manter a trava do criador evita sobrescritas acidentais.
+             // Como a instrução é permitir gestão, liberamos a edição para coordenadores da mesma regional.
+             if (!cargoNorm.includes('coord') && !cargoNorm.includes('gtgp')) {
+                 return { sucesso: false, erro: 'Acesso Negado: Apenas a coordenação ou o criador original pode editar este registro.' };
+             }
           }
           rowIndex = i + 1;
           break;

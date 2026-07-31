@@ -4,6 +4,43 @@
 // Arquivo Apps Script: ApuracaoService.gs
 // =============================================================================
 
+/**
+ * MOTOR CENTRAL DE VISIBILIDADE E PERMISSÕES (RBAC)
+ * Avalia de forma estrita se o usuário pode ver uma linha específica do banco de dados.
+ */
+function usuarioPodeVerCaso(userObj, emailCriador, emailLogado, regCaso, dirCaso) {
+  if (userObj.role === 'MASTER' || userObj.role === 'COMPLIANCE') return true;
+
+  const cargo = userObj.cargo ? userObj.cargo.toLowerCase() : '';
+  const isGestao = userObj.role === 'LIDERANCA' ||
+                   cargo.includes('coord') ||
+                   cargo.includes('gtgp') ||
+                   cargo.includes('gerente gp') ||
+                   cargo.includes('gerentegp');
+
+  if (isGestao) {
+    const usrReg = normalizarTexto(userObj.regionais);
+    const usrDir = normalizarTexto(userObj.diretoria);
+    const rCaso = normalizarTexto(regCaso);
+    const dCaso = normalizarTexto(dirCaso);
+
+    if (usrReg === 'todas' || usrDir === 'todas') return true;
+
+    // Se possui regionais específicas listadas, trava estritamente a elas e ignora a Diretoria.
+    if (usrReg !== '') {
+      if (rCaso !== '' && usrReg.includes(rCaso)) return true;
+    } 
+    // Se não tem regional específica, mas tem Diretoria, valida pela Diretoria ampla.
+    else if (usrDir !== '') {
+      if (dCaso !== '' && usrDir.includes(dCaso)) return true;
+    }
+  }
+
+  // Falha de segurança ("Fail-Closed"): Se chegou aqui e não é gestão, 
+  // o usuário SÓ pode ver se for o criador do documento.
+  return (emailCriador === emailLogado);
+}
+
 function buscarRascunhosApuracoes() {
   try {
     const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
@@ -22,23 +59,10 @@ function buscarRascunhosApuracoes() {
     const rascunhos = [];
     for (let i = 1; i < data.length; i++) {
       const emailCriador = data[i][31] ? data[i][31].toString().toLowerCase().trim() : '';
-      const regCaso = data[i][5] ? normalizarTexto(data[i][5]) : '';
-      const dirCaso = data[i][4] ? normalizarTexto(data[i][4]) : '';
+      const dirCaso = data[i][4] ? data[i][4].toString() : '';
+      const regCaso = data[i][5] ? data[i][5].toString() : '';
 
-      let podeVer = false;
-      if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE') {
-        podeVer = true;
-      } else if (usuarioLogadoObj.role === 'LIDERANCA' || usuarioLogadoObj.cargo.includes('coord')) {
-        // Liderança OP e Coordenadores limitados pela regional de atendimento do cadastro
-        if (usuarioLogadoObj.regionais.includes(regCaso) || usuarioLogadoObj.diretoria.includes(dirCaso) || usuarioLogadoObj.regionais === 'todas') {
-           podeVer = true;
-        }
-      } else {
-        // Equipe GP normal vê apenas os rascunhos que ela mesma criou
-        if (emailCriador === emailLogado) podeVer = true;
-      }
-
-      if (!podeVer) continue;
+      if (!usuarioPodeVerCaso(usuarioLogadoObj, emailCriador, emailLogado, regCaso, dirCaso)) continue;
 
       let dataReg = data[i][1];
       if (dataReg instanceof Date) dataReg = dataReg.toLocaleDateString('pt-BR');
@@ -458,29 +482,36 @@ function listarTodosRegistrosUsuario() {
       return [];
     }
 
+    const mapaLojas = {};
+    const dataLojas = getCachedSheetData(SPREADSHEET_ID, 'DADOS_LOJAS');
+    if (dataLojas && dataLojas.length > 1) {
+      const headers = dataLojas[0].map(h => normalizarTexto(h));
+      const colFilial = headers.indexOf('filial_id') !== -1 ? headers.indexOf('filial_id') : 0;
+      const colReg = headers.indexOf('regional') !== -1 ? headers.indexOf('regional') : 2;
+      const colDir = headers.indexOf('diretoria') !== -1 ? headers.indexOf('diretoria') : 3;
+      
+      for (let L = 1; L < dataLojas.length; L++) {
+        let f = normalizarFilialId(dataLojas[L][colFilial]);
+        if (f) {
+          mapaLojas[f] = {
+            reg: dataLojas[L][colReg] ? dataLojas[L][colReg].toString() : '',
+            dir: dataLojas[L][colDir] ? dataLojas[L][colDir].toString() : ''
+          };
+        }
+      }
+    }
+
     const lista = [];
 
+    // 1. APURAÇÕES
     const dataAp = getCachedSheetData(SPREADSHEET_ID, 'HISTORICO_APURACAO');
     if (dataAp && dataAp.length > 1) {
       for (let i = 1; i < dataAp.length; i++) {
         const emailCriador = dataAp[i][32] ? dataAp[i][32].toString().toLowerCase().trim() : '';
-        const dirCaso = dataAp[i][4] ? normalizarTexto(dataAp[i][4]) : '';
-        const regCaso = dataAp[i][5] ? normalizarTexto(dataAp[i][5]) : '';
+        const dirCaso = dataAp[i][4] ? dataAp[i][4].toString() : '';
+        const regCaso = dataAp[i][5] ? dataAp[i][5].toString() : '';
 
-        let podeVer = false;
-        if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE') {
-          podeVer = true;
-        } else if (usuarioLogadoObj.role === 'LIDERANCA' || usuarioLogadoObj.cargo.includes('coord')) {
-          // NOVA REGRA: Coordenadores agora caem no funil regional, igual Liderança.
-          if (usuarioLogadoObj.regionais.includes(regCaso) || usuarioLogadoObj.diretoria.includes(dirCaso) || usuarioLogadoObj.regionais === 'todas') {
-             podeVer = true;
-          }
-        } else {
-          // GP Base
-          if (emailCriador === emailLogado) podeVer = true;
-        }
-
-        if (podeVer) {
+        if (usuarioPodeVerCaso(usuarioLogadoObj, emailCriador, emailLogado, regCaso, dirCaso)) {
           let dt = dataAp[i][1];
           if (dt instanceof Date) dt = dt.toLocaleDateString('pt-BR');
           lista.push({
@@ -497,29 +528,22 @@ function listarTodosRegistrosUsuario() {
       }
     }
 
+    // 2. INTERVENÇÕES DE CLIMA
     const dataInt = getCachedSheetData(SPREADSHEET_ID, 'Intervencoes_Feedback');
     if (dataInt && dataInt.length > 1) {
       for (let i = 1; i < dataInt.length; i++) {
         const emailCriador = dataInt[i][16] ? dataInt[i][16].toString().toLowerCase().trim() : '';
+        const fCaso = dataInt[i][1] ? normalizarFilialId(dataInt[i][1]) : '';
+        const regCaso = mapaLojas[fCaso] ? mapaLojas[fCaso].reg : '';
+        const dirCaso = mapaLojas[fCaso] ? mapaLojas[fCaso].dir : '';
         
-        let podeVer = false;
-        if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE') {
-           podeVer = true;
-        } else if (usuarioLogadoObj.role === 'LIDERANCA' || usuarioLogadoObj.cargo.includes('coord')) {
-           // No Clima, como não tem diretoria na aba de intervenção por enquanto, 
-           // abrimos a visualização ou limitamos a quem criou.
-           podeVer = true; 
-        } else {
-           if (emailCriador === emailLogado) podeVer = true;
-        }
-
-        if (podeVer) {
+        if (usuarioPodeVerCaso(usuarioLogadoObj, emailCriador, emailLogado, regCaso, dirCaso)) {
           lista.push({
             tipo: 'intervencao',
             tipoLabel: 'Feedback Clima',
             id: dataInt[i][0] ? dataInt[i][0].toString() : '',
             data: 'N/A',
-            filial: dataInt[i][1] ? dataInt[i][1].toString() : '',
+            filial: fCaso,
             status: dataInt[i][3] ? dataInt[i][3].toString() : 'Registrado',
             resumo: dataInt[i][4] ? dataInt[i][4].toString() : 'N/A',
             emailCriador: emailCriador
@@ -528,19 +552,16 @@ function listarTodosRegistrosUsuario() {
       }
     }
 
+    // 3. DESLIGAMENTOS
     const dataDes = getCachedSheetData(SPREADSHEET_ID, 'HISTORICO_DESLIGAMENTO_F');
     if (dataDes && dataDes.length > 1) {
       for (let i = 1; i < dataDes.length; i++) {
         const emailCriador = dataDes[i][21] ? dataDes[i][21].toString().toLowerCase().trim() : '';
+        const fCaso = dataDes[i][2] ? normalizarFilialId(dataDes[i][2]) : '';
+        const regCaso = mapaLojas[fCaso] ? mapaLojas[fCaso].reg : '';
+        const dirCaso = mapaLojas[fCaso] ? mapaLojas[fCaso].dir : '';
         
-        let podeVer = false;
-        if (usuarioLogadoObj.role === 'MASTER' || usuarioLogadoObj.role === 'COMPLIANCE' || usuarioLogadoObj.role === 'LIDERANCA' || usuarioLogadoObj.cargo.includes('coord')) {
-           podeVer = true;
-        } else {
-           if (emailCriador === emailLogado) podeVer = true;
-        }
-
-        if (podeVer) {
+        if (usuarioPodeVerCaso(usuarioLogadoObj, emailCriador, emailLogado, regCaso, dirCaso)) {
           let dt = dataDes[i][1];
           if (dt instanceof Date) dt = dt.toLocaleDateString('pt-BR');
           lista.push({
@@ -548,7 +569,7 @@ function listarTodosRegistrosUsuario() {
             tipoLabel: 'Desligamento',
             id: dataDes[i][0] ? dataDes[i][0].toString() : '',
             data: dt ? dt.toString() : 'N/A',
-            filial: dataDes[i][2] ? dataDes[i][2].toString() : '',
+            filial: fCaso,
             status: dataDes[i][12] ? dataDes[i][12].toString() : 'Pendente',
             resumo: "Colaborador: " + (dataDes[i][3] ? dataDes[i][3].toString() : 'N/A'),
             emailCriador: emailCriador
@@ -577,11 +598,11 @@ function buscarRegistroParaEdicao(id) {
       for (let i = 1; i < dataApuracao.length; i++) {
         if (dataApuracao[i][0] && dataApuracao[i][0].toString().trim().toUpperCase() === idBuscado) {
           const emailCriador = dataApuracao[i][32] ? dataApuracao[i][32].toString().toLowerCase().trim() : '';
+          const dirCaso = dataApuracao[i][4] ? dataApuracao[i][4].toString() : '';
+          const regCaso = dataApuracao[i][5] ? dataApuracao[i][5].toString() : '';
           
-          if (usuarioLogadoObj.role !== 'MASTER' && usuarioLogadoObj.role !== 'COMPLIANCE' && usuarioLogadoObj.role !== 'LIDERANCA') {
-            if (emailCriador && emailCriador !== emailLogado && !usuarioLogadoObj.cargo.includes('coord')) {
-              return { erro: 'Acesso Negado: Você não possui privilégio de edição para este registro.' };
-            }
+          if (!usuarioPodeVerCaso(usuarioLogadoObj, emailCriador, emailLogado, regCaso, dirCaso)) {
+             return { erro: 'Acesso Negado: Este registro pertence a uma regional/diretoria fora da sua alçada de visão.' };
           }
 
           let dataRec = dataApuracao[i][11];
@@ -630,6 +651,16 @@ function buscarRegistroParaEdicao(id) {
     if (dataDesligamento && dataDesligamento.length > 1) {
       for (let i = 1; i < dataDesligamento.length; i++) {
         if (dataDesligamento[i][0] && dataDesligamento[i][0].toString().trim().toUpperCase() === idBuscado) {
+          const emailCriador = dataDesligamento[i][21] ? dataDesligamento[i][21].toString().toLowerCase().trim() : '';
+          const fCaso = dataDesligamento[i][2] ? normalizarFilialId(dataDesligamento[i][2]) : '';
+          const contatos = obterContatosPorFilial(fCaso);
+          const dirCaso = contatos ? contatos.diretoria : '';
+          const regCaso = contatos ? contatos.regional : '';
+          
+          if (!usuarioPodeVerCaso(usuarioLogadoObj, emailCriador, emailLogado, regCaso, dirCaso)) {
+             return { erro: 'Acesso Negado: Este registro pertence a uma regional/diretoria fora da sua alçada de visão.' };
+          }
+
           return {
             tipo: 'desligamento',
             somenteLeitura: isReadOnlyMode,
@@ -654,6 +685,16 @@ function buscarRegistroParaEdicao(id) {
     if (dataIntervencao && dataIntervencao.length > 1) {
       for (let i = 1; i < dataIntervencao.length; i++) {
         if (dataIntervencao[i][0] && dataIntervencao[i][0].toString().trim().toUpperCase() === idBuscado) {
+          const emailCriador = dataIntervencao[i][16] ? dataIntervencao[i][16].toString().toLowerCase().trim() : '';
+          const fCaso = dataIntervencao[i][1] ? normalizarFilialId(dataIntervencao[i][1]) : '';
+          const contatos = obterContatosPorFilial(fCaso);
+          const dirCaso = contatos ? contatos.diretoria : '';
+          const regCaso = contatos ? contatos.regional : '';
+          
+          if (!usuarioPodeVerCaso(usuarioLogadoObj, emailCriador, emailLogado, regCaso, dirCaso)) {
+             return { erro: 'Acesso Negado: Este registro pertence a uma regional/diretoria fora da sua alçada de visão.' };
+          }
+
           let dataProg = dataIntervencao[i][6];
           if (dataProg instanceof Date) dataProg = Utilities.formatDate(dataProg, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 
