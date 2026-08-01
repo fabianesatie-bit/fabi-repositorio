@@ -23,18 +23,13 @@ var PERMITTED_ROLES = ['Administrador', 'GERENTERH', 'Coordenador'];
 var META_EVEREST = 100;
 
 /**
- * Ponto de entrada da aplicação Web App com suporte PWA (Tela Cheia em Smartphones)
+ * Ponto de entrada da aplicação Web App com suporte PWA
  */
 function doGet() {
   var template = HtmlService.createTemplateFromFile('Index');
   return template.evaluate()
       .setTitle('Portal GP 360°')
       .addMetaTag('viewport', 'width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no, viewport-fit=cover')
-      .addMetaTag('mobile-web-app-capable', 'yes')
-      .addMetaTag('apple-mobile-web-app-capable', 'yes')
-      .addMetaTag('apple-mobile-web-app-status-bar-style', 'black-translucent')
-      .addMetaTag('apple-mobile-web-app-title', 'GP 360º')
-      .addMetaTag('theme-color', '#0087FF')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
