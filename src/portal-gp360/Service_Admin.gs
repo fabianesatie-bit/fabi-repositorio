@@ -1,190 +1,115 @@
-// =============================================================================
-// GESTÃO DO DICIONÁRIO DE PRÊMIOS, NATUREZAS E AVISOS (GERENTEGP CRUD)
-// =============================================================================
+/**
+ * ECOSSISTEMA GP360 - PORTAL GP 360
+ * Arquivo: Service_Admin.gs
+ * Subpasta Monorepo: src/portal-gp360/
+ */
 
-function getDicionarioPremios() {
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let abaPremios = ss.getSheetByName('DICIONARIO_PREMIOS');
-
-    if (!abaPremios) {
-      abaPremios = ss.insertSheet('DICIONARIO_PREMIOS');
-      abaPremios.appendRow(['ID_Premio', 'Nome_Premio', 'Custo_ou_Meta', 'Icone']);
-      abaPremios.getRange(1, 1, 1, 4).setFontWeight('bold');
-    }
-
-    const dados = abaPremios.getDataRange().getValues();
-    let lista = [];
-
-    for (let i = 1; i < dados.length; i++) {
-      if (dados[i][0]) {
-        lista.push({
-          id: String(dados[i][0]),
-          nome: String(dados[i][1] || ""),
-          meta: Number(dados[i][2]) || 0,
-          icone: String(dados[i][3] || "🏆")
-        });
-      }
-    }
-    return lista;
-  } catch (e) {
-    return [];
-  }
-}
-
-function salvarPremio(premio) {
-  try {
-    const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-    const controle = obterControleAcesso(emailLogado);
-    if (!controle.isGerenteGP && !controle.isSuperAdmin) {
-      return { sucesso: false, erro: "Acesso negado: Perfil sem permissão de GerenteGP." };
-    }
-
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let abaPremios = ss.getSheetByName('DICIONARIO_PREMIOS');
-    if (!abaPremios) {
-      abaPremios = ss.insertSheet('DICIONARIO_PREMIOS');
-      abaPremios.appendRow(['ID_Premio', 'Nome_Premio', 'Custo_ou_Meta', 'Icone']);
-    }
-
-    const novoId = premio.id || 'PRM-' + new Date().getTime();
-    const dados = abaPremios.getDataRange().getValues();
-    let linhaExistente = -1;
-
-    for (let i = 1; i < dados.length; i++) {
-      if (String(dados[i][0]) === String(novoId)) {
-        linhaExistente = i + 1;
-        break;
-      }
-    }
-
-    if (linhaExistente > 0) {
-      abaPremios.getRange(linhaExistente, 2).setValue(premio.nome);
-      abaPremios.getRange(linhaExistente, 3).setValue(premio.meta);
-      abaPremios.getRange(linhaExistente, 4).setValue(premio.icone);
-    } else {
-      abaPremios.appendRow([novoId, premio.nome, premio.meta, premio.icone]);
-    }
-
-    return { sucesso: true, premios: getDicionarioPremios() };
-  } catch (e) {
-    return { sucesso: false, erro: e.toString() };
-  }
-}
-
-function deletarPremio(idPremio) {
-  try {
-    const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-    const controle = obterControleAcesso(emailLogado);
-    if (!controle.isGerenteGP && !controle.isSuperAdmin) {
-      return { sucesso: false, erro: "Acesso negado." };
-    }
-
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const abaPremios = ss.getSheetByName('DICIONARIO_PREMIOS');
-    if (!abaPremios) return { sucesso: false, erro: "Aba não encontrada." };
-
-    const dados = abaPremios.getDataRange().getValues();
-    for (let i = 1; i < dados.length; i++) {
-      if (String(dados[i][0]) === String(idPremio)) {
-        abaPremios.deleteRow(i + 1);
-        return { sucesso: true, premios: getDicionarioPremios() };
-      }
-    }
-
-    return { sucesso: false, erro: "Prêmio não encontrado." };
-  } catch (e) {
-    return { sucesso: false, erro: e.toString() };
-  }
-}
-
+/**
+ * Adiciona uma nova natureza de atividade
+ */
 function adicionarNatureza(novaNatureza) {
-  const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-  const controle = obterControleAcesso(emailLogado);
-  if (!controle.isSuperAdmin && !controle.isConfigAdmin) {
-    return { erro: "ACESSO NEGADO: Apenas administradores do sistema podem registrar naturezas." };
-  }
-  try {
-    if(!novaNatureza) return { erro: "Nome inválido!" };
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let sheetConfig = ss.getSheetByName('CONFIGURAÇÕES');
-    const valores = sheetConfig.getDataRange().getValues().map(r => String(r[0]).toLowerCase().trim());
-    if (valores.includes(novaNatureza.toLowerCase().trim())) return { erro: "Esta natureza já está cadastrada!" };
+  var controle = obterControleAcesso();
+  if (!controle.isAdmin) return { sucesso: false, mensagem: 'Acesso restrito a administradores.' };
 
-    sheetConfig.appendRow([novaNatureza.trim()]);
-    return { sucesso: true, naturezas: carregarNaturezasSeguras(ss) };
-  } catch (e) { return { erro: e.message }; }
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var config = ss.getSheetByName('CONFIGURAÇÕES');
+  if (!config) config = ss.insertSheet('CONFIGURAÇÕES');
+
+  config.appendRow([novaNatureza, 'NATUREZA_ATIVIDADE', 'NATUREZA', novaNatureza]);
+  return { sucesso: true, mensagem: 'Natureza cadastrada com sucesso!' };
 }
 
+/**
+ * Exclui uma natureza de atividade
+ */
 function excluirNatureza(naturezaTexto) {
-  const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-  const controle = obterControleAcesso(emailLogado);
-  if (!controle.isSuperAdmin && !controle.isConfigAdmin) {
-    return { erro: "ACESSO NEGADO: Operação restrita a administradores." };
-  }
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let sheetConfig = ss.getSheetByName('CONFIGURAÇÕES');
-    const valores = sheetConfig.getDataRange().getValues();
-    for (let i = 1; i < valores.length; i++) {
-      if (String(valores[i][0]).trim() === naturezaTexto.trim()) {
-        sheetConfig.deleteRow(i + 1);
-        return { sucesso: true, naturezas: carregarNaturezasSeguras(ss) };
-      }
+  var controle = obterControleAcesso();
+  if (!controle.isAdmin) return { sucesso: false, mensagem: 'Acesso negado.' };
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var config = ss.getSheetByName('CONFIGURAÇÕES');
+  if (!config) return { sucesso: false, mensagem: 'Aba indisponível.' };
+
+  var dados = config.getDataRange().getValues();
+  for (var i = 1; i < dados.length; i++) {
+    if (String(dados[i][0]).trim().toLowerCase() === String(naturezaTexto).trim().toLowerCase()) {
+      config.deleteRow(i + 1);
+      return { sucesso: true, mensagem: 'Natureza removida.' };
     }
-    return { erro: "Natureza não localizada." };
-  } catch (e) { return { erro: e.message }; }
+  }
+  return { sucesso: false, mensagem: 'Item não localizado.' };
 }
 
+/**
+ * Cadastra um novo Tema para Reunião Regional ou Treinamento
+ */
+function adicionarTema(categoria, temaTexto) {
+  var controle = obterControleAcesso();
+  if (!controle.isAdmin) return { sucesso: false, mensagem: 'Acesso restrito.' };
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var config = ss.getSheetByName('CONFIGURAÇÕES');
+  if (!config) config = ss.insertSheet('CONFIGURAÇÕES');
+
+  config.appendRow(['TEMA_' + categoria, 'TEMA_DROPDOWN', categoria, temaTexto]);
+  return { sucesso: true, mensagem: 'Tema cadastrado com sucesso!' };
+}
+
+/**
+ * Exclui um Tema cadastrado
+ */
+function excluirTema(categoria, temaTexto) {
+  var controle = obterControleAcesso();
+  if (!controle.isAdmin) return { sucesso: false, mensagem: 'Acesso negado.' };
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var config = ss.getSheetByName('CONFIGURAÇÕES');
+  if (!config) return { sucesso: false, mensagem: 'Aba não configurada.' };
+
+  var dados = config.getDataRange().getValues();
+  for (var i = 1; i < dados.length; i++) {
+    var cat = String(dados[i][2] || '').trim().toUpperCase();
+    var val = String(dados[i][3] || '').trim().toLowerCase();
+    if (cat === categoria.toUpperCase() && val === temaTexto.trim().toLowerCase()) {
+      config.deleteRow(i + 1);
+      return { sucesso: true, mensagem: 'Tema removido com sucesso.' };
+    }
+  }
+  return { sucesso: false, mensagem: 'Tema não encontrado.' };
+}
+
+/**
+ * Publica aviso corporativo na Home
+ */
 function publicarAviso(mensagem, diretoriaAlvo) {
-  const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-  const controle = obterControleAcesso(emailLogado);
-  if (!controle.isSuperAdmin && !controle.isConfigAdmin) {
-    return { erro: "ACESSO NEGADO: Publicação restrita a diretores ou administradores." };
-  }
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let sheetAvisos = ss.getSheetByName('DADOS_AVISOS');
-    let nomeAutor = controle.nome;
-    const usu = ss.getSheetByName('DADOS_USUARIOS').getDataRange().getValues();
-    let emails = [];
+  var controle = obterControleAcesso();
+  if (!controle.isAdmin) return { sucesso: false, mensagem: 'Acesso restrito.' };
 
-    let dirAlvoNorm = String(diretoriaAlvo).toLowerCase().trim();
-    for (let i = 1; i < usu.length; i++) {
-       let em = String(usu[i][0]).toLowerCase().trim();
-       let dirColNormArray = String(usu[i][3]).toLowerCase().split(',').map(s => s.trim());
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var aba = ss.getSheetByName('DADOS_AVISOS');
+  if (!aba) aba = ss.insertSheet('DADOS_AVISOS');
 
-       if(em && (dirAlvoNorm === "todos" || dirColNormArray.includes(dirAlvoNorm))) {
-           emails.push(em);
-       }
-    }
-    let prefixo = diretoriaAlvo === "Todos" ? "" : `[${diretoriaAlvo}] `;
-    sheetAvisos.appendRow([new Date(), nomeAutor, prefixo + mensagem]);
-    if (emails.length > 0) {
-      MailApp.sendEmail({
-        bcc: emails.join(','), subject: "📢 Novo Recado no Portal GP 360", 
-        htmlBody: `<div style="font-family:Arial;border:1px solid #ddd;padding:20px;border-radius:8px;"><h2 style="color:#0086ff;">Novo Recado!</h2><p><strong>De:</strong> ${nomeAutor}</p><p><strong>Para:</strong> ${diretoriaAlvo}</p><div style="background:#fff3cd;padding:15px;border-left:5px solid #ffcc00;">"${mensagem}"</div><br><a href="${ScriptApp.getService().getUrl()}" style="background:#0086ff;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;">Acessar Portal</a></div>`
-      });
-    }
-    return { sucesso: true };
-  } catch (e) { return { erro: e.message }; }
+  aba.appendRow([new Date(), mensagem, controle.nome, diretoriaAlvo || 'TODAS']);
+  return { sucesso: true, mensagem: 'Aviso publicado no mural!' };
 }
 
+/**
+ * Exclui aviso corporativo do mural
+ */
 function excluirAvisoPlanilha(dataAviso, mensagemAviso) {
-  const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-  const controle = obterControleAcesso(emailLogado);
-  if (!controle.isSuperAdmin && !controle.isConfigAdmin) {
-    return { erro: "ACESSO NEGADO: Apenas administradores podem excluir recados." };
-  }
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let sheetAvisos = ss.getSheetByName('DADOS_AVISOS');
-    const dados = sheetAvisos.getDataRange().getValues();
-    for (let i = 1; i < dados.length; i++) {
-       if (formatarDataSegura(dados[i][0]) === dataAviso && String(dados[i][2]) === mensagemAviso) {
-           sheetAvisos.deleteRow(i + 1); return { sucesso: true };
-       }
+  var controle = obterControleAcesso();
+  if (!controle.isAdmin) return { sucesso: false, mensagem: 'Sem permissão.' };
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var aba = ss.getSheetByName('DADOS_AVISOS');
+  if (!aba) return { sucesso: false, mensagem: 'Aba de avisos indisponível.' };
+
+  var dados = aba.getDataRange().getValues();
+  for (var i = 1; i < dados.length; i++) {
+    if (String(dados[i][1]).trim() === String(mensagemAviso).trim()) {
+      aba.deleteRow(i + 1);
+      return { sucesso: true, mensagem: 'Aviso removido com sucesso.' };
     }
-    return { erro: "Recado não localizado." };
-  } catch (e) { return { erro: e.message }; }
+  }
+  return { sucesso: false, mensagem: 'Aviso não localizado.' };
 }

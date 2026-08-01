@@ -1,47 +1,56 @@
-// =============================================================================
-// HELPERS E MÉTODOS DE EXTRAÇÃO SEGURA
-// =============================================================================
+/**
+ * ECOSSISTEMA GP360 - PORTAL GP 360
+ * Arquivo: Utils.gs
+ * Subpasta Monorepo: src/portal-gp360/
+ */
 
+/**
+ * Extrai o ID alfanumérico do Google Drive de uma URL ou ID direto
+ */
 function extrairIdDrive(linkOuId) {
-  if (!linkOuId) return "";
-  const match = linkOuId.match(/[-\w]{25,}(?!.*[-\w]{25,})/);
-  return match ? match[0] : linkOuId;
+  if (!linkOuId) return '';
+  var str = String(linkOuId).trim();
+  if (str.length === 33 || (str.length >= 25 && !str.includes('/'))) {
+    return str;
+  }
+  var match = str.match(/[-\w]{25,}/);
+  return match ? match[0] : str;
 }
 
+/**
+ * Padroniza saída de datas para string dd/MM/yyyy
+ */
 function formatarDataSegura(dataValor) {
-  if (!dataValor) return "";
-  try { 
+  if (!dataValor) return '';
+  try {
     if (dataValor instanceof Date) {
-        return Utilities.formatDate(dataValor, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+      return Utilities.formatDate(dataValor, Session.getScriptTimeZone(), 'dd/MM/yyyy');
     }
-    let str = String(dataValor).trim();
-    let ds = str.split(' ')[0];
-    if (ds.includes('/')) return ds;
-
-    const dt = new Date(dataValor); 
-    if (!isNaN(dt.getTime())) {
-        return Utilities.formatDate(dt, Session.getScriptTimeZone(), 'dd/MM/yyyy'); 
+    var d = new Date(dataValor);
+    if (!isNaN(d.getTime())) {
+      return Utilities.formatDate(d, Session.getScriptTimeZone(), 'dd/MM/yyyy');
     }
-    return ds; 
-  } catch(e) { return String(dataValor).split(' ')[0]; }
+    return String(dataValor);
+  } catch (e) {
+    return String(dataValor);
+  }
 }
 
+/**
+ * Converte strings ou objetos de data em Timestamp para ordenação
+ */
 function obterDataRawSegura(dataValor) {
   if (!dataValor) return 0;
-  try { 
+  try {
     if (dataValor instanceof Date) return dataValor.getTime();
-
-    let str = String(dataValor).trim();
-    let ds = str.split(' ')[0];
-    if (ds.includes('/')) {
-        let p = ds.split('/');
-        if(p.length === 3) return new Date(p[2], p[1]-1, p[0]).getTime();
-    } else if (ds.includes('-')) {
-        let p = ds.split('-');
-        if(p.length === 3) return new Date(p[0], p[1]-1, p[2]).getTime();
+    var parts = String(dataValor).split('/');
+    if (parts.length === 3) {
+      var d = new Date(parts[2], parts[1] - 1, parts[0]);
+      return d.getTime();
     }
-    const dt = new Date(dataValor); 
-    if (!isNaN(dt.getTime())) return dt.getTime(); 
-    return 0; 
-  } catch(e) { return 0; }
+    var d2 = new Date(dataValor);
+    return isNaN(d2.getTime()) ? 0 : d2.getTime();
+  } catch (e) {
+    return 0;
+  }
 }

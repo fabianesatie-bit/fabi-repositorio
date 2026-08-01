@@ -1,99 +1,124 @@
-// =============================================================================
-// MOTOR DE SEGURANÇA: CONTROLE DE ACESSO, AUDITORIA E RLS (SERVER-SIDE)
-// =============================================================================
+/**
+ * ECOSSISTEMA GP360 - PORTAL GP 360
+ * Arquivo: Security.gs
+ * Subpasta Monorepo: src/portal-gp360/
+ */
 
+/**
+ * Registra log de auditoria silencioso em planilha exclusiva
+ */
 function registrarAuditoria(evento, detalhe) {
   try {
-    const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-    const ssLog = SpreadsheetApp.openById(SPREADSHEET_LOG_ID);
-    const sheetLog = ssLog.getSheetByName('AUDITORIA') || ssLog.getSheets()[0];
-    sheetLog.appendRow([new Date(), emailLogado, evento, detalhe]);
-  } catch(e) { /* Falha silenciosa para estabilidade da UX */ }
+    var ssLog = SpreadsheetApp.openById(SPREADSHEET_LOG_ID);
+    var abaLog = ssLog.getSheetByName('AUDITORIA') || ssLog.getSheets()[0];
+    var email = Session.getActiveUser().getEmail() || 'usuario.desconhecido';
+    abaLog.appendRow([new Date(), email, evento, detalhe]);
+  } catch (e) {
+    Logger.log('Erro ao registrar auditoria: ' + e.toString());
+  }
 }
 
+/**
+ * Obtém perfil e valida nível de acesso do usuário logado contra a aba DADOS_USUARIOS
+ */
 function obterControleAcesso(email) {
-  if (!email) return { autorizado: false, erro: "Sessão não identificada." };
+  var emailAtivo = email || Session.getActiveUser().getEmail();
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var abaUsuarios = ss.getSheetByName('DADOS_USUARIOS');
+  
+  if (!abaUsuarios) {
+    return { temAcesso: false, motivo: 'Aba DADOS_USUARIOS não encontrada.' };
+  }
+  
+  var dados = abaUsuarios.getDataRange().getValues();
+  var usuarioEncontrado = null;
+  
+  // Coluna A (0): Email | B (1): Nome | C (2): Cargo | D (3): Diretoria | E (4): Regionais | F (5): Nivel_Acesso | G (6): Foto | H (7): Observações do acesso
+  for (var i = 1; i < dados.length; i++) {
+    var emailRow = String(dados[i][0]).toLowerCase().trim();
+    if (emailRow === String(emailAtivo).toLowerCase().trim()) {
+      usuarioEncontrado = {
+        email: emailAtivo,
+        nome: dados[i][1] || 'Usuário GP',
+        cargo: dados[i][2] || '',
+        diretoria: dados[i][3] || '',
+        regionaisStr: String(dados[i][4] || ''),
+        nivelAcesso: String(dados[i][5] || '').trim(),
+        fotoUrl: dados[i][6] || '',
+        observacoesAcesso: dados[i][7] || ''
+      };
+      break;
+    }
+  }
 
-  const emailNorm = email.toLowerCase().trim();
-  const isSuper = SUPER_ADMINS_EMAILS.includes(emailNorm);
+  if (!usuarioEncontrado) {
+    registrarAuditoria('BLOQUEIO_ACESSO', 'E-mail ' + emailAtivo + ' não cadastrado em DADOS_USUARIOS.');
+    return { temAcesso: false, email: emailAtivo, motivo: 'Usuário não cadastrado na base oficial de acessos.' };
+  }
 
-  if (isSuper) {
-    return {
-      autorizado: true,
-      email: emailNorm,
-      nome: emailNorm === "fabiane.satie@magazineluiza.com.br" ? "FABIANE SATIE" : "SUPER ADMIN GP",
-      cargo: "Administrador",
-      isSuperAdmin: true,
-      isAdmin: true,
-      isConfigAdmin: true,
-      isGerenteGP: true,
-      regionais: ["TODAS"],
-      diretoriasAtendidas: ["TODAS"]
+  // Trava de Whitelist Rígida: Apenas Administrador, GERENTERH, Coordenador
+  var ehPermitido = PERMITTED_ROLES.some(function(role) {
+    return role.toLowerCase() === usuarioEncontrado.nivelAcesso.toLowerCase();
+  });
+
+  if (!ehPermitido) {
+    registrarAuditoria('BLOQUEIO_PERFIL', 'Acesso negado para ' + emailAtivo + ' com nível: ' + usuarioEncontrado.nivelAcesso);
+    return { 
+      temAcesso: false, 
+      email: emailAtivo, 
+      motivo: 'Acesso restrito ao Portal GP 360. Seu nível atual (' + usuarioEncontrado.nivelAcesso + ') não possui permissão neste ambiente.' 
     };
   }
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheetUsuarios = ss.getSheetByName('DADOS_USUARIOS');
-    if (!sheetUsuarios) return { autorizado: false, erro: "Base de usuários inacessível." };
-    const dadosUsuarios = sheetUsuarios.getDataRange().getValues();
-    for (let i = 1; i < dadosUsuarios.length; i++) {
-      const emailLinha = dadosUsuarios[i][0] ? String(dadosUsuarios[i][0]).toLowerCase().trim() : "";
-      if (emailLinha === emailNorm) {
-        const status = dadosUsuarios[i][8] ? String(dadosUsuarios[i][8]).toLowerCase().trim() : "ativo";
-        if (status === "inativo" || status === "desligado") {
-          return { autorizado: false, erro: "Sessão inativa ou revogada." };
-        }
-        const cargo = dadosUsuarios[i][2] || "Cargo não definido";
-        const nivelAcesso = dadosUsuarios[i][5] ? String(dadosUsuarios[i][5]).trim() : "Sem acesso";
-        if (nivelAcesso.toLowerCase() === "sem acesso") {
-          return { autorizado: false, erro: "Usuário sem permissão de acesso ao Portal." };
-        }
-        const adminRoles = ["GerenteGP", "Administrador", "DiretorRH"];
-        const isAdmin = adminRoles.includes(cargo) || adminRoles.includes(nivelAcesso);
-        const isGerenteGP = (cargo === "GerenteGP" || nivelAcesso === "GerenteGP" || isAdmin);
 
-        return {
-          autorizado: true,
-          email: emailNorm,
-          nome: dadosUsuarios[i][1] || "Nome não cadastrado",
-          cargo: cargo,
-          isSuperAdmin: (cargo === "Administrador" || nivelAcesso === "Administrador"),
-          isAdmin: isAdmin,
-          isConfigAdmin: isAdmin,
-          isGerenteGP: isGerenteGP,
-          regionais: dadosUsuarios[i][4] ? String(dadosUsuarios[i][4]).split(',').map(r => r.trim()) : [],
-          diretoriasAtendidas: dadosUsuarios[i][3] ? String(dadosUsuarios[i][3]).split(',').map(d => d.trim()) : []
-        };
-      }
-    }
-  } catch (e) {
-    return { autorizado: false, erro: "Falha de comunicação com o servidor de acessos." };
-  }
-  return { autorizado: false, erro: "Usuário não localizado na base corporativa." };
+  var isSuperAdmin = (usuarioEncontrado.nivelAcesso.toLowerCase() === 'administrador');
+  var isGerenteGP = (usuarioEncontrado.nivelAcesso.toLowerCase() === 'gerenterh');
+  var isCoordenador = (usuarioEncontrado.nivelAcesso.toLowerCase() === 'coordenador');
+
+  var regionaisArray = usuarioEncontrado.regionaisStr.split(',')
+    .map(function(r) { return r.trim().toUpperCase(); })
+    .filter(function(r) { return r.length > 0; });
+
+  return {
+    temAcesso: true,
+    email: emailAtivo,
+    nome: usuarioEncontrado.nome,
+    cargo: usuarioEncontrado.cargo,
+    diretoria: usuarioEncontrado.diretoria,
+    regionais: regionaisArray,
+    nivelAcesso: usuarioEncontrado.nivelAcesso,
+    fotoUrl: usuarioEncontrado.fotoUrl,
+    observacoesAcesso: usuarioEncontrado.observacoesAcesso,
+    isSuperAdmin: isSuperAdmin,
+    isAdmin: isSuperAdmin || isGerenteGP,
+    isGerenteGP: isGerenteGP,
+    isCoordenador: isCoordenador
+  };
 }
 
+/**
+ * Valida se o usuário tem jurisdição sobre uma determinada loja por Regional
+ */
 function validarAcessoFilial(email, filialId) {
-  const controle = obterControleAcesso(email);
-  if (!controle.autorizado) return { autorizado: false };
-  if (controle.isSuperAdmin) return { autorizado: true, controle: controle };
-  try {
-    let targetFilial = parseInt(filialId, 10);
-    if (isNaN(targetFilial)) return { autorizado: false };
-    if (targetFilial > 3000) targetFilial -= 3000;
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheetLojas = ss.getSheetByName('DADOS_LOJAS');
-    if (!sheetLojas) return { autorizado: false };
-    const dadosLojas = sheetLojas.getDataRange().getValues();
-    for (let i = 1; i < dadosLojas.length; i++) {
-      let idLoja = parseInt(dadosLojas[i][0], 10);
-      if (idLoja > 3000) idLoja -= 3000;
+  var controle = obterControleAcesso(email);
+  if (!controle.temAcesso) return false;
+  if (controle.isSuperAdmin) return true;
 
-      if (idLoja === targetFilial) {
-        const regionalLoja = dadosLojas[i][2] ? String(dadosLojas[i][2]).trim() : "";
-        const autorizado = controle.regionais.includes(regionalLoja);
-        return { autorizado: autorizado, controle: controle };
-      }
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var abaLojas = ss.getSheetByName('DADOS_LOJAS');
+  if (!abaLojas) return false;
+
+  var dadosLojas = abaLojas.getDataRange().getValues();
+  var regionalLoja = '';
+
+  for (var i = 1; i < dadosLojas.length; i++) {
+    var idFormatado = ("0000" + dadosLojas[i][0]).slice(-4);
+    var targetIdFormatado = ("0000" + filialId).slice(-4);
+    if (idFormatado === targetIdFormatado) {
+      regionalLoja = String(dadosLojas[i][2] || '').trim().toUpperCase();
+      break;
     }
-  } catch (e) {}
-  return { autorizado: false };
+  }
+
+  if (!regionalLoja) return false;
+  return controle.regionais.includes(regionalLoja);
 }
