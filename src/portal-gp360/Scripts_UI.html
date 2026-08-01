@@ -82,9 +82,7 @@
             }
           }
         }
-      }).catch(function(e) {
-        // Fallback for Ctrl+V key listener
-      });
+      }).catch(function(e) {});
     }
   }
 
@@ -416,8 +414,8 @@
       var motLower = String(item.motivo || '').toLowerCase();
       var statusBadge = '';
 
-      if (motLower.includes('atendimento social') || motLower.includes('apuraç') || motLower.includes('apurac') || motLower.includes('feedback')) {
-        if (item.validadoEspecialista) {
+      if (motLower.includes('atendimento social') || motLower.includes('apuraç') || motLower.includes('apurac') || motLower.includes('feedback') || motLower.includes('acompanhamento')) {
+        if (item.statusValidacao === 'VALIDADO' || item.validadoEspecialista) {
           statusBadge = '<span class="badge bg-success-subtle text-success border border-success me-2"><i class="bi bi-patch-check-fill me-1"></i> VALIDADO NA PLANILHA ESPECIALISTA</span>';
         } else {
           statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning text-dark me-2"><i class="bi bi-clock-history me-1"></i> PENDENTE REGISTRO EXTERNO</span>';

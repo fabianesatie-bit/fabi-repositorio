@@ -49,7 +49,6 @@ function registrarAtividade(dados, fileData) {
 
     var custoTotal = custoKm + alimentacao + hospedagem + aereo + pedagio + estacionamento;
 
-    // Busca tabela de premios para registrar Moedas_Geradas
     var moedasGeradas = 1;
     var abaPremios = ss.getSheetByName('DICIONARIO_PREMIOS');
     if (abaPremios) {
@@ -63,44 +62,60 @@ function registrarAtividade(dados, fileData) {
       }
     }
 
-    var linha27Colunas = [
-      novoId,                                      // 1. ID_Lancamento
-      dataHora,                                    // 2. Data_Hora
-      controle.email,                              // 3. Coordenador_Email
-      dados.filial || 'REGIONAL',                  // 4. Destino_Filial_Regional
-      dados.motivo || 'Atividade Operacional',     // 5. Motivo_Meta
-      dados.valorAntes || '',                      // 6. Valor_Antes
-      dados.valorDepois || '',                     // 7. Valor_Depois
-      dados.checklistNota || '',                   // 8. Checklist_Nota_Media
-      custoTotal,                                  // 9. Total_Gastos
-      moedasGeradas,                               // 10. Moedas_Geradas
-      dados.observacao || '',                      // 11. Observacoes
-      evidenciaUrl,                                // 12. Link_Evidencia
-      dados.dataAtividade || dataHora,             // 13. Data_Ini
-      dados.dataAtividade || dataHora,             // 14. Data_Fim
-      rate,                                        // 15. Valor_Km
-      km,                                          // 16. Qde_Km
-      custoKm,                                     // 17. Total Km
-      dados.tipoRoteiro || 'Presencial (Visita in loco)', // 18. Tipo_Roteiro
-      dados.tema || '',                            // 19. Sub temas
-      dados.pessoasImpactadas || 0,                // 20. Pessoas Impactas
-      dados.tempoGasto || 0,                       // 21. Tempo Gasto
-      custoTotal,                                  // 22. Total despesa
-      alimentacao,                                 // 23. Alimentação
-      hospedagem,                                  // 24. Hospedagem
-      aereo,                                       // 25. Aereo
-      pedagio,                                     // 26. Pedagio
-      estacionamento                               // 27. Estacionamento
+    var motivoLower = String(dados.motivo || '').toLowerCase();
+    var ehEspecialista = motivoLower.includes('atendimento social') || 
+                         motivoLower.includes('apuraç') || 
+                         motivoLower.includes('apurac') || 
+                         motivoLower.includes('feedback') || 
+                         motivoLower.includes('acompanhamento');
+
+    // Define o status inicial da Coluna 28 (AB)
+    var statusValidacaoInicial = ehEspecialista ? 'PENDENTE' : 'VALIDADO';
+
+    var linha28Colunas = [
+      novoId,                                              // 1. ID_Lancamento (Col A)
+      dataHora,                                            // 2. Data_Hora (Col B)
+      controle.email,                                      // 3. Coordenador_Email (Col C)
+      dados.filial || 'REGIONAL',                          // 4. Destino_Filial_Regional (Col D)
+      dados.motivo || 'Atividade Operacional',             // 5. Motivo_Meta (Col E)
+      dados.valorAntes || '',                              // 6. Valor_Antes (Col F)
+      dados.valorDepois || '',                             // 7. Valor_Depois (Col G)
+      dados.checklistNota || '',                           // 8. Checklist_Nota_Media (Col H)
+      custoTotal,                                          // 9. Total_Gastos (Col I)
+      moedasGeradas,                                       // 10. Moedas_Geradas (Col J)
+      dados.observacao || '',                              // 11. Observacoes (Col K)
+      evidenciaUrl,                                        // 12. Link_Evidencia (Col L)
+      dados.dataAtividade || dataHora,                     // 13. Data_Ini (Col M)
+      dados.dataAtividade || dataHora,                     // 14. Data_Fim (Col N)
+      rate,                                                // 15. Valor_Km (Col O)
+      km,                                                  // 16. Qde_Km (Col P)
+      custoKm,                                             // 17. Total Km (Col Q)
+      dados.tipoRoteiro || 'Presencial (Visita in loco)',  // 18. Tipo_Roteiro (Col R)
+      dados.tema || '',                                    // 19. Sub temas (Col S)
+      dados.pessoasImpactadas || 0,                        // 20. Pessoas Impactas (Col T)
+      dados.tempoGasto || 0,                               // 21. Tempo Gasto (Col U)
+      custoTotal,                                          // 22. Total despesa (Col V)
+      alimentacao,                                         // 23. Alimentação (Col W)
+      hospedagem,                                          // 24. Hospedagem (Col X)
+      aereo,                                               // 25. Aereo (Col Y)
+      pedagio,                                             // 26. Pedagio (Col Z)
+      estacionamento,                                      // 27. Estacionamento (Col AA)
+      statusValidacaoInicial                               // 28. Status_Validacao_Especialista (Col AB)
     ];
 
-    aba.appendRow(linha27Colunas);
+    aba.appendRow(linha28Colunas);
 
     if (dados.filial) {
       CacheService.getScriptCache().remove('IND_LOJA_' + dados.filial);
     }
-    registrarAuditoria('REGISTRO_ATIVIDADE', 'ID: ' + novoId + ' - Loja/Destino: ' + dados.filial);
+    registrarAuditoria('REGISTRO_ATIVIDADE', 'ID: ' + novoId + ' - Loja/Destino: ' + dados.filial + ' - Status: ' + statusValidacaoInicial);
 
-    return { sucesso: true, mensagem: 'Atividade e despesas registradas com sucesso!', id: novoId };
+    return { 
+      sucesso: true, 
+      mensagem: 'Atividade registrada com sucesso!', 
+      id: novoId,
+      statusValidacao: statusValidacaoInicial 
+    };
   } catch (err) {
     return { sucesso: false, mensagem: 'Erro na gravação: ' + err.toString() };
   } finally {

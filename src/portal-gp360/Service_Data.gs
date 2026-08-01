@@ -75,6 +75,22 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     }
   } catch (eSoc) {}
 
+  var chavesValidadasApuracoes = {};
+  try {
+    var ssApur = SpreadsheetApp.openById(SPREADSHEET_APURACOES_ID);
+    if (ssApur) {
+      var abaApurHist = ssApur.getSheetByName('Historico_Envios');
+      if (abaApurHist) {
+        var dApurHist = abaApurHist.getDataRange().getValues();
+        for (var ah = 1; ah < dApurHist.length; ah++) {
+          var fApur = ("0000" + normalizarFilialId(dApurHist[ah][0])).slice(-4);
+          var dtApur = formatarDataSegura(dApurHist[ah][1] || new Date());
+          chavesValidadasApuracoes['APURACAO_' + fApur + '_' + dtApur] = true;
+        }
+      }
+    }
+  } catch (eApur) {}
+
   var lancamentos = [];
   var moedasTotaisUser = 0;
   var moedasMesUser = 0;
@@ -90,33 +106,61 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     var dLanc = abaLanc.getDataRange().getValues();
     for (var k = 1; k < dLanc.length; k++) {
       var row = dLanc[k];
-      var idReg = row[0];                                   // Col A: ID_Lancamento
-      var dtObj = row[1];                                   // Col B: Data_Hora
+      var idReg = row[0];                                         // Col A: ID_Lancamento
+      var dtObj = row[1];                                         // Col B: Data_Hora
       var emailAutor = String(row[2] || '').toLowerCase().trim(); // Col C: Coordenador_Email
-      var rawFilialLanc = row[3];                          // Col D: Destino_Filial_Regional
+      var rawFilialLanc = row[3];                                // Col D: Destino_Filial_Regional
       var numFilialLanc = normalizarFilialId(rawFilialLanc);
       var fIdLanc = numFilialLanc ? ("0000" + numFilialLanc).slice(-4) : String(rawFilialLanc || '');
       var regLanc = mapaLojaRegional[fIdLanc] || '';
-      var motivoLanc = String(row[4] || '').trim();         // Col E: Motivo_Meta
+      var motivoLanc = String(row[4] || '').trim();               // Col E: Motivo_Meta
       var motivoLancUpper = motivoLanc.toUpperCase();
-      var custoTotalItem = parseFloat(row[8]) || parseFloat(row[21]) || 0; // Col I ou V: Total_Gastos / Total despesa
+      var custoTotalItem = parseFloat(row[8]) || parseFloat(row[21]) || 0; // Col I ou Col V
 
       var dtStr = formatarDataSegura(dtObj || row[12]);
       var dtParsed = dtObj instanceof Date ? dtObj : new Date(dtObj || row[12]);
       var mReg = dtParsed.getMonth() + 1;
       var aReg = dtParsed.getFullYear();
 
-      var ptsItem = parseFloat(row[9]) || dicionarioPremios[motivoLancUpper] || 1; // Col J: Moedas_Geradas
+      // Coluna 28 (AB): Status_Validacao_Especialista
+      var statusSalvoCol28 = String(row[27] || '').trim().toUpperCase();
+      var motivoLower = motivoLanc.toLowerCase();
+      var ehEspecialista = motivoLower.includes('atendimento social') || 
+                           motivoLower.includes('apuraç') || 
+                           motivoLower.includes('apurac') || 
+                           motivoLower.includes('feedback') || 
+                           motivoLower.includes('acompanhamento');
+
+      var statusFinal = statusSalvoCol28;
+      if (!statusFinal) {
+        statusFinal = ehEspecialista ? 'PENDENTE' : 'VALIDADO';
+      }
+
+      // Reconciliação automática: Se PENDENTE, verifica se já consta na planilha externa
+      if (statusFinal === 'PENDENTE') {
+        var encSoc = !!chavesValidadasSocial['SOCIAL_' + fIdLanc + '_' + dtStr];
+        var encApur = !!chavesValidadasApuracoes['APURACAO_' + fIdLanc + '_' + dtStr];
+        if (encSoc || encApur) {
+          statusFinal = 'VALIDADO';
+          // Atualiza a célula fisicamente na Coluna 28 (AB) da aba DADOS_LANCAMENTOS
+          try {
+            abaLanc.getRange(k + 1, 28).setValue('VALIDADO');
+          } catch (eUpd) {}
+        }
+      }
+
+      var estaValidadoEspecialista = (statusFinal === 'VALIDADO');
+      var ptsItem = parseFloat(row[9]) || dicionarioPremios[motivoLancUpper] || 1;
 
       if (!pontuacaoPorUsuario[emailAutor]) {
         pontuacaoPorUsuario[emailAutor] = { mes: 0, total: 0, email: emailAutor, foto: '' };
       }
 
-      // Trava de 1 visita por dia por loja por coordenador
+      // Concede moedas apenas se o registro estiver VALIDADO
       var chaveVisitaDia = emailAutor + '_' + fIdLanc + '_' + dtStr;
       var ehPrimeiraVisitaDoDia = !visitasLojasDiaSet[chaveVisitaDia];
       
-      if (ehPrimeiraVisitaDoDia) {
+      if (ehPrimeiraVisitaDoDia && estaValidadoEspecialista) {
         visitasLojasDiaSet[chaveVisitaDia] = true;
         pontuacaoPorUsuario[emailAutor].total += ptsItem;
         if (mReg === mesAlvo && aReg === anoAlvo) {
@@ -124,20 +168,13 @@ function obterDadosIniciais(filtroMes, filtroAno) {
         }
       }
 
-      var estaValidadoEspecialista = false;
-      if (motivoLancUpper.includes('SOCIAL')) {
-        estaValidadoEspecialista = !!chavesValidadasSocial['SOCIAL_' + fIdLanc + '_' + dtStr];
-      } else {
-        estaValidadoEspecialista = true;
-      }
-
       if (emailAutor === controle.email.toLowerCase()) {
-        if (ehPrimeiraVisitaDoDia) {
+        if (ehPrimeiraVisitaDoDia && estaValidadoEspecialista) {
           moedasTotaisUser += ptsItem;
         }
 
         if (mReg === mesAlvo && aReg === anoAlvo) {
-          if (ehPrimeiraVisitaDoDia) {
+          if (ehPrimeiraVisitaDoDia && estaValidadoEspecialista) {
             moedasMesUser += ptsItem;
             visitasInLocoMes++;
             if (fIdLanc) filiaisVisitadasSet[fIdLanc] = true;
@@ -154,20 +191,21 @@ function obterDadosIniciais(filtroMes, filtroAno) {
               data: dtStr,
               filial: fIdLanc,
               motivo: motivoLanc,
-              tema: row[18] || '',                           // Col S: Sub temas
-              observacao: row[10] || '',                     // Col K: Observacoes
-              evidenciaUrl: row[11] || '',                   // Col L: Link_Evidencia
-              kmPercorrido: row[15] || 0,                    // Col P: Qde_Km
-              custoKm: row[16] || 0,                         // Col Q: Total Km
-              tipoRoteiro: row[17] || '',                    // Col R: Tipo_Roteiro
-              pessoasImpactadas: row[19] || 0,               // Col T: Pessoas Impactas
-              tempoGasto: row[20] || 0,                      // Col U: Tempo Gasto
-              valorPedagio: row[25] || 0,                    // Col Z: Pedagio
-              valorAlimentacao: row[22] || 0,                // Col W: Alimentação
-              valorHospedagem: row[23] || 0,                 // Col X: Hospedagem
-              valorAereo: row[24] || 0,                      // Col Y: Aereo
-              valorEstacionamento: row[26] || 0,             // Col AA: Estacionamento
+              tema: row[18] || '',                             // Col S: Sub temas
+              observacao: row[10] || '',                       // Col K: Observacoes
+              evidenciaUrl: row[11] || '',                     // Col L: Link_Evidencia
+              kmPercorrido: row[15] || 0,                      // Col P: Qde_Km
+              custoKm: row[16] || 0,                           // Col Q: Total Km
+              tipoRoteiro: row[17] || '',                      // Col R: Tipo_Roteiro
+              pessoasImpactadas: row[19] || 0,                 // Col T: Pessoas Impactas
+              tempoGasto: row[20] || 0,                        // Col U: Tempo Gasto
+              valorPedagio: row[25] || 0,                      // Col Z: Pedagio
+              valorAlimentacao: row[22] || 0,                  // Col W: Alimentação
+              valorHospedagem: row[23] || 0,                   // Col X: Hospedagem
+              valorAereo: row[24] || 0,                        // Col Y: Aereo
+              valorEstacionamento: row[26] || 0,               // Col AA: Estacionamento
               custoTotal: custoTotalItem,
+              statusValidacao: statusFinal,                    // Col AB: Status_Validacao_Especialista
               validadoEspecialista: estaValidadoEspecialista,
               autor: row[2]
             });
