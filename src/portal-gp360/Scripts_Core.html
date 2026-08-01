@@ -7,9 +7,16 @@
 
   var dadosGlobais = {};
 
+  // DECLARAÇÃO GLOBAL EXPLÍCITA PARA EVITAR REFERENCE_ERROR EM DROPDOWNS
+  window.alterarPeriodoGeral = function() {
+    inicializarAplicacao();
+  };
+
   window.onload = function() {
     var hoje = new Date().toISOString().split('T')[0];
     document.getElementById('input-data-atividade').value = hoje;
+    var fieldAvulsoData = document.getElementById('avulso-data');
+    if (fieldAvulsoData) fieldAvulsoData.value = hoje;
     inicializarAplicacao();
   };
 
@@ -127,29 +134,33 @@
   }
 
   function salvarKMAvulso() {
-    var motivo = document.getElementById('avulso-motivo').value;
+    var dataViagem = document.getElementById('avulso-data').value;
+    var destino = document.getElementById('avulso-destino').value;
     var km = document.getElementById('avulso-km').value;
-    var outros = document.getElementById('avulso-outros').value;
 
-    if (!motivo || !km) {
-      alert('Preencha o motivo e a quantidade de KM!');
+    if (!destino || !km) {
+      alert('Preencha o Destino e a Quantidade de KM!');
       return;
     }
 
     var payloadData = {
-      filial: 'AVULSO',
+      filial: 'AVULSO: ' + destino,
       escopo: 'REGIONAL',
       tipoRoteiro: 'Presencial (Visita in loco)',
-      motivo: 'Deslocamento Avulso (' + motivo + ')',
+      motivo: 'Deslocamento Avulso (' + destino + ')',
       kmPercorrido: km,
-      valorPedagio: outros,
+      rateKm: document.getElementById('avulso-rate').value,
+      valorAlimentacao: document.getElementById('avulso-alimentacao').value,
+      valorHospedagem: document.getElementById('avulso-hospedagem').value,
+      valorAereo: document.getElementById('avulso-aereo').value,
+      valorPedagio: document.getElementById('avulso-pedagio').value,
+      valorEstacionamento: document.getElementById('avulso-estacionamento').value,
       observacao: 'Lançamento de KM Avulso'
     };
 
     google.script.run
       .withSuccessHandler(function(res) {
-        var m = bootstrap.Modal.getInstance(document.getElementById('modalKmAvulso'));
-        m.hide();
+        alternarFormularioKMAvulso();
         alert(res.mensagem);
         inicializarAplicacao();
       })

@@ -22,11 +22,17 @@
     if (abaId === 'aba-historico') renderizarHistoricos();
   }
 
-  function abrirPainelInterno(url, titulo) {
-    document.getElementById('tituloModalIframe').innerText = titulo;
-    document.getElementById('iframePainelConteudo').src = url;
-    var myModal = new bootstrap.Modal(document.getElementById('modalIframeInterno'));
-    myModal.show();
+  function abrirPainelInternoEmbutido(url, titulo) {
+    document.getElementById('titulo-painel-embutido').innerText = titulo;
+    document.getElementById('iframe-painel-embutido-src').src = url;
+    var container = document.getElementById('container-embutido-painel');
+    container.classList.remove('d-none');
+    container.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function fecharPainelEmbutido() {
+    document.getElementById('iframe-painel-embutido-src').src = 'about:blank';
+    document.getElementById('container-embutido-painel').classList.add('d-none');
   }
 
   function renderizarInterfaceCompleta() {
@@ -44,10 +50,11 @@
       boxRegionais.innerHTML = '<span class="regional-pill bg-success-subtle text-success border-success">Visão Nacional</span>';
     }
 
-    if (u.fotoUrl && !u.fotoUrl.includes('placeholder')) {
-      document.getElementById('user-avatar-img').src = u.fotoUrl;
+    var imgUser = document.getElementById('user-avatar-img');
+    if (u.fotoUrl && u.fotoUrl.length > 20 && !u.fotoUrl.includes('placeholder')) {
+      imgUser.src = u.fotoUrl;
     } else {
-      document.getElementById('user-avatar-img').src = gerarAvatarSVG(u.nome);
+      imgUser.src = gerarAvatarSVG(u.nome);
     }
 
     if (!u.isAdmin) {
@@ -65,7 +72,6 @@
     atualizarCardsGamificacao();
     renderizarRankingTop5();
     renderizarGraficoAtividades();
-    renderizarTimelineAtividades();
     renderizarListaNaturezasAdmin();
     renderizarGestaoTemasAdmin();
   }
@@ -185,6 +191,26 @@
     document.getElementById('display-gasto-total').innerText = 'Gasto Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
   }
 
+  function calcularDespesasAvulso() {
+    var rate = parseFloat(document.getElementById('avulso-rate').value) || 1.20;
+    var km = parseFloat(document.getElementById('avulso-km').value) || 0;
+    var custoKm = km * rate;
+
+    var ali = parseFloat(document.getElementById('avulso-alimentacao').value) || 0;
+    var hos = parseFloat(document.getElementById('avulso-hospedagem').value) || 0;
+    var aer = parseFloat(document.getElementById('avulso-aereo').value) || 0;
+    var ped = parseFloat(document.getElementById('avulso-pedagio').value) || 0;
+    var est = parseFloat(document.getElementById('avulso-estacionamento').value) || 0;
+
+    var total = custoKm + ali + hos + aer + ped + est;
+    document.getElementById('avulso-display-total').innerText = 'Gasto Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+  }
+
+  function alternarFormularioKMAvulso() {
+    var box = document.getElementById('box-form-km-avulso');
+    box.classList.toggle('d-none');
+  }
+
   function limparOutrasEvidencias(origem) {
     if (origem !== 'file') document.getElementById('input-evidencia-file').value = '';
     if (origem !== 'url') document.getElementById('input-evidencia-url').value = '';
@@ -195,6 +221,12 @@
     document.getElementById('kpi-moedas-mes').innerText = g.moedasMes;
     document.getElementById('kpi-moedas-totais').innerText = g.moedasTotais;
     document.getElementById('badge-fase-nome').innerText = g.faseNome;
+
+    var iconeVisual = '🥾';
+    if (g.faseNome.includes('Fase 4')) iconeVisual = '🚩';
+    else if (g.faseNome.includes('Fase 3')) iconeVisual = '🏔️';
+    else if (g.faseNome.includes('Fase 2')) iconeVisual = '🧗';
+    document.getElementById('icone-fase-visual').innerText = iconeVisual;
   }
 
   function renderizarRankingTop5() {
@@ -218,12 +250,12 @@
       else if (item.total >= 75) faseTag = '<span class="badge bg-info text-white border me-2">🏔️ Cume Alcançado</span>';
       else if (item.total >= 40) faseTag = '<span class="badge bg-warning text-dark border me-2">🧗 Subida da Montanha</span>';
 
-      var avatarSrc = item.foto || gerarAvatarSVG(item.email);
+      var avatarSrc = (item.foto && item.foto.length > 20) ? item.foto : gerarAvatarSVG(item.email);
 
       lista.innerHTML += '<li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0 border-bottom">' +
         '<div class="d-flex align-items-center">' +
           badgePos +
-          '<img src="' + avatarSrc + '" class="rounded-circle me-3 border" style="width:42px; height:42px; object-fit:cover;">' +
+          '<img src="' + avatarSrc + '" class="rounded-circle me-3 border" style="width:42px; height:42px; object-fit:cover;" onerror="this.src=gerarAvatarSVG(\'' + item.email + '\');">' +
           '<div>' +
             '<div class="fw-bold text-dark mb-1">' + item.email + '</div>' +
             '<div>' + faseTag + '</div>' +
@@ -242,8 +274,17 @@
     var dtInicio = document.getElementById('filtro-extrato-inicio').value;
     var dtFim = document.getElementById('filtro-extrato-fim').value;
 
+    if (dtInicio || dtFim) {
+      l = l.filter(function(item) {
+        var rawDt = obterDataRawSegura(item.data);
+        var rawIni = dtInicio ? new Date(dtInicio).getTime() : 0;
+        var rawFim = dtFim ? new Date(dtFim).getTime() : Infinity;
+        return rawDt >= rawIni && rawDt <= rawFim;
+      });
+    }
+
     if (l.length === 0) {
-      container.innerHTML = '<div class="alert alert-light border">Nenhum extrato localizado no período.</div>';
+      container.innerHTML = '<div class="alert alert-light border">Nenhum extrato localizado no período selecionado.</div>';
       return;
     }
 
@@ -262,6 +303,53 @@
         '</div>' +
       '</div>';
     });
+  }
+
+  function imprimirRelatorioKM() {
+    var u = dadosGlobais.usuario ? dadosGlobais.usuario.nome : 'Usuário GP';
+    var l = dadosGlobais.lancamentos || [];
+
+    var mSel = document.getElementById('seletor-mes').value;
+    var aSel = document.getElementById('seletor-ano').value;
+    var periodoStr = mSel + '/' + aSel;
+
+    l.sort(function(a, b) {
+      return obterDataRawSegura(a.data) - obterDataRawSegura(b.data);
+    });
+
+    var win = window.open('', '_blank');
+    var html = '<html><head><title>Relatório de Despesas de Viagem e KM</title>' +
+      '<style>' +
+      'body { font-family: Arial, sans-serif; padding: 20px; color: #111; }' +
+      'h2 { text-align: center; margin-bottom: 5px; }' +
+      'p { text-align: center; margin: 3px 0; color: #555; }' +
+      'table { width: 100%; border-collapse: collapse; margin-top: 20px; }' +
+      'th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }' +
+      'th { background-color: #f2f2f2; font-weight: bold; }' +
+      '.total-col { font-weight: bold; }' +
+      '</style></head><body>' +
+      '<h2>Relatório de Despesas de Viagem e KM</h2>' +
+      '<p>Usuário: <strong>' + u.toUpperCase() + '</strong></p>' +
+      '<p>Período: <strong>' + periodoStr + '</strong></p>' +
+      '<table><thead><tr>' +
+      '<th>Data Viagem</th><th>Local</th><th>Motivo</th><th>Qtd KM</th><th>Gasto Total (R$)</th>' +
+      '</tr></thead><tbody>';
+
+    l.forEach(function(item) {
+      html += '<tr>' +
+        '<td>' + item.data + '</td>' +
+        '<td>' + (item.filial || 'AVULSO') + '</td>' +
+        '<td>' + item.motivo + '</td>' +
+        '<td>' + (item.kmPercorrido || 0) + '</td>' +
+        '<td class="total-col">R$ ' + (item.custoTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + '</td>' +
+        '</tr>';
+    });
+
+    html += '</tbody></table></body></html>';
+
+    win.document.write(html);
+    win.document.close();
+    win.print();
   }
 
   function renderizarListaNaturezasAdmin() {
@@ -299,19 +387,10 @@
     container.innerHTML = html;
   }
 
-  function abrirModalAvulso() {
-    var m = new bootstrap.Modal(document.getElementById('modalKmAvulso'));
-    m.show();
-  }
-
   function limparFiltroDatas() {
     document.getElementById('filtro-extrato-inicio').value = '';
     document.getElementById('filtro-extrato-fim').value = '';
     renderizarHistoricos();
-  }
-
-  function imprimirRelatorioKM() {
-    window.print();
   }
 
   function carregarGaleriaEvidencias() {
@@ -328,7 +407,7 @@
         fotos.forEach(function(f) {
           grid.innerHTML += '<div class="col-md-4 col-lg-3">' +
             '<div class="bento-card p-2 text-center">' +
-              '<img src="' + f.thumbUrl + '" class="img-fluid rounded mb-2" style="max-height: 180px; object-fit: cover;">' +
+              '<img src="' + f.thumbUrl + '" class="img-fluid rounded mb-2" style="max-height: 180px; object-fit: cover;" onerror="this.src=gerarAvatarSVG(\'Sem Imagem\');">' +
               '<small class="d-block fw-bold">' + f.loja + '</small>' +
               '<small class="text-muted d-block">' + f.data + ' • ' + f.motivo + '</small>' +
               '<a href="' + f.url + '" target="_blank" class="btn btn-sm btn-light border mt-2 w-100">Abrir Imagem</a>' +

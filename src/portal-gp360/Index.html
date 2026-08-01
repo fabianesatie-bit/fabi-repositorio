@@ -164,11 +164,15 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
 
-    .iframe-modal-body {
-      padding: 0;
-      height: 80vh;
+    .container-iframe-embutido {
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      height: 750px;
     }
-    .iframe-modal-body iframe {
+    .container-iframe-embutido iframe {
       width: 100%;
       height: 100%;
       border: none;
@@ -195,9 +199,10 @@
   <div id="app-container" class="container-fluid d-none p-0">
     <div class="row g-0">
       
+      <!-- SIDEBAR LEFT -->
       <div class="col-md-3 col-lg-2 sidebar p-3 text-center">
         <div class="mb-3 mt-2">
-          <img id="user-avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%230087FF'/><text x='50%' y='55%' font-size='32' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>GP</text></svg>" class="avatar-profile mb-2" alt="Foto">
+          <img id="user-avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%230087FF'/><text x='50%' y='55%' font-size='32' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>GP</text></svg>" class="avatar-profile mb-2" alt="Foto" onerror="this.src=gerarAvatarSVG('GP');">
           <h6 class="fw-bold mb-0 text-dark" id="user-nome-display">Carregando...</h6>
           <small class="badge bg-light text-primary border mt-1" id="user-cargo-display">Coordenador</small>
           
@@ -210,6 +215,7 @@
 
         <hr class="my-3 text-muted">
 
+        <!-- MENU BOTÕES VIBRANTES -->
         <nav class="nav flex-column gap-1 text-start">
           <a class="nav-btn-card active" onclick="mudarAba('aba-home', this)">
             <div class="nav-icon-badge bg-primary-subtle text-primary"><i class="bi bi-house-door-fill"></i></div>
@@ -253,8 +259,10 @@
         </nav>
       </div>
 
+      <!-- MAIN CONTENT -->
       <div class="col-md-9 col-lg-10 p-4">
         
+        <!-- HEADER TOP BAR -->
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-stars text-warning me-2"></i>Portal GP 360</h4>
           <div class="d-flex align-items-center gap-2">
@@ -270,7 +278,7 @@
           </div>
         </div>
 
-        <!-- ABA INÍCIO (HOME BENTO GRID) -->
+        <!-- ABA INÍCIO (HOME) -->
         <div id="aba-home" class="view-aba">
           
           <div class="card-governanca p-4 mb-4 d-flex justify-content-between align-items-center shadow-sm">
@@ -281,8 +289,8 @@
               </h5>
               <p class="mb-0 text-secondary fs-6">Moedas do Mês Vigente: <strong class="text-dark fs-5" id="kpi-moedas-mes">0</strong> | Total Acumulado: <strong class="text-dark fs-5" id="kpi-moedas-totais">0</strong></p>
             </div>
-            <div class="bg-white p-3 rounded-circle border shadow">
-              <i class="bi bi-boot-fill display-5 text-success"></i>
+            <div class="bg-white p-3 rounded-circle border shadow d-flex align-items-center justify-content-center" style="width: 72px; height: 72px;">
+              <span id="icone-fase-visual" style="font-size: 2.2rem;">🥾</span>
             </div>
           </div>
 
@@ -340,6 +348,7 @@
 
         </div>
 
+        <!-- ABA LANÇAR ATIVIDADE -->
         <div id="aba-lancamento" class="view-aba d-none">
           <div class="bento-card" style="max-width: 900px; margin: 0 auto;">
             <h5 class="fw-bold mb-4 text-primary"><i class="bi bi-plus-square-fill me-2"></i> Nova Atividade</h5>
@@ -481,17 +490,18 @@
           </div>
         </div>
 
+        <!-- ABA CONSULTAS GERAIS -->
         <div id="aba-consultas" class="view-aba d-none">
           <div class="bento-card mb-4">
             <h5 class="fw-bold mb-2 text-dark"><i class="bi bi-search text-primary me-2"></i>Consultas Gerais</h5>
-            <p class="text-muted small mb-4">Acesse rapidamente outros painéis e recursos corporativos.</p>
+            <p class="text-muted small mb-4">Acesse rapidamente outros painéis e recursos corporativos sem sair da página.</p>
             
             <div class="row g-3">
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-person-badge text-primary display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Perfil do Gerente de Loja</h6>
-                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzqQNOM7dAJb4o2Q9Wp5OPcNEcRrh8J1N74-L_NSagvRF1XdfRrOvRk1yFpIoI8ePZt/exec', 'Perfil do Gerente')" class="btn btn-primary btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
+                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzqQNOM7dAJb4o2Q9Wp5OPcNEcRrh8J1N74-L_NSagvRF1XdfRrOvRk1yFpIoI8ePZt/exec', 'Perfil do Gerente')" class="btn btn-primary btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
 
@@ -499,7 +509,7 @@
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-heart-pulse text-danger display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Atendimento Social</h6>
-                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', 'Atendimento Social')" class="btn btn-danger btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
+                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', 'Atendimento Social')" class="btn btn-danger btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
 
@@ -507,7 +517,7 @@
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-shield-check text-warning display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Apurações / Feedback</h6>
-                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback')" class="btn btn-warning text-dark btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
+                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback')" class="btn btn-warning text-dark btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
 
@@ -515,15 +525,15 @@
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-people text-success display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Agente Integrador</h6>
-                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbySeCo0Pao_eydyF9ZZfetcSf6Rc-kgmdCiXjJkhf4O1r0jnQI6yRCWG_tGkIgwBzXY2A/exec', 'Agente Integrador')" class="btn btn-success btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
+                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbySeCo0Pao_eydyF9ZZfetcSf6Rc-kgmdCiXjJkhf4O1r0jnQI6yRCWG_tGkIgwBzXY2A/exec', 'Agente Integrador')" class="btn btn-success btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-clock-history text-purple display-6 mb-2" style="color:#8000FF;"></i>
+                  <i class="bi bi-clock-history display-6 mb-2" style="color:#8000FF;"></i>
                   <h6 class="fw-bold text-dark">Banco de Horas</h6>
-                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzWpN0-LZa_Lvd6VugBL5k3tWbHa5jdwKhJyD4UCH4Ml00BeNzved493zspKCgZAmz5Vg/exec', 'Banco de Horas')" class="btn btn-outline-purple btn-sm w-100 fw-bold mt-2" style="border-color:#8000FF; color:#8000FF;">Acessar Painel</button>
+                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzWpN0-LZa_Lvd6VugBL5k3tWbHa5jdwKhJyD4UCH4Ml00BeNzved493zspKCgZAmz5Vg/exec', 'Banco de Horas')" class="btn btn-outline-primary btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
 
@@ -531,7 +541,7 @@
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-database text-info display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Base Rol</h6>
-                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbx8faffOLaa2D34yPcmyCTh1k4twGCvH-8GoUaKqOMejk9n6CBJbYA0khBu4Yd2WCai/exec', 'Base Rol')" class="btn btn-info text-white btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
+                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbx8faffOLaa2D34yPcmyCTh1k4twGCvH-8GoUaKqOMejk9n6CBJbYA0khBu4Yd2WCai/exec', 'Base Rol')" class="btn btn-info text-white btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
 
@@ -539,24 +549,80 @@
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-recycle text-success display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Lixo Eletrônico</h6>
-                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbybafdaQteFy4FuWwPxIQLGJDGWUsac8jo_agut6PlF42-1ta3mW8uyyjdbtLYGsgWn/exec', 'Lixo Eletrônico')" class="btn btn-outline-success btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
+                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbybafdaQteFy4FuWwPxIQLGJDGWUsac8jo_agut6PlF42-1ta3mW8uyyjdbtLYGsgWn/exec', 'Lixo Eletrônico')" class="btn btn-outline-success btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
+              </div>
+            </div>
+
+            <!-- CONTAINER EMBUTIDO DO IFRAME INTERNO -->
+            <div id="container-embutido-painel" class="mt-4 d-none">
+              <div class="d-flex justify-content-between align-items-center bg-light p-3 border rounded-top">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-window-stack me-2 text-primary"></i><span id="titulo-painel-embutido">Painel Corporativo</span></h6>
+                <button class="btn btn-sm btn-secondary fw-bold" onclick="fecharPainelEmbutido()"><i class="bi bi-x-lg me-1"></i> Fechar Painel</button>
+              </div>
+              <div class="container-iframe-embutido">
+                <iframe id="iframe-painel-embutido-src" src="about:blank"></iframe>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- ABA EXTRATO E DESPESAS -->
         <div id="aba-historico" class="view-aba d-none">
           <div class="bento-card">
             <div class="d-flex justify-content-between align-items-center mb-3">
               <h5 class="fw-bold mb-0 text-dark">Extrato de Reembolso e Despesas</h5>
               <div class="d-flex gap-2">
-                <button onclick="abrirModalAvulso()" class="btn btn-warning text-white fw-bold shadow-sm"><i class="bi bi-car-front-fill me-1"></i> + KM Avulso</button>
+                <button onclick="alternarFormularioKMAvulso()" class="btn btn-warning text-white fw-bold shadow-sm"><i class="bi bi-car-front-fill me-1"></i> + KM Avulso</button>
                 <button onclick="imprimirRelatorioKM()" class="btn btn-light border fw-bold shadow-sm"><i class="bi bi-printer me-1"></i> Imprimir Extrato</button>
               </div>
             </div>
 
-            <!-- Filtro de Datas do Extrato -->
+            <!-- FORMULÁRIO DE KM AVULSO EMBUTIDO -->
+            <div id="box-form-km-avulso" class="p-3 bg-warning-subtle border border-warning rounded-3 mb-4 d-none">
+              <h6 class="fw-bold text-dark mb-3"><i class="bi bi-car-front-fill me-2"></i>Lançamento de KM Avulso (Sede/Eventos)</h6>
+              <form id="form-km-avulso" onsubmit="event.preventDefault(); salvarKMAvulso();">
+                <div class="row g-2 mb-2">
+                  <div class="col-md-4">
+                    <label class="small fw-semibold text-secondary">Data da Viagem:</label>
+                    <input type="date" id="avulso-data" class="form-control form-control-sm" required>
+                  </div>
+                  <div class="col-md-8">
+                    <label class="small fw-semibold text-secondary">Destino (Livre):</label>
+                    <input type="text" id="avulso-destino" class="form-control form-control-sm" placeholder="Ex: Reunião na Sede Franca" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="small fw-semibold text-secondary">Valor KM:</label>
+                    <input type="number" step="0.01" id="avulso-rate" class="form-control form-control-sm" value="1.20" oninput="calcularDespesasAvulso()">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="small fw-semibold text-secondary">Qtd (KM):</label>
+                    <input type="number" id="avulso-km" class="form-control form-control-sm" placeholder="0" oninput="calcularDespesasAvulso()" required>
+                  </div>
+                </div>
+
+                <hr class="my-2 border-warning">
+
+                <h6 class="fw-bold mb-2 text-dark small"><i class="bi bi-receipt me-1"></i>Outros Gastos (Opcional)</h6>
+                <div class="row g-2">
+                  <div class="col-md-4"><label class="small text-secondary">Alimentação (R$)</label><input type="number" step="0.01" id="avulso-alimentacao" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
+                  <div class="col-md-4"><label class="small text-secondary">Hospedagem (R$)</label><input type="number" step="0.01" id="avulso-hospedagem" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
+                  <div class="col-md-4"><label class="small text-secondary">Aéreo (R$)</label><input type="number" step="0.01" id="avulso-aereo" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
+                  <div class="col-md-6"><label class="small text-secondary">Pedágio (R$)</label><input type="number" step="0.01" id="avulso-pedagio" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
+                  <div class="col-md-6"><label class="small text-secondary">Estacion. (R$)</label><input type="number" step="0.01" id="avulso-estacionamento" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                  <div class="fw-bold text-dark fs-5" id="avulso-display-total">Gasto Total: R$ 0,00</div>
+                  <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-secondary btn-sm fw-bold px-3" onclick="alternarFormularioKMAvulso()">Cancelar</button>
+                    <button type="submit" class="btn btn-warning btn-sm fw-bold px-3 text-dark">Salvar KM Avulso</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- FILTRO DE DATAS DO EXTRATO -->
             <div class="p-3 bg-light rounded-3 border mb-4">
               <div class="row g-2 align-items-end">
                 <div class="col-md-5">
@@ -579,6 +645,7 @@
           </div>
         </div>
 
+        <!-- ABA CONFIGURAÇÕES -->
         <div id="aba-configuracoes" class="view-aba d-none">
           <div class="bento-card">
             <h5 class="fw-bold mb-1 text-dark">Configurações do Sistema</h5>
@@ -606,39 +673,6 @@
         <div id="aba-galeria" class="view-aba d-none"><div class="row g-3" id="grid-galeria"></div></div>
         <div id="aba-visao-gp" class="view-aba d-none"><div class="bento-card"><h5 class="fw-bold mb-3">Visão Geral GP</h5><a href="https://script.google.com" target="_blank" class="btn btn-primary fw-bold"><i class="bi bi-box-arrow-up-right me-1"></i> Abrir em Nova Guia</a></div></div>
 
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="modalIframeInterno" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title fw-bold" id="tituloModalIframe">Painel Corporativo</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body iframe-modal-body">
-          <iframe id="iframePainelConteudo" src="about:blank"></iframe>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="modalKmAvulso" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header bg-warning text-dark">
-          <h5 class="modal-title fw-bold"><i class="bi bi-car-front-fill me-2"></i>Registrar KM Avulso</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <form id="form-km-avulso" onsubmit="event.preventDefault(); salvarKMAvulso();">
-            <div class="mb-3"><label class="form-label fw-semibold">Motivo do Deslocamento</label><input type="text" id="avulso-motivo" class="form-control" placeholder="Ex: Deslocamento para Evento Sede" required></div>
-            <div class="mb-3"><label class="form-label fw-semibold">KM Percorrido</label><input type="number" id="avulso-km" class="form-control" placeholder="0" required></div>
-            <div class="mb-3"><label class="form-label fw-semibold">Valor do Pedágio/Outros (R$)</label><input type="number" step="0.01" id="avulso-outros" class="form-control" placeholder="0.00"></div>
-            <button type="submit" class="btn btn-warning w-100 fw-bold text-dark">Salvar Registro Avulso</button>
-          </form>
-        </div>
       </div>
     </div>
   </div>
