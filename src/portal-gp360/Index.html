@@ -235,6 +235,11 @@
       to { transform: translateX(0); opacity: 1; }
     }
   </style>
+
+  <script>
+    // Impede o redirecionamento para o navegador ao abrir links no modo aplicativo PWA instalado
+    (function(a,b,c){if(c in b&&b[c]){var d,e=a.location,f=/javascript:/i;a.addEventListener("click",function(a){d=a.target;while(nodeName(d)!="A"&&d.nodeName!="HTML")d=d.parentNode;"href"in d&&(d.href.indexOf("http")||~d.href.indexOf(e.host))&&!f.test(d.href)&&(a.preventDefault(),e.href=d.href)},!1);function nodeName(a){return a.nodeName.toUpperCase()}}})(document,window.navigator,"standalone");
+  </script>
 </head>
 <body>
 
@@ -344,7 +349,7 @@
             </div>
             <div>
               <h6 class="fw-bold mb-0 text-dark">Instale o App GP 360º no seu Celular!</h6>
-              <small class="text-secondary">Abra sem barra de endereços: Clique no menu do navegador e selecione <strong>"Adicionar à Tela Inicial"</strong>.</small>
+              <small class="text-secondary">Abra em tela cheia sem barra de endereço: Clique no menu do navegador e escolha <strong>"Adicionar à Tela Inicial"</strong>.</small>
             </div>
           </div>
           <button type="button" class="btn-close" onclick="document.getElementById('banner-pwa-install').classList.add('d-none');"></button>
@@ -652,113 +657,4 @@
                   </div>
                   <div class="col-md-8">
                     <label class="small fw-semibold text-secondary">Destino (Livre):</label>
-                    <input type="text" id="avulso-destino" class="form-control form-control-sm" placeholder="Ex: Reunião na Sede Franca" required>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="small fw-semibold text-secondary">Valor KM:</label>
-                    <input type="number" step="0.01" id="avulso-rate" class="form-control form-control-sm" value="1.20" oninput="calcularDespesasAvulso()">
-                  </div>
-                  <div class="col-md-6">
-                    <label class="small fw-semibold text-secondary">Qtd (KM):</label>
-                    <input type="number" id="avulso-km" class="form-control form-control-sm" placeholder="0" oninput="calcularDespesasAvulso()" required>
-                  </div>
-                </div>
-
-                <hr class="my-2 border-warning">
-
-                <h6 class="fw-bold mb-2 text-dark small"><i class="bi bi-receipt me-1"></i>Outros Gastos (Opcional)</h6>
-                <div class="row g-2">
-                  <div class="col-md-4"><label class="small text-secondary">Alimentação (R$)</label><input type="number" step="0.01" id="avulso-alimentacao" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
-                  <div class="col-md-4"><label class="small text-secondary">Hospedagem (R$)</label><input type="number" step="0.01" id="avulso-hospedagem" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
-                  <div class="col-md-4"><label class="small text-secondary">Aéreo (R$)</label><input type="number" step="0.01" id="avulso-aereo" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
-                  <div class="col-md-6"><label class="small text-secondary">Pedágio (R$)</label><input type="number" step="0.01" id="avulso-pedagio" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
-                  <div class="col-md-6"><label class="small text-secondary">Estacion. (R$)</label><input type="number" step="0.01" id="avulso-estacionamento" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
-                </div>
-
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                  <div class="fw-bold text-dark fs-5" id="avulso-display-total">Gasto Total: R$ 0,00</div>
-                  <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-secondary btn-sm fw-bold px-3" onclick="alternarFormularioKMAvulso()">Cancelar</button>
-                    <button type="submit" class="btn btn-warning btn-sm fw-bold px-3 text-dark">Salvar KM Avulso</button>
-                  </div>
-                </div>
-              </form>
-            </div>
-
-            <div class="p-3 bg-light rounded-3 border mb-4">
-              <div class="row g-2 align-items-end">
-                <div class="col-md-5">
-                  <label class="small text-muted fw-semibold">Data Início:</label>
-                  <input type="date" id="filtro-extrato-inicio" class="form-control form-control-sm" onchange="renderizarHistoricos()">
-                </div>
-                <div class="col-md-5">
-                  <label class="small text-muted fw-semibold">Data Fim:</label>
-                  <input type="date" id="filtro-extrato-fim" class="form-control form-control-sm" onchange="renderizarHistoricos()">
-                </div>
-                <div class="col-md-2">
-                  <button class="btn btn-secondary btn-sm w-100 fw-bold" onclick="limparFiltroDatas()"><i class="bi bi-arrow-counterclockwise me-1"></i> Limpar</button>
-                </div>
-              </div>
-            </div>
-
-            <div id="tabela-extrato-container" class="d-flex flex-column gap-3">
-              <div class="text-muted p-3">Carregando extrato de lançamentos...</div>
-            </div>
-          </div>
-        </div>
-
-        <div id="aba-configuracoes" class="view-aba d-none">
-          <div class="bento-card">
-            <h5 class="fw-bold mb-1 text-dark">Configurações do Sistema</h5>
-            <p class="text-muted small mb-4">Gerencie as naturezas extras de atividade e o dicionário de prêmios da gamificação.</p>
-
-            <div class="p-4 bg-light rounded-3 border mb-4">
-              <h6 class="fw-bold text-dark mb-3"><i class="bi bi-tag-fill text-primary me-2"></i>Naturezas Extras Customizadas</h6>
-              <div class="input-group mb-3" style="max-width: 600px;">
-                <input type="text" id="input-nova-natureza" class="form-control" placeholder="Nova natureza (Ex: Integração RH)">
-                <button class="btn btn-primary fw-bold" onclick="addNatureza()"><i class="bi bi-plus-lg me-1"></i> Adicionar</button>
-              </div>
-
-              <div id="container-lista-naturezas" class="d-flex flex-column gap-2 mt-3">
-                <div class="text-muted small">Carregando naturezas...</div>
-              </div>
-            </div>
-
-            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-sliders me-2"></i>Gestão de Temas Admin</h6>
-            <div id="container-lista-temas"></div>
-          </div>
-        </div>
-
-        <div id="aba-gestao" class="view-aba d-none">
-          <div class="bento-card">
-            <h5 class="fw-bold mb-2 text-dark"><i class="bi bi-list-task text-primary me-2"></i>Gestão de Atividades</h5>
-            <p class="text-muted small mb-4">Linha do tempo operacional e controle de envios (Visitas, Online e Portais Externos).</p>
-            <div id="timeline-atividades" class="d-flex flex-column gap-2"></div>
-          </div>
-        </div>
-
-        <div id="aba-galeria" class="view-aba d-none"><div class="row g-3" id="grid-galeria"></div></div>
-        <div id="aba-visao-gp" class="view-aba d-none"><div class="bento-card"><h5 class="fw-bold mb-3">Visão Geral GP</h5><a href="https://script.google.com" target="_blank" class="btn btn-primary fw-bold"><i class="bi bi-box-arrow-up-right me-1"></i> Abrir em Nova Guia</a></div></div>
-
-      </div>
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-  <script>
-    // Detector automático de navegação fora do modo Standalone para exibir banner orientativo
-    window.addEventListener('DOMContentLoaded', function() {
-      var isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-      var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (isMobile && !isStandalone) {
-        var banner = document.getElementById('banner-pwa-install');
-        if (banner) banner.classList.remove('d-none');
-      }
-    });
-  </script>
-
-  <?!= include('Scripts_Core'); ?>
-  <?!= include('Scripts_UI'); ?>
-</body>
-</html>
+                    <input type="text" id="avulso-destino" class="form-control form
