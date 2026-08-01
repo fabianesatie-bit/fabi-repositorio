@@ -137,12 +137,12 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   try {
     var ssSoc = SpreadsheetApp.openById(SPREADSHEET_SOCIAL_ID);
     if (ssSoc) {
-      // 1. Aba BASE_REGISTRO
+      // 1. Aba BASE_REGISTRO (Coluna C = Index 2 é a Filial!)
       var abaSocReg = ssSoc.getSheetByName('BASE_REGISTRO');
       if (abaSocReg) {
         var dSocReg = abaSocReg.getDataRange().getValues();
         for (var sr = 1; sr < dSocReg.length; sr++) {
-          var numSoc = normalizarFilialId(dSocReg[sr][1]);
+          var numSoc = normalizarFilialId(dSocReg[sr][2] || dSocReg[sr][1]);
           var fSoc = numSoc ? ("0000" + numSoc).slice(-4) : '';
           var dtSoc = formatarDataSegura(dSocReg[sr][0] || new Date());
           registrarChavesValidadas(chavesValidadasSocial, 'SOCIAL', fSoc, null, dtSoc);
@@ -213,7 +213,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   }
 
   var lancamentos = [];
-  var moedasTotaisUser = 0;
   var moedasMesUser = 0;
   var reembolsoEstimadoMes = 0;
   var filiaisVisitadasSet = {};
@@ -253,12 +252,19 @@ function obterDadosIniciais(filtroMes, filtroAno) {
                            motivoLower.includes('feedback') || 
                            motivoLower.includes('acompanhamento');
 
+      // REGRA TEMPORAL: Para meses passados, se Col AB estiver vazia, trata como VALIDADO.
+      var ehMesAtual = (mReg === mesAlvo && aReg === anoAlvo);
       var statusFinal = statusSalvoCol28;
+
       if (!statusFinal) {
-        statusFinal = ehEspecialista ? 'PENDENTE' : 'VALIDADO';
+        if (!ehMesAtual) {
+          statusFinal = 'VALIDADO';
+        } else {
+          statusFinal = ehEspecialista ? 'PENDENTE' : 'VALIDADO';
+        }
       }
 
-      if (statusFinal === 'PENDENTE') {
+      if (statusFinal === 'PENDENTE' && ehMesAtual) {
         var encSoc = !!chavesValidadasSocial['SOCIAL_' + fIdLanc] || 
                      !!chavesValidadasSocial['SOCIAL_' + fIdLanc + '_' + dtStr] ||
                      !!chavesValidadasSocial['SOCIAL_' + fIdLanc + '_M' + mReg + '_A' + aReg] ||
@@ -279,71 +285,68 @@ function obterDadosIniciais(filtroMes, filtroAno) {
 
       var estaValidadoEspecialista = (statusFinal === 'VALIDADO');
 
-      // REGRA DE MOEDAS: KM Avulso NAO ganha moeda (ptsItem = 0)
+      // REGRA DE MOEDAS: KM Avulso NAO ganha moeda
       var ehKmAvulso = motivoLower.includes('km avulso') || 
                        motivoLower.includes('deslocamento avulso') || 
                        String(fIdLanc).toUpperCase().includes('AVULSO');
 
       var ptsItem = 0;
       if (!ehKmAvulso) {
-        ptsItem = parseFloat(row[9]) || dicionarioPremios[motivoLancUpper] || 1;
+        if (ehMesAtual && ehEspecialista) {
+          ptsItem = dicionarioPremios[motivoLancUpper] || parseFloat(row[9]) || 1;
+        } else {
+          ptsItem = parseFloat(row[9]) || dicionarioPremios[motivoLancUpper] || 1;
+        }
       }
 
       if (!pontuacaoPorUsuario[emailAutor]) {
         pontuacaoPorUsuario[emailAutor] = { mes: 0, total: 0, email: emailAutor, foto: '' };
       }
 
-      // Acumula moedas para todas as atividades validadas
-      if (estaValidadoEspecialista) {
-        pontuacaoPorUsuario[emailAutor].total += ptsItem;
-        if (mReg === mesAlvo && aReg === anoAlvo) {
-          pontuacaoPorUsuario[emailAutor].mes += ptsItem;
-        }
+      // ACUMULA MOEDAS EXCLUSIVAMENTE PARA O MÊS VIGENTE SELEÇÃO
+      if (estaValidadoEspecialista && ehMesAtual) {
+        pontuacaoPorUsuario[emailAutor].mes += ptsItem;
+        pontuacaoPorUsuario[emailAutor].total += ptsItem; // Total Acumulado restrito ao mês vigente
       }
 
-      if (emailAutor === controle.email.toLowerCase()) {
+      if (emailAutor === controle.email.toLowerCase() && ehMesAtual) {
         if (estaValidadoEspecialista) {
-          moedasTotaisUser += ptsItem;
+          moedasMesUser += ptsItem;
+          if (fIdLanc && !ehKmAvulso) {
+            filiaisVisitadasSet[fIdLanc] = true;
+          }
         }
 
-        if (mReg === mesAlvo && aReg === anoAlvo) {
-          if (estaValidadoEspecialista) {
-            moedasMesUser += ptsItem;
-            if (fIdLanc && !ehKmAvulso) {
-              filiaisVisitadasSet[fIdLanc] = true;
-            }
-          }
-          reembolsoEstimadoMes += custoTotalItem;
+        reembolsoEstimadoMes += custoTotalItem;
 
-          if (motivoLanc) {
-            distribuicaoAtividadesMap[motivoLanc] = (distribuicaoAtividadesMap[motivoLanc] || 0) + 1;
-          }
+        if (motivoLanc) {
+          distribuicaoAtividadesMap[motivoLanc] = (distribuicaoAtividadesMap[motivoLanc] || 0) + 1;
+        }
 
-          if (controle.isSuperAdmin || controle.regionais.includes(regLanc) || !fIdLanc) {
-            lancamentos.push({
-              id: idReg,
-              data: dtStr,
-              filial: fIdLanc,
-              motivo: motivoLanc,
-              tema: row[18] || '',                             // Col S: Sub temas
-              observacao: row[10] || '',                       // Col K: Observacoes
-              evidenciaUrl: row[11] || '',                     // Col L: Link_Evidencia
-              kmPercorrido: row[15] || 0,                      // Col P: Qde_Km
-              custoKm: row[16] || 0,                           // Col Q: Total Km
-              tipoRoteiro: row[17] || '',                      // Col R: Tipo_Roteiro
-              pessoasImpactadas: row[19] || 0,                 // Col T: Pessoas Impactas
-              tempoGasto: row[20] || 0,                        // Col U: Tempo Gasto
-              valorPedagio: row[25] || 0,                      // Col Z: Pedagio
-              valorAlimentacao: row[22] || 0,                  // Col W: Alimentação
-              valorHospedagem: row[23] || 0,                   // Col X: Hospedagem
-              valorAereo: row[24] || 0,                        // Col Y: Aereo
-              valorEstacionamento: row[26] || 0,               // Col AA: Estacionamento
-              custoTotal: custoTotalItem,
-              statusValidacao: statusFinal,                    // Col AB: Status_Validacao_Especialista
-              validadoEspecialista: estaValidadoEspecialista,
-              autor: row[2]
-            });
-          }
+        if (controle.isSuperAdmin || controle.regionais.includes(regLanc) || !fIdLanc) {
+          lancamentos.push({
+            id: idReg,
+            data: dtStr,
+            filial: fIdLanc,
+            motivo: motivoLanc,
+            tema: row[18] || '',                             // Col S: Sub temas
+            observacao: row[10] || '',                       // Col K: Observacoes
+            evidenciaUrl: row[11] || '',                     // Col L: Link_Evidencia
+            kmPercorrido: row[15] || 0,                      // Col P: Qde_Km
+            custoKm: row[16] || 0,                           // Col Q: Total Km
+            tipoRoteiro: row[17] || '',                      // Col R: Tipo_Roteiro
+            pessoasImpactadas: row[19] || 0,                 // Col T: Pessoas Impactas
+            tempoGasto: row[20] || 0,                        // Col U: Tempo Gasto
+            valorPedagio: row[25] || 0,                      // Col Z: Pedagio
+            valorAlimentacao: row[22] || 0,                  // Col W: Alimentação
+            valorHospedagem: row[23] || 0,                   // Col X: Hospedagem
+            valorAereo: row[24] || 0,                        // Col Y: Aereo
+            valorEstacionamento: row[26] || 0,               // Col AA: Estacionamento
+            custoTotal: custoTotalItem,
+            statusValidacao: statusFinal,                    // Col AB: Status_Validacao_Especialista
+            validadoEspecialista: estaValidadoEspecialista,
+            autor: row[2]
+          });
         }
       }
     }
@@ -381,7 +384,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     temas: temas,
     dicionarioPremios: dicionarioPremios,
     gamificacao: {
-      moedasTotais: moedasTotaisUser,
+      moedasTotais: moedasMesUser, // Total acumulado restrito ao mês vigente
       moedasMes: moedasMesUser,
       metaEverest: META_EVEREST,
       percentualEverest: pctEverest,
