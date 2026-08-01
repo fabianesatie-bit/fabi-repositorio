@@ -49,27 +49,33 @@ function registrarAtividade(dados, fileData) {
 
     var custoTotal = custoKm + alimentacao + hospedagem + aereo + pedagio + estacionamento;
 
-    var moedasGeradas = 1;
-    var abaPremios = ss.getSheetByName('DICIONARIO_PREMIOS');
-    if (abaPremios) {
-      var dP = abaPremios.getDataRange().getValues();
-      var motUpper = String(dados.motivo || '').trim().toUpperCase();
-      for (var p = 1; p < dP.length; p++) {
-        if (String(dP[p][0]).trim().toUpperCase() === motUpper) {
-          moedasGeradas = parseFloat(dP[p][1]) || 1;
-          break;
+    var motivoLower = String(dados.motivo || '').toLowerCase();
+    var ehKmAvulso = motivoLower.includes('km avulso') || 
+                     motivoLower.includes('deslocamento avulso') || 
+                     String(dados.filial || '').toUpperCase().includes('AVULSO');
+
+    var moedasGeradas = 0;
+    if (!ehKmAvulso) {
+      moedasGeradas = 1;
+      var abaPremios = ss.getSheetByName('DICIONARIO_PREMIOS');
+      if (abaPremios) {
+        var dP = abaPremios.getDataRange().getValues();
+        var motUpper = String(dados.motivo || '').trim().toUpperCase();
+        for (var p = 1; p < dP.length; p++) {
+          if (String(dP[p][0]).trim().toUpperCase() === motUpper) {
+            moedasGeradas = parseFloat(dP[p][1]) || 1;
+            break;
+          }
         }
       }
     }
 
-    var motivoLower = String(dados.motivo || '').toLowerCase();
     var ehEspecialista = motivoLower.includes('atendimento social') || 
                          motivoLower.includes('apuraç') || 
                          motivoLower.includes('apurac') || 
                          motivoLower.includes('feedback') || 
                          motivoLower.includes('acompanhamento');
 
-    // Define o status inicial da Coluna 28 (AB)
     var statusValidacaoInicial = ehEspecialista ? 'PENDENTE' : 'VALIDADO';
 
     var linha28Colunas = [

@@ -59,7 +59,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     }
   }
 
-  // Função interna para gerar variação de datas vizinhas (tolerância de fusos e atrasos de lançamento)
   function registrarChavesValidadas(mapa, prefixo, filial, email, dataStr) {
     if (!dataStr) return;
     var partes = dataStr.split('/');
@@ -139,9 +138,9 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       if (abaApurFeed) {
         var dApurFeed = abaApurFeed.getDataRange().getValues();
         for (var af = 1; af < dApurFeed.length; af++) {
-          var numFeed = normalizarFilialId(dApurFeed[af][1]); // Coluna B (Filial)
+          var numFeed = normalizarFilialId(dApurFeed[af][1]);
           var fFeed = numFeed ? ("0000" + numFeed).slice(-4) : '';
-          var dtFeed = formatarDataSegura(dApurFeed[af][6] || dApurFeed[af][0] || new Date()); // Coluna G (Data)
+          var dtFeed = formatarDataSegura(dApurFeed[af][6] || dApurFeed[af][0] || new Date());
           var emailFeed = String(dApurFeed[af][7] || dApurFeed[af][8] || '').toLowerCase().trim();
           registrarChavesValidadas(chavesValidadasApuracoes, 'APURACAO', fFeed, emailFeed, dtFeed);
         }
@@ -169,7 +168,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   var moedasMesUser = 0;
   var visitasInLocoMes = 0;
   var reembolsoEstimadoMes = 0;
-  var visitasLojasDiaSet = {};
   var filiaisVisitadasSet = {};
   var pontuacaoPorUsuario = {};
   var distribuicaoAtividadesMap = {};
@@ -182,6 +180,8 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       var idReg = row[0];                                         // Col A: ID_Lancamento
       var dtObj = row[1];                                         // Col B: Data_Hora
       var emailAutor = String(row[2] || '').toLowerCase().trim(); // Col C: Coordenador_Email
+      if (!emailAutor) continue;
+
       var rawFilialLanc = row[3];                                // Col D: Destino_Filial_Regional
       var numFilialLanc = normalizarFilialId(rawFilialLanc);
       var fIdLanc = numFilialLanc ? ("0000" + numFilialLanc).slice(-4) : String(rawFilialLanc || '');
@@ -224,17 +224,23 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       }
 
       var estaValidadoEspecialista = (statusFinal === 'VALIDADO');
-      var ptsItem = parseFloat(row[9]) || dicionarioPremios[motivoLancUpper] || 1;
+
+      // REGRA DE MOEDAS: KM Avulso NAO ganha moeda (ptsItem = 0)
+      var ehKmAvulso = motivoLower.includes('km avulso') || 
+                       motivoLower.includes('deslocamento avulso') || 
+                       String(fIdLanc).toUpperCase().includes('AVULSO');
+      
+      var ptsItem = 0;
+      if (!ehKmAvulso) {
+        ptsItem = parseFloat(row[9]) || dicionarioPremios[motivoLancUpper] || 1;
+      }
 
       if (!pontuacaoPorUsuario[emailAutor]) {
         pontuacaoPorUsuario[emailAutor] = { mes: 0, total: 0, email: emailAutor, foto: '' };
       }
 
-      var chaveVisitaDia = emailAutor + '_' + fIdLanc + '_' + dtStr;
-      var ehPrimeiraVisitaDoDia = !visitasLojasDiaSet[chaveVisitaDia];
-      
-      if (ehPrimeiraVisitaDoDia && estaValidadoEspecialista) {
-        visitasLojasDiaSet[chaveVisitaDia] = true;
+      // Todas as atividades validadas na mesma filial geram moedas acumulativas
+      if (estaValidadoEspecialista) {
         pontuacaoPorUsuario[emailAutor].total += ptsItem;
         if (mReg === mesAlvo && aReg === anoAlvo) {
           pontuacaoPorUsuario[emailAutor].mes += ptsItem;
@@ -242,15 +248,17 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       }
 
       if (emailAutor === controle.email.toLowerCase()) {
-        if (ehPrimeiraVisitaDoDia && estaValidadoEspecialista) {
+        if (estaValidadoEspecialista) {
           moedasTotaisUser += ptsItem;
         }
 
         if (mReg === mesAlvo && aReg === anoAlvo) {
-          if (ehPrimeiraVisitaDoDia && estaValidadoEspecialista) {
+          if (estaValidadoEspecialista) {
             moedasMesUser += ptsItem;
-            visitasInLocoMes++;
-            if (fIdLanc) filiaisVisitadasSet[fIdLanc] = true;
+            if (fIdLanc && !ehKmAvulso) {
+              visitasInLocoMes++;
+              filiaisVisitadasSet[fIdLanc] = true;
+            }
           }
           reembolsoEstimadoMes += custoTotalItem;
 
@@ -290,8 +298,11 @@ function obterDadosIniciais(filtroMes, filtroAno) {
 
   var rankingArray = [];
   Object.keys(pontuacaoPorUsuario).forEach(function(em) {
-    rankingArray.push(pontuacaoPorUsuario[em]);
+    if (pontuacaoPorUsuario[em].mes > 0) {
+      rankingArray.push(pontuacaoPorUsuario[em]);
+    }
   });
+
   rankingArray.sort(function(a, b) { return b.mes - a.mes; });
   var rankingTop5 = rankingArray.slice(0, 5);
 

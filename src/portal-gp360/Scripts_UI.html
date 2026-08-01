@@ -358,8 +358,15 @@
     lista.innerHTML = '';
     var r = (dadosGlobais.gamificacao && dadosGlobais.gamificacao.ranking) ? dadosGlobais.gamificacao.ranking : [];
 
+    // Filtra exclusivamente usuarios que possuem mais de 0 moedas no mes selecionado
+    r = r.filter(function(item) {
+      return (item.mes || 0) > 0;
+    });
+
     if (!r || r.length === 0) {
-      lista.innerHTML = '<li class="list-group-item text-muted">Nenhum registro no período.</li>';
+      lista.innerHTML = '<li class="list-group-item text-muted py-3 text-center border-0">' +
+        '<i class="bi bi-info-circle me-1 text-primary"></i> Nenhum colaborador possui moedas computadas no período selecionado.' +
+      '</li>';
       return;
     }
 
@@ -439,7 +446,7 @@
     container.innerHTML = '';
     var l = (dadosGlobais.lancamentos || []).slice();
 
-    // Filtro Rígido: Exibir apenas lançamentos com custo total calculado maior que zero (reembolsáveis)
+    // Filtro Rígido: Exibir apenas lançamentos com custo total calculado maior que zero
     l = l.filter(function(item) {
       return (parseFloat(item.custoTotal) || 0) > 0;
     });
@@ -482,7 +489,6 @@
     var u = (dadosGlobais.usuario && dadosGlobais.usuario.nome) ? dadosGlobais.usuario.nome : 'Usuário GP';
     var l = (dadosGlobais.lancamentos || []).slice();
 
-    // Filtra apenas itens com despesas calculadas
     l = l.filter(function(item) {
       return (parseFloat(item.custoTotal) || 0) > 0;
     });
@@ -518,7 +524,7 @@
       'th { background-color: #f2f2f2; font-weight: bold; }' +
       '.total-col { font-weight: bold; }' +
       '</style></head><body>' +
-      '<h2>Relatório de Despesas de Viagem e KM</h2>' +
+      '2 Relatório de Despesas de Viagem e KM</h2>' +
       '<p>Usuário: <strong>' + u.toUpperCase() + '</strong></p>' +
       '<p>Período: <strong>' + periodoStr + '</strong></p>' +
       '<table><thead><tr>' +
