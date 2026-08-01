@@ -5,6 +5,8 @@
    * Subpasta Monorepo: src/portal-gp360/
    */
 
+  var meuGraficoAtividades = null;
+
   function mudarAba(abaId, element) {
     var abas = document.querySelectorAll('.view-aba');
     abas.forEach(function(a) { a.classList.add('d-none'); });
@@ -22,19 +24,81 @@
     var u = dadosGlobais.usuario;
     document.getElementById('user-nome-display').innerText = u.nome;
     document.getElementById('user-cargo-display').innerText = u.cargo + ' (' + u.nivelAcesso + ')';
-    document.getElementById('user-regional-display').innerText = 'Regionais: ' + u.regionais.join(', ');
+    document.getElementById('user-regional-display').innerText = u.regionais.length ? 'Regionais: ' + u.regionais.join(', ') : 'Visão Nacional';
+
+    if (u.fotoUrl) {
+      document.getElementById('user-avatar-img').src = u.fotoUrl;
+    }
 
     if (!u.isAdmin) {
       var btnAdmin = document.getElementById('menu-admin');
       if (btnAdmin) btnAdmin.classList.add('d-none');
     }
 
+    document.getElementById('kpi-lojas-carteira').innerText = dadosGlobais.lojasCarteiraTotal || 0;
+    document.getElementById('kpi-visitas-loco').innerText = dadosGlobais.visitasInLocoMes || 0;
+    
+    var valReembolso = dadosGlobais.reembolsoEstimadoMes || 0;
+    document.getElementById('kpi-reembolso-mes').innerText = 'R$ ' + valReembolso.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
     povoarDropdownsFormulario();
     atualizarCardsGamificacao();
     renderizarRankingTop5();
-    renderizarMuralAvisos();
+    renderizarGraficoAtividades();
     renderizarTimelineAtividades();
     renderizarGestaoTemasAdmin();
+  }
+
+  function renderizarGraficoAtividades() {
+    var ctx = document.getElementById('chart-atividades');
+    if (!ctx) return;
+
+    var mapa = dadosGlobais.distribuicaoAtividades || {};
+    var labels = Object.keys(mapa);
+    var valores = Object.values(mapa);
+
+    if (labels.length === 0) {
+      labels = ['Sem registros'];
+      valores = [1];
+    }
+
+    if (meuGraficoAtividades) {
+      meuGraficoAtividades.destroy();
+    }
+
+    meuGraficoAtividades = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: valores,
+          backgroundColor: ['#0087FF', '#FF8A00', '#17F036', '#FF253A', '#8000FF', '#FBE53B']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' }
+        }
+      }
+    });
+  }
+
+  function calcularDespesas() {
+    var km = parseFloat(document.getElementById('input-km').value) || 0;
+    var ped = parseFloat(document.getElementById('input-pedagio').value) || 0;
+    var ali = parseFloat(document.getElementById('input-alimentacao').value) || 0;
+    var hos = parseFloat(document.getElementById('input-hospedagem').value) || 0;
+    var out = parseFloat(document.getElementById('input-outros').value) || 0;
+
+    var total = (km * 1.10) + ped + ali + hos + out;
+    document.getElementById('display-gasto-total').innerText = 'Gasto Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+  }
+
+  function limparOutrasEvidencias(origem) {
+    if (origem !== 'file') document.getElementById('input-evidencia-file').value = '';
+    if (origem !== 'url') document.getElementById('input-evidencia-url').value = '';
   }
 
   function povoarDropdownsFormulario() {
@@ -79,12 +143,7 @@
     var g = dadosGlobais.gamificacao;
     document.getElementById('kpi-moedas-mes').innerText = g.moedasMes;
     document.getElementById('kpi-moedas-totais').innerText = g.moedasTotais;
-    document.getElementById('kpi-filiais-visitadas').innerText = g.filiaisVisitadas;
-    document.getElementById('kpi-everest-progresso').innerText = g.percentualEverest + '%';
-
-    var bar = document.getElementById('bar-everest');
-    bar.style.width = g.percentualEverest + '%';
-    bar.innerText = g.percentualEverest + '%';
+    document.getElementById('badge-fase-nome').innerText = g.faseNome;
   }
 
   function renderizarRankingTop5() {
@@ -106,18 +165,6 @@
     });
   }
 
-  function renderizarMuralAvisos() {
-    var container = document.getElementById('mural-avisos-container');
-    container.innerHTML = '';
-    if (!dadosGlobais.avisos || dadosGlobais.avisos.length === 0) {
-      container.innerHTML = '<div class="alert alert-light border">Nenhum aviso publicado.</div>';
-      return;
-    }
-    dadosGlobais.avisos.forEach(function(a) {
-      container.innerHTML += '<div class="alert alert-info mb-1 py-2 px-3"><strong>' + a.autor + ' (' + a.data + '):</strong> ' + a.mensagem + '</div>';
-    });
-  }
-
   function renderizarTimelineAtividades() {
     var container = document.getElementById('timeline-atividades');
     container.innerHTML = '';
@@ -128,7 +175,7 @@
 
     dadosGlobais.lancamentos.forEach(function(l) {
       var evTag = l.evidenciaUrl ? '<a href="' + l.evidenciaUrl + '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-paperclip"></i> Evidência</a>' : '';
-      container.innerHTML += '<div class="bento-card d-flex justify-content-between align-items-center">' +
+      container.innerHTML += '<div class="bento-card d-flex justify-content-between align-items-center mb-2">' +
         '<div>' +
           '<h6 class="fw-bold mb-1">' + l.filial + ' - ' + l.lojaNome + ' <span class="badge bg-secondary">' + l.motivo + '</span></h6>' +
           '<small class="text-muted">' + l.data + ' • Autor: ' + l.autor + (l.tema ? ' • Tema: ' + l.tema : '') + '</small>' +
@@ -141,10 +188,11 @@
 
   function renderizarGestaoTemasAdmin() {
     var container = document.getElementById('container-lista-temas');
+    if (!container) return;
     container.innerHTML = '';
 
     var t = dadosGlobais.temas;
-    var html = '<div class="col-md-6"><h6 class="fw-bold text-primary">Reunião Regional</h6><ul class="list-group">';
+    var html = '<div class="row"><div class="col-md-6"><h6 class="fw-bold text-primary">Reunião Regional</h6><ul class="list-group">';
     t.reuniao.forEach(function(item) {
       html += '<li class="list-group-item d-flex justify-content-between align-items-center">' + item + 
         '<button class="btn btn-sm btn-outline-danger" onclick="deletarTemaAdmin(\'REUNIAO_REGIONAL\', \'' + item + '\')"><i class="bi bi-trash"></i></button></li>';
@@ -154,7 +202,7 @@
       html += '<li class="list-group-item d-flex justify-content-between align-items-center">' + item + 
         '<button class="btn btn-sm btn-outline-danger" onclick="deletarTemaAdmin(\'TREINAMENTO\', \'' + item + '\')"><i class="bi bi-trash"></i></button></li>';
     });
-    html += '</ul></div>';
+    html += '</ul></div></div>';
 
     container.innerHTML = html;
   }
@@ -189,41 +237,12 @@
 
     var coresMarca = ['#FBE53B', '#FF8A00', '#FF253A', '#FF14B3', '#8000FF', '#0087FF', '#5EB5FF', '#17F036'];
 
-    // Estágio 1: Esquerda
-    confetti({
-      particleCount: 80,
-      angle: 60,
-      spread: 70,
-      origin: { x: 0, y: 0.7 },
-      colors: coresMarca
-    });
-
-    // Estágio 2: Direita (após 250ms)
+    confetti({ particleCount: 80, angle: 60, spread: 70, origin: { x: 0, y: 0.7 }, colors: coresMarca });
     setTimeout(function() {
-      confetti({
-        particleCount: 80,
-        angle: 120,
-        spread: 70,
-        origin: { x: 1, y: 0.7 },
-        colors: coresMarca
-      });
+      confetti({ particleCount: 80, angle: 120, spread: 70, origin: { x: 1, y: 0.7 }, colors: coresMarca });
     }, 250);
-
-    // Estágio 3: Festões caindo do centro (após 500ms)
     setTimeout(function() {
-      confetti({
-        particleCount: 120,
-        spread: 100,
-        origin: { y: 0.3 },
-        colors: coresMarca,
-        scalar: 1.2
-      });
+      confetti({ particleCount: 120, spread: 100, origin: { y: 0.3 }, colors: coresMarca, scalar: 1.2 });
     }, 500);
-  }
-
-  function abrirModalCelebracao(msg) {
-    document.getElementById('celebracao-mensagem').innerText = msg;
-    var modal = new bootstrap.Modal(document.getElementById('modal-celebracao'));
-    modal.show();
   }
 </script>

@@ -46,7 +46,15 @@
         if (res.temAcesso) {
           dadosGlobais.gamificacao = res.gamificacao;
           dadosGlobais.lancamentos = res.lancamentos;
+          dadosGlobais.distribuicaoAtividades = res.distribuicaoAtividades;
+          dadosGlobais.visitasInLocoMes = res.visitasInLocoMes;
+          dadosGlobais.reembolsoEstimadoMes = res.reembolsoEstimadoMes;
+          
+          document.getElementById('kpi-visitas-loco').innerText = res.visitasInLocoMes || 0;
+          document.getElementById('kpi-reembolso-mes').innerText = 'R$ ' + (res.reembolsoEstimadoMes || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+          
           atualizarCardsGamificacao();
+          renderizarGraficoAtividades();
           renderizarTimelineAtividades();
         }
       })
@@ -58,7 +66,8 @@
     var natureza = document.getElementById('select-natureza').value;
     var tema = document.getElementById('select-tema-dinamico').value;
     var obs = document.getElementById('input-observacao').value;
-    var fileInput = document.getElementById('input-evidencia');
+    var fileInput = document.getElementById('input-evidencia-file');
+    var urlInput = document.getElementById('input-evidencia-url').value;
 
     if (!filial || !natureza) {
       alert('Preencha todos os campos obrigatórios!');
@@ -73,7 +82,13 @@
       filial: filial,
       motivo: natureza,
       tema: tema,
-      observacao: obs
+      observacao: obs,
+      evidenciaUrlDirect: urlInput,
+      kmPercorrido: document.getElementById('input-km').value,
+      valorPedagio: document.getElementById('input-pedagio').value,
+      valorAlimentacao: document.getElementById('input-alimentacao').value,
+      valorHospedagem: document.getElementById('input-hospedagem').value,
+      outrosCustos: document.getElementById('input-outros').value
     };
 
     if (fileInput.files.length > 0) {
@@ -97,11 +112,11 @@
     google.script.run
       .withSuccessHandler(function(res) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Salvar Lançamento';
+        btn.innerHTML = '<i class="bi bi-coin me-1"></i> Salvar e Ganhar Moeda';
 
         if (res.sucesso) {
           dispararConfetesFestao();
-          abrirModalCelebracao('Sua atividade foi registrada e as moedas foram creditadas!');
+          alert('Sua atividade foi registrada e as moedas foram creditadas!');
           document.getElementById('form-lancamento').reset();
           alterarPeriodoGeral();
         } else {
@@ -110,26 +125,10 @@
       })
       .withFailureHandler(function(err) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Salvar Lançamento';
+        btn.innerHTML = '<i class="bi bi-coin me-1"></i> Salvar e Ganhar Moeda';
         alert('Erro no servidor: ' + err.message);
       })
       .registrarAtividade(payloadData, fileData);
-  }
-
-  function salvarNovoTemaAdmin() {
-    var cat = document.getElementById('admin-tema-categoria').value;
-    var texto = document.getElementById('admin-tema-texto').value;
-    if (!texto) return alert('Digite a descrição do tema!');
-
-    google.script.run
-      .withSuccessHandler(function(res) {
-        alert(res.mensagem);
-        if (res.sucesso) {
-          document.getElementById('admin-tema-texto').value = '';
-          inicializarAplicacao();
-        }
-      })
-      .adicionarTema(cat, texto);
   }
 
   function deletarTemaAdmin(cat, texto) {

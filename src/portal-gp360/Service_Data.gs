@@ -4,9 +4,6 @@
  * Subpasta Monorepo: src/portal-gp360/
  */
 
-/**
- * Carrega estado inicial completo com verificação de segurança, moedas, rankings e integrações
- */
 function obterDadosIniciais(filtroMes, filtroAno) {
   var controle = obterControleAcesso();
   if (!controle.temAcesso) {
@@ -15,12 +12,10 @@ function obterDadosIniciais(filtroMes, filtroAno) {
 
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   
-  // Data de referência (hoje ou mês/ano filtrado)
   var agora = new Date();
   var mesAlvo = (filtroMes !== undefined && filtroMes !== null && filtroMes !== '') ? parseInt(filtroMes) : agora.getMonth() + 1;
   var anoAlvo = (filtroAno !== undefined && filtroAno !== null && filtroAno !== '') ? parseInt(filtroAno) : agora.getFullYear();
 
-  // 1. Dicionário de Prêmios/Moedas
   var dicionarioPremios = {};
   var abaPremios = ss.getSheetByName('DICIONARIO_PREMIOS');
   if (abaPremios) {
@@ -32,12 +27,10 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     }
   }
 
-  // Valores padrão para regras específicas
-  if (!dicionarioPremios['CANAL']) dicionarioPremios['CANAL'] = 2; // Apurações Canal = 2
-  if (!dicionarioPremios['INTERNA']) dicionarioPremios['INTERNA'] = 4; // Apurações Interna = 4
+  if (!dicionarioPremios['CANAL']) dicionarioPremios['CANAL'] = 2;
+  if (!dicionarioPremios['INTERNA']) dicionarioPremios['INTERNA'] = 4;
   if (!dicionarioPremios['ATENDIMENTO_SOCIAL']) dicionarioPremios['ATENDIMENTO_SOCIAL'] = 2;
 
-  // 2. Leitura de Lojas e Regionais
   var lojas = [];
   var mapaLojaRegional = {};
   var abaLojas = ss.getSheetByName('DADOS_LOJAS');
@@ -58,13 +51,15 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     }
   }
 
-  // 3. Processamento de Lançamentos Próprios com Trava de 1 Visita/Loja/Dia
   var lancamentos = [];
   var moedasTotaisUser = 0;
   var moedasMesUser = 0;
-  var visitasLojasDiaSet = {}; // Trava de duplicidade: 1 visita por loja por dia por usuario
+  var visitasInLocoMes = 0;
+  var reembolsoEstimadoMes = 0;
+  var visitasLojasDiaSet = {};
   var filiaisVisitadasSet = {};
-  var pontuacaoPorUsuario = {}; // [email] = { mes: X, total: Y, email: Z }
+  var pontuacaoPorUsuario = {};
+  var distribuicaoAtividadesMap = {};
 
   var abaLanc = ss.getSheetByName('DADOS_LANCAMENTOS');
   if (abaLanc) {
@@ -76,44 +71,48 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       var emailAutor = String(row[2] || '').toLowerCase().trim();
       var fIdLanc = ("0000" + row[3]).slice(-4);
       var regLanc = mapaLojaRegional[fIdLanc] || '';
-      var motivoLanc = String(row[5] || '').trim().toUpperCase();
+      var motivoLanc = String(row[5] || '').trim();
+      var motivoLancUpper = motivoLanc.toUpperCase();
+      var custoTotalItem = parseFloat(row[14]) || 0;
 
       var dtStr = formatarDataSegura(dtObj);
       var dtParsed = dtObj instanceof Date ? dtObj : new Date(dtObj);
       var mReg = dtParsed.getMonth() + 1;
       var aReg = dtParsed.getFullYear();
 
-      var ptsItem = dicionarioPremios[motivoLanc] || 1;
+      var ptsItem = dicionarioPremios[motivoLancUpper] || 1;
 
       if (!pontuacaoPorUsuario[emailAutor]) {
-        pontuacaoPorUsuario[emailAutor] = { mes: 0, total: 0, email: emailAutor };
+        pontuacaoPorUsuario[emailAutor] = { mes: 0, total: 0, email: emailAutor, foto: '' };
       }
 
-      // Regra de Trava de Frequencia: Se houver mais de uma visita na mesma loja no mesmo dia pelo mesmo usuário, conta apenas 1 visita
       var chaveVisitaDia = emailAutor + '_' + fIdLanc + '_' + dtStr;
       var ehPrimeiraVisitaDoDia = !visitasLojasDiaSet[chaveVisitaDia];
       
       if (ehPrimeiraVisitaDoDia) {
         visitasLojasDiaSet[chaveVisitaDia] = true;
-      }
-
-      // Pontuação acumulada
-      pontuacaoPorUsuario[emailAutor].total += ptsItem;
-      if (mReg === mesAlvo && aReg === anoAlvo) {
-        pontuacaoPorUsuario[emailAutor].mes += ptsItem;
-      }
-
-      // Métricas do usuário logado
-      if (emailAutor === controle.email.toLowerCase()) {
-        moedasTotaisUser += ptsItem;
+        pontuacaoPorUsuario[emailAutor].total += ptsItem;
         if (mReg === mesAlvo && aReg === anoAlvo) {
-          moedasMesUser += ptsItem;
-          if (fIdLanc && ehPrimeiraVisitaDoDia) filiaisVisitadasSet[fIdLanc] = true;
+          pontuacaoPorUsuario[emailAutor].mes += ptsItem;
+        }
+      }
+
+      if (emailAutor === controle.email.toLowerCase()) {
+        if (ehPrimeiraVisitaDoDia) {
+          moedasTotaisUser += ptsItem;
         }
 
-        // Timeline filtrada do período alvo
-        if (controle.isSuperAdmin || controle.regionais.includes(regLanc)) {
-          if (mReg === mesAlvo && aReg === anoAlvo) {
+        if (mReg === mesAlvo && aReg === anoAlvo) {
+          if (ehPrimeiraVisitaDoDia) {
+            moedasMesUser += ptsItem;
+            visitasInLocoMes++;
+            if (fIdLanc) filiaisVisitadasSet[fIdLanc] = true;
+          }
+          reembolsoEstimadoMes += custoTotalItem;
+
+          distribuicaoAtividadesMap[motivoLanc] = (distribuicaoAtividadesMap[motivoLanc] || 0) + 1;
+
+          if (controle.isSuperAdmin || controle.regionais.includes(regLanc)) {
             lancamentos.push({
               id: idReg,
               data: dtStr,
@@ -123,6 +122,12 @@ function obterDadosIniciais(filtroMes, filtroAno) {
               tema: row[6] || '',
               observacao: row[7],
               evidenciaUrl: row[8] || '',
+              kmPercorrido: row[9] || 0,
+              valorPedagio: row[10] || 0,
+              valorAlimentacao: row[11] || 0,
+              valorHospedagem: row[12] || 0,
+              outrosCustos: row[13] || 0,
+              custoTotal: custoTotalItem,
               autor: row[2]
             });
           }
@@ -131,73 +136,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     }
   }
 
-  // 4. Integração de Moedas por Atendimento Social
-  try {
-    var ssSocial = SpreadsheetApp.openById(SPREADSHEET_SOCIAL_ID);
-    
-    // Aba BASE_INTERNOS
-    var abaInternos = ssSocial.getSheetByName('BASE_INTERNOS');
-    if (abaInternos) {
-      var dInt = abaInternos.getDataRange().getValues();
-      for (var x = 1; x < dInt.length; x++) {
-        var dtSocial = new Date(dInt[x][0]);
-        var mSoc = dtSocial.getMonth() + 1;
-        var aSoc = dtSocial.getFullYear();
-        var emailCoord = String(dInt[x][12] || '').toLowerCase().trim();
-        var ptsSoc = dicionarioPremios['ATENDIMENTO_SOCIAL'] || 2;
-
-        if (emailCoord) {
-          if (!pontuacaoPorUsuario[emailCoord]) {
-            pontuacaoPorUsuario[emailCoord] = { mes: 0, total: 0, email: emailCoord };
-          }
-          pontuacaoPorUsuario[emailCoord].total += ptsSoc;
-          if (mSoc === mesAlvo && aSoc === anoAlvo) {
-            pontuacaoPorUsuario[emailCoord].mes += ptsSoc;
-            if (emailCoord === controle.email.toLowerCase()) moedasMesUser += ptsSoc;
-          }
-        }
-      }
-    }
-  } catch (eSoc) {
-    Logger.log('Aviso ao ler Atendimento Social: ' + eSoc.toString());
-  }
-
-  // 5. Integração de Moedas por Apurações / Feedback / Desligamentos
-  try {
-    var ssApur = SpreadsheetApp.openById(SPREADSHEET_APURACOES_ID);
-    
-    // Aba Historico_Envios (Canal = 2 moedas / Interna = 4 moedas)
-    var abaEnvios = ssApur.getSheetByName('Historico_Envios');
-    if (abaEnvios) {
-      var dEnv = abaEnvios.getDataRange().getValues();
-      for (var y = 1; y < dEnv.length; y++) {
-        var dtApur = new Date(dEnv[y][0]);
-        var mAp = dtApur.getMonth() + 1;
-        var aAp = dtApur.getFullYear();
-        var tipoApur = String(dEnv[y][1] || '').trim().toUpperCase();
-        var ptsApur = (tipoApur === 'CANAL') ? 2 : 4;
-
-        var fIdApur = ("0000" + dEnv[y][2]).slice(-4);
-        var regApur = mapaLojaRegional[fIdApur] || '';
-
-        if (regApur && controle.regionais.includes(regApur) && controle.email) {
-          var targetEmail = controle.email.toLowerCase();
-          if (!pontuacaoPorUsuario[targetEmail]) {
-            pontuacaoPorUsuario[targetEmail] = { mes: 0, total: 0, email: targetEmail };
-          }
-          pontuacaoPorUsuario[targetEmail].total += ptsApur;
-          if (mAp === mesAlvo && aAp === anoAlvo) {
-            pontuacaoPorUsuario[targetEmail].mes += ptsApur;
-            if (targetEmail === controle.email.toLowerCase()) moedasMesUser += ptsApur;
-          }
-        }
-      }
-    }
-  } catch (eAp) {
-    Logger.log('Aviso ao ler Apurações: ' + eAp.toString());
-  }
-
-  // 6. Placar Ranking Top 5
   var rankingArray = [];
   Object.keys(pontuacaoPorUsuario).forEach(function(em) {
     rankingArray.push(pontuacaoPorUsuario[em]);
@@ -205,38 +143,32 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   rankingArray.sort(function(a, b) { return b.mes - a.mes; });
   var rankingTop5 = rankingArray.slice(0, 5);
 
-  // 7. Mural de Avisos
-  var avisos = [];
-  var abaAvisos = ss.getSheetByName('DADOS_AVISOS');
-  if (abaAvisos) {
-    var dAvisos = abaAvisos.getDataRange().getValues();
-    for (var a = 1; a < dAvisos.length; a++) {
-      avisos.push({
-        id: a,
-        data: formatarDataSegura(dAvisos[a][0]),
-        mensagem: dAvisos[a][1],
-        autor: dAvisos[a][2]
-      });
-    }
-  }
-
-  // 8. Naturezas e Temas
   var naturezas = carregarNaturezasSeguras(ss);
   var temas = carregarTemasSeguras(ss);
+
+  var pctEverest = Math.min(100, Math.round((moedasMesUser / META_EVEREST) * 100));
+  var faseNome = "Fase 1: Acampamento Base";
+  if (pctEverest >= 100) faseNome = "Fase 4: Bandeira no Everest!";
+  else if (pctEverest >= 75) faseNome = "Fase 3: Cume Alcançado";
+  else if (pctEverest >= 40) faseNome = "Fase 2: Subida da Montanha";
 
   return {
     temAcesso: true,
     usuario: controle,
     lojas: lojas,
+    lojasCarteiraTotal: lojas.length,
+    visitasInLocoMes: visitasInLocoMes,
+    reembolsoEstimadoMes: reembolsoEstimadoMes,
+    distribuicaoAtividades: distribuicaoAtividadesMap,
     lancamentos: lancamentos,
-    avisos: avisos,
     naturezas: naturezas,
     temas: temas,
     gamificacao: {
       moedasTotais: moedasTotaisUser,
       moedasMes: moedasMesUser,
       metaEverest: META_EVEREST,
-      percentualEverest: Math.min(100, Math.round((moedasMesUser / META_EVEREST) * 100)),
+      percentualEverest: pctEverest,
+      faseNome: faseNome,
       filiaisVisitadas: Object.keys(filiaisVisitadasSet).length,
       ranking: rankingTop5,
       mesAlvo: mesAlvo,
@@ -245,9 +177,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   };
 }
 
-/**
- * Lê lista de naturezas da aba CONFIGURAÇÕES
- */
 function carregarNaturezasSeguras(ss) {
   var config = ss.getSheetByName('CONFIGURAÇÕES');
   var naturezas = [];
@@ -261,9 +190,6 @@ function carregarNaturezasSeguras(ss) {
   return naturezas.length ? naturezas : ['Checklist de Loja', 'Roteiro Regional', 'Visita Presencial', 'Treinamento', 'Reunião Regional'];
 }
 
-/**
- * Lê lista de temas cadastrados categorizados
- */
 function carregarTemasSeguras(ss) {
   var config = ss.getSheetByName('CONFIGURAÇÕES');
   var temas = { reuniao: [], treinamento: [] };
@@ -277,23 +203,4 @@ function carregarTemasSeguras(ss) {
     if (cat === 'TREINAMENTO' && val) temas.treinamento.push(val);
   }
   return temas;
-}
-
-/**
- * Busca indicadores com Cache para formulário
- */
-function buscarIndicadoresLoja(filialId) {
-  var cache = CacheService.getScriptCache();
-  var cacheKey = 'IND_LOJA_' + filialId;
-  var cached = cache.get(cacheKey);
-  if (cached) return JSON.parse(cached);
-
-  var ss = SpreadsheetApp.openById(SPREADSHEET_DASH);
-  var res = { vendas: '100%', nps: '85', bancoHoras: '0h', txDesligamento: '2.1%' };
-
-  try {
-    cache.put(cacheKey, JSON.stringify(res), 300);
-  } catch (e) {}
-  
-  return res;
 }

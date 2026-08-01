@@ -2,9 +2,11 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portal GP 360°</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 
   <style>
@@ -17,9 +19,9 @@
       --brand-blue: #0087FF;
       --brand-lightblue: #5EB5FF;
       --brand-green: #17F036;
-      --bg-neutral: #F8FAFC;
+      --bg-neutral: #F4F6F9;
       --card-bg: #FFFFFF;
-      --text-dark: #0F172A;
+      --text-dark: #1E293B;
     }
 
     body {
@@ -34,217 +36,204 @@
       width: 100%;
     }
 
-    .bento-card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05);
-      border: 1px solid rgba(0,0,0,0.03);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .bento-card:hover {
-      box-shadow: 0 6px 24px -2px rgba(0,0,0,0.08);
-    }
-
-    .kpi-icon-box {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-    }
-
     .sidebar {
       min-height: 100vh;
       background: #FFFFFF;
       border-right: 1px solid #E2E8F0;
     }
+
+    .avatar-profile {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--brand-blue);
+    }
+
     .nav-link-custom {
       color: #64748B;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 12px 16px;
       font-weight: 500;
       display: flex;
       align-items: center;
       gap: 12px;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
     .nav-link-custom:hover, .nav-link-custom.active {
-      background-color: #F1F5F9;
-      color: var(--brand-purple);
+      background-color: #E0F2FE;
+      color: var(--brand-blue);
       font-weight: 600;
     }
 
-    .modal-levelup {
-      background: linear-gradient(135deg, #8000FF, #FF14B3);
-      color: white;
-      border-radius: 20px;
+    .bento-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 20px -2px rgba(0,0,0,0.04);
+      border: 1px solid #F1F5F9;
+    }
+
+    .card-governanca {
+      background: #F0FDF4;
+      border: 1px solid #DCFCE7;
+      border-radius: 16px;
+    }
+
+    .dropzone-paste {
+      border: 2px dashed #CBD5E1;
+      border-radius: 12px;
+      padding: 25px;
+      text-align: center;
+      background: #F8FAFC;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+    .dropzone-paste:hover {
+      border-color: var(--brand-blue);
+      background: #F0F9FF;
     }
 
     #bloqueio-tela {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #0F172A;
-      color: white;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      background: #0F172A; color: white; z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
   </style>
 </head>
 <body>
 
-  <!-- Linha Colorida Accent Superior -->
   <div class="top-accent-line"></div>
 
-  <!-- Screen Lock Overlay -->
   <div id="bloqueio-tela" class="d-none">
     <i class="bi bi-shield-lock-fill text-warning display-1 mb-3"></i>
     <h2 class="fw-bold">Acesso Restrito ao Portal GP 360</h2>
     <p id="bloqueio-mensagem" class="text-secondary text-center px-4" style="max-width: 500px;">
-      Verificando suas credenciais de acesso...
+      Verificando credenciais de acesso corporativo...
     </p>
   </div>
 
-  <!-- Loading Splash -->
   <div id="loading-splash" class="d-flex flex-column align-items-center justify-content-center py-5 mt-5">
     <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
     <p class="fw-semibold text-secondary">Carregando Ecossistema GP360...</p>
   </div>
 
-  <!-- App Container Main -->
   <div id="app-container" class="container-fluid d-none">
     <div class="row">
       
-      <!-- Sidebar Esquerda -->
-      <div class="col-md-3 col-lg-2 sidebar p-3">
-        <div class="d-flex align-items-center gap-2 mb-4 px-2">
-          <div class="kpi-icon-box bg-warning text-dark fw-bold">360</div>
-          <span class="fw-bold fs-5">Portal GP360</span>
+      <!-- Sidebar Perfil & Navegação Restaurada (8 Abas) -->
+      <div class="col-md-3 col-lg-2 sidebar p-3 text-center">
+        <div class="mb-3 mt-2">
+          <img id="user-avatar-img" src="https://via.placeholder.com/80" class="avatar-profile mb-2" alt="Foto">
+          <h6 class="fw-bold mb-0" id="user-nome-display">Carregando...</h6>
+          <small class="badge bg-light text-secondary border mt-1" id="user-cargo-display">Coordenador</small>
+          <div class="mt-1"><span class="badge bg-primary text-white" id="user-regional-display">Regional</span></div>
         </div>
 
-        <nav class="nav flex-column gap-1">
-          <a class="nav-link-custom active" onclick="mudarAba('aba-home', this)"><i class="bi bi-grid-1x2-fill"></i> Home & Dash</a>
-          <a class="nav-link-custom" onclick="mudarAba('aba-lancamento', this)"><i class="bi bi-plus-circle-fill"></i> Novo Lançamento</a>
-          <a class="nav-link-custom" onclick="mudarAba('aba-gestao', this)"><i class="bi bi-list-task"></i> Gestão Atividades</a>
-          <a class="nav-link-custom" onclick="mudarAba('aba-galeria', this)"><i class="bi bi-images"></i> Galeria Evidências</a>
-          <a class="nav-link-custom" onclick="mudarAba('aba-configuracoes', this)" id="menu-admin"><i class="bi bi-gear-fill"></i> Administração</a>
+        <hr class="my-3">
+
+        <nav class="nav flex-column gap-1 text-start">
+          <a class="nav-link-custom active" onclick="mudarAba('aba-home', this)"><i class="bi bi-house-door-fill"></i> Início</a>
+          <a class="nav-link-custom" onclick="mudarAba('aba-lancamento', this)"><i class="bi bi-plus-circle-fill"></i> Lançar Atividade</a>
+          <a class="nav-link-custom" onclick="mudarAba('aba-gestao', this)"><i class="bi bi-list-task"></i> Gestão de Atividades</a>
+          <a class="nav-link-custom" onclick="mudarAba('aba-galeria', this)"><i class="bi bi-images"></i> Galeria de Evidências</a>
+          <a class="nav-link-custom" onclick="mudarAba('aba-historico', this)"><i class="bi bi-receipt"></i> Extrato e Despesas</a>
+          <a class="nav-link-custom" onclick="mudarAba('aba-consultas', this)"><i class="bi bi-search"></i> Consultas Gerais</a>
+          <a class="nav-link-custom" onclick="mudarAba('aba-visao-gp', this)"><i class="bi bi-pie-chart-fill"></i> Visão Geral GP</a>
+          <a class="nav-link-custom" onclick="mudarAba('aba-configuracoes', this)" id="menu-admin"><i class="bi bi-gear-fill"></i> Configurações</a>
         </nav>
       </div>
 
-      <!-- Área de Conteúdo Principal -->
       <div class="col-md-9 col-lg-10 p-4">
         
-        <!-- Navbar Topo -->
+        <!-- Header Topo com Seletor Temporizado -->
         <div class="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h4 class="fw-bold mb-0">Olá, <span id="user-nome-display">Colaborador</span>!</h4>
-            <small class="text-muted" id="user-cargo-display">Gestão de Pessoas</small>
-          </div>
-          <div class="d-flex align-items-center gap-3">
-            <span class="badge bg-light text-dark p-2 border" id="user-regional-display">Regionais: -</span>
+          <h4 class="fw-bold mb-0">Portal GP 360</h4>
+          <div class="d-flex align-items-center gap-2">
+            <select id="seletor-mes" class="form-select form-select-sm" onchange="alterarPeriodoGeral()">
+              <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+              <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+              <option value="7">Julho</option><option value="8" selected>Agosto</option><option value="9">Setembro</option>
+              <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+            </select>
+            <select id="seletor-ano" class="form-select form-select-sm" onchange="alterarPeriodoGeral()">
+              <option value="2025">2025</option><option value="2026" selected>2026</option>
+            </select>
           </div>
         </div>
 
-        <!-- ABA HOME & DASHBOARD -->
+        <!-- ABA INÍCIO (HOME BENTO GRID RESTAURADO) -->
         <div id="aba-home" class="view-aba">
           
-          <!-- Seletor de Mês e Ano -->
-          <div class="d-flex align-items-center justify-content-between mb-3 bento-card">
-            <span class="fw-bold text-secondary"><i class="bi bi-calendar3"></i> Período de Análise</span>
-            <div class="d-flex gap-2">
-              <select id="seletor-mes" class="form-select form-select-sm" onchange="alterarPeriodoGeral()">
-                <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
-                <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
-                <option value="7">Julho</option><option value="8" selected>Agosto</option><option value="9">Setembro</option>
-                <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
-              </select>
-              <select id="seletor-ano" class="form-select form-select-sm" onchange="alterarPeriodoGeral()">
-                <option value="2025">2025</option><option value="2026" selected>2026</option>
-              </select>
+          <!-- Escalada de Governança -->
+          <div class="card-governanca p-3 mb-4 d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="fw-bold text-success mb-1"><i class="bi bi-mountain me-2"></i>Sua Escalada de Governança <span class="badge bg-success text-white ms-2" id="badge-fase-nome">Fase 1: Acampamento Base</span></h5>
+              <p class="mb-0 text-muted small">Moedas do Mês Vigente: <strong class="text-dark" id="kpi-moedas-mes">0</strong> | Total Acumulado: <strong class="text-dark" id="kpi-moedas-totais">0</strong></p>
+            </div>
+            <div class="bg-white p-3 rounded-circle border shadow-sm">
+              <i class="bi bi-boot-fill display-6 text-success"></i>
             </div>
           </div>
 
-          <!-- Top KPIs Bento Grid -->
+          <!-- Top 3 KPIs -->
           <div class="row g-3 mb-4">
-            <div class="col-md-3">
+            <div class="col-md-4">
               <div class="bento-card d-flex align-items-center gap-3">
-                <div class="kpi-icon-box bg-warning text-dark"><i class="bi bi-coin"></i></div>
+                <div class="p-3 bg-primary-subtle text-primary rounded-3"><i class="bi bi-shop fs-3"></i></div>
                 <div>
-                  <small class="text-muted">Moedas do Mês</small>
-                  <h3 class="fw-bold mb-0" id="kpi-moedas-mes">0</h3>
+                  <small class="text-muted d-block">Lojas na Carteira</small>
+                  <h3 class="fw-bold mb-0" id="kpi-lojas-carteira">0</h3>
                 </div>
               </div>
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-4">
               <div class="bento-card d-flex align-items-center gap-3">
-                <div class="kpi-icon-box bg-primary text-white"><i class="bi bi-award-fill"></i></div>
+                <div class="p-3 bg-info-subtle text-info rounded-3"><i class="bi bi-geo-alt-fill fs-3"></i></div>
                 <div>
-                  <small class="text-muted">Moedas Totais</small>
-                  <h3 class="fw-bold mb-0" id="kpi-moedas-totais">0</h3>
+                  <small class="text-muted d-block">Visitas (In Loco)</small>
+                  <h3 class="fw-bold mb-0" id="kpi-visitas-loco">0</h3>
                 </div>
               </div>
             </div>
 
-            <div class="col-md-3">
+            <div class="col-md-4">
               <div class="bento-card d-flex align-items-center gap-3">
-                <div class="kpi-icon-box bg-success text-white"><i class="bi bi-shop"></i></div>
+                <div class="p-3 bg-warning-subtle text-warning rounded-3"><i class="bi bi-cash-stack fs-3"></i></div>
                 <div>
-                  <small class="text-muted">Filiais Visitadas</small>
-                  <h3 class="fw-bold mb-0" id="kpi-filiais-visitadas">0</h3>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-md-3">
-              <div class="bento-card d-flex align-items-center gap-3">
-                <div class="kpi-icon-box bg-danger text-white"><i class="bi bi-mountain"></i></div>
-                <div>
-                  <small class="text-muted">Trilha Everest</small>
-                  <h3 class="fw-bold mb-0" id="kpi-everest-progresso">0%</h3>
+                  <small class="text-muted d-block">Reembolso Estimado (Mês)</small>
+                  <h3 class="fw-bold mb-0" id="kpi-reembolso-mes">R$ 0,00</h3>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Trilha Everest + Ranking Top 5 -->
+          <!-- Ranking Top 5 + Gráfico de Atividades do Coordenador -->
           <div class="row g-3 mb-4">
-            <div class="col-md-7">
+            <div class="col-md-6">
               <div class="bento-card h-100">
-                <h6 class="fw-bold mb-3"><i class="bi bi-signpost-split-fill"></i> Trilha da Montanha (Meta: 100 Moedas)</h6>
-                <div class="progress mb-3" style="height: 25px; border-radius: 12px;">
-                  <div id="bar-everest" class="progress-bar progress-bar-striped progress-bar-animated bg-gradient" role="progressbar" style="width: 0%; background: linear-gradient(90deg, var(--brand-purple), var(--brand-pink));">0%</div>
-                </div>
-                <small class="text-muted">Avance na trilha registrando visitas, atendimentos e apurações.</small>
-              </div>
-            </div>
-
-            <div class="col-md-5">
-              <div class="bento-card h-100">
-                <h6 class="fw-bold mb-3"><i class="bi bi-trophy-fill text-warning"></i> Ranking Top 5 do Mês</h6>
+                <h6 class="fw-bold mb-3"><i class="bi bi-trophy-fill text-warning me-2"></i>Top Engajamento (Top 5)</h6>
                 <ul class="list-group list-group-flush" id="lista-ranking">
-                  <li class="list-group-item text-muted">Carregando placar...</li>
+                  <li class="list-group-item text-muted">Carregando pódio...</li>
                 </ul>
               </div>
             </div>
-          </div>
 
-          <!-- Mural de Avisos -->
-          <div class="bento-card mb-4">
-            <h6 class="fw-bold mb-3"><i class="bi bi-megaphone-fill text-primary"></i> Mural Corporativo</h6>
-            <div id="mural-avisos-container" class="d-flex flex-column gap-2">
-              <div class="alert alert-light border">Nenhum aviso publicado.</div>
+            <div class="col-md-6">
+              <div class="bento-card h-100">
+                <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Distribuição de Atividades do Período</h6>
+                <div style="max-height: 220px;" class="d-flex justify-content-center">
+                  <canvas id="chart-atividades"></canvas>
+                </div>
+              </div>
             </div>
           </div>
 
         </div>
 
-        <!-- ABA NOVO LANÇAMENTO -->
         <div id="aba-lancamento" class="view-aba d-none">
           <div class="bento-card" style="max-width: 800px; margin: 0 auto;">
             <h5 class="fw-bold mb-3"><i class="bi bi-plus-square-fill text-primary"></i> Registrar Atividade</h5>
@@ -253,7 +242,7 @@
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label fw-semibold">Filial / Loja</label>
-                  <select id="select-filial" class="form-select" required onchange="carregarIndicadoresLojaForm()">
+                  <select id="select-filial" class="form-select" required>
                     <option value="">Selecione a loja...</option>
                   </select>
                 </div>
@@ -273,19 +262,47 @@
                   </select>
                 </div>
 
+                <!-- Calculadora de Despesas -->
+                <div class="col-12">
+                  <div class="p-3 bg-light rounded-3 border">
+                    <h6 class="fw-bold mb-2"><i class="bi bi-calculator"></i> Calculadora de Despesas e Reembolso</h6>
+                    <div class="row g-2">
+                      <div class="col-md-4"><label class="small text-muted">KM Percorrido</label><input type="number" id="input-km" class="form-control form-control-sm" placeholder="0" oninput="calcularDespesas()"></div>
+                      <div class="col-md-4"><label class="small text-muted">Pedágio (R$)</label><input type="number" id="input-pedagio" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
+                      <div class="col-md-4"><label class="small text-muted">Alimentação (R$)</label><input type="number" id="input-alimentacao" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
+                      <div class="col-md-6"><label class="small text-muted">Hospedagem (R$)</label><input type="number" id="input-hospedagem" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
+                      <div class="col-md-6"><label class="small text-muted">Outros Custos (R$)</label><input type="number" id="input-outros" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
+                    </div>
+                    <div class="mt-2 text-end fw-bold text-dark fs-6" id="display-gasto-total">Gasto Total: R$ 0,00</div>
+                  </div>
+                </div>
+
+                <!-- Tríplice Escolha de Evidência -->
+                <div class="col-12">
+                  <label class="form-label fw-semibold"><i class="bi bi-paperclip"></i> Evidência da Atividade (Escolha 1 opção)</label>
+                  <div class="p-3 bg-light rounded-3 border">
+                    <small class="d-block text-muted mb-2">Opção 1: Enviar Arquivo do Computador</small>
+                    <input type="file" id="input-evidencia-file" class="form-control form-control-sm mb-3" accept="image/*" onchange="limparOutrasEvidencias('file')">
+
+                    <small class="d-block text-muted mb-1">Opção 2: Colar Imagem da Área de Transferência (Ctrl+V)</small>
+                    <div class="dropzone-paste mb-3" id="dropzone-ctrlv" tabIndex="0">
+                      <i class="bi bi-clipboard-plus fs-4 text-secondary"></i>
+                      <p class="mb-0 small text-secondary" id="txt-dropzone">Clique aqui e aperte Ctrl+V para colar a imagem</p>
+                    </div>
+
+                    <small class="d-block text-muted mb-1">Opção 3: Link do Google Drive (Público)</small>
+                    <input type="url" id="input-evidencia-url" class="form-control form-control-sm" placeholder="Cole o link da imagem/pdf aqui" oninput="limparOutrasEvidencias('url')">
+                  </div>
+                </div>
+
                 <div class="col-md-12">
-                  <label class="form-label fw-semibold">Observação / Detalhamento</label>
+                  <label class="form-label fw-semibold">Observações</label>
                   <textarea id="input-observacao" class="form-control" rows="3" placeholder="Descreva as ações realizadas..."></textarea>
                 </div>
 
-                <div class="col-md-12">
-                  <label class="form-label fw-semibold">Evidência (Foto do Computador)</label>
-                  <input type="file" id="input-evidencia" class="form-control" accept="image/*">
-                </div>
-
                 <div class="col-12 mt-4 text-end">
-                  <button type="submit" class="btn btn-primary px-4 fw-bold" id="btn-salvar-lancamento">
-                    <i class="bi bi-check-circle-fill me-1"></i> Salvar Lançamento
+                  <button type="submit" class="btn btn-primary px-4 fw-bold py-2 w-100 fs-5" id="btn-salvar-lancamento">
+                    <i class="bi bi-coin me-1"></i> Salvar e Ganhar Moeda
                   </button>
                 </div>
               </div>
@@ -293,70 +310,37 @@
           </div>
         </div>
 
-        <!-- ABA GESTÃO DE ATIVIDADES -->
-        <div id="aba-gestao" class="view-aba d-none">
-          <div class="bento-card mb-3 d-flex justify-content-between align-items-center">
-            <h5 class="fw-bold mb-0"><i class="bi bi-list-stars"></i> Histórico de Atividades</h5>
-            <div class="d-flex gap-2">
-              <input type="text" id="busca-gestao" class="form-control form-control-sm" placeholder="Buscar loja, autor..." onkeyup="filtrarTimelineLocal()">
-            </div>
-          </div>
-
-          <div id="timeline-atividades" class="d-flex flex-column gap-2">
-            <div class="alert alert-light border">Nenhuma atividade localizada no período.</div>
-          </div>
-        </div>
-
-        <!-- ABA GALERIA -->
-        <div id="aba-galeria" class="view-aba d-none">
-          <div class="bento-card mb-3">
-            <h5 class="fw-bold mb-0"><i class="bi bi-images text-purple"></i> Galeria de Evidências</h5>
-          </div>
-
-          <div class="row g-3" id="grid-galeria">
-            <div class="col-12"><div class="alert alert-light border">Nenhuma imagem cadastrada no período.</div></div>
-          </div>
-        </div>
-
-        <!-- ABA ADMINISTRAÇÃO -->
-        <div id="aba-configuracoes" class="view-aba d-none">
+        <div id="aba-consultas" class="view-aba d-none">
           <div class="bento-card mb-4">
-            <h5 class="fw-bold mb-3"><i class="bi bi-gear-fill text-dark"></i> Gestão de Temas (Reunião / Treinamento)</h5>
-            
-            <div class="row g-3 mb-4">
-              <div class="col-md-4">
-                <select id="admin-tema-categoria" class="form-select">
-                  <option value="REUNIAO_REGIONAL">Reunião Regional</option>
-                  <option value="TREINAMENTO">Treinamento</option>
-                </select>
-              </div>
+            <h5 class="fw-bold mb-3"><i class="bi bi-search text-primary"></i> Consultas Gerais e Painéis</h5>
+            <div class="row g-3">
               <div class="col-md-6">
-                <input type="text" id="admin-tema-texto" class="form-control" placeholder="Nome do novo tema...">
+                <div class="bento-card border p-3 d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold mb-1"><i class="bi bi-person-badge text-primary me-2"></i>Perfil e Gestão do Gerente de Loja</h6>
+                    <small class="text-muted">Acesso direto à ferramenta do Gerente de Loja.</small>
+                  </div>
+                  <a href="https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbyLISH60R60d0NsT3HJ8jBcduSs2V9FpJ3zZdYGVxTyZ-WCk4aIGELAAeapH9tuM0tb0g/exec" target="_blank" class="btn btn-primary btn-sm fw-bold px-3">Abrir Página</a>
+                </div>
               </div>
-              <div class="col-md-2">
-                <button class="btn btn-success w-100 fw-bold" onclick="salvarNovoTemaAdmin()">Adicionar</button>
-              </div>
-            </div>
-
-            <h6 class="fw-bold mt-4">Temas Cadastrados</h6>
-            <div class="row g-3" id="container-lista-temas">
-              <!-- Renderizado via Script -->
             </div>
           </div>
         </div>
 
-      </div>
-    </div>
-  </div>
+        <!-- ABA VISÃO GERAL GP -->
+        <div id="aba-visao-gp" class="view-aba d-none">
+          <div class="bento-card">
+            <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-primary"></i> Visão Geral GP</h5>
+            <p class="text-muted">Consolidação geral do ecossistema de indicadores de pessoas.</p>
+          </div>
+        </div>
 
-  <!-- Modal Level-Up / Badge Celebration -->
-  <div class="modal fade" id="modal-celebracao" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content modal-levelup p-4 text-center">
-        <i class="bi bi-trophy-fill display-1 text-warning mb-2"></i>
-        <h2 class="fw-bold">Parabéns!</h2>
-        <p class="fs-5" id="celebracao-mensagem">Você conquistou novas moedas e avançou na Trilha Everest!</p>
-        <button type="button" class="btn btn-light fw-bold text-dark px-4 mt-3" data-bs-dismiss="modal">Continuar</button>
+        <!-- OUTRAS ABAS (GESTAO, GALERIA, HISTORICO, CONFIGURAÇÕES) -->
+        <div id="aba-gestao" class="view-aba d-none"><div id="timeline-atividades" class="d-flex flex-column gap-2"></div></div>
+        <div id="aba-galeria" class="view-aba d-none"><div class="row g-3" id="grid-galeria"></div></div>
+        <div id="aba-historico" class="view-aba d-none"><div class="bento-card"><h5 class="fw-bold mb-3">Extrato de Despesas</h5><div id="tabela-extrato-container"></div></div></div>
+        <div id="aba-configuracoes" class="view-aba d-none"><div class="bento-card"><h5 class="fw-bold mb-3">Gestão de Temas Admin</h5><div id="container-lista-temas"></div></div></div>
+
       </div>
     </div>
   </div>
