@@ -63,6 +63,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   try {
     var ssSoc = SpreadsheetApp.openById(SPREADSHEET_SOCIAL_ID);
     if (ssSoc) {
+      // 1. Aba BASE_REGISTRO
       var abaSocReg = ssSoc.getSheetByName('BASE_REGISTRO');
       if (abaSocReg) {
         var dSocReg = abaSocReg.getDataRange().getValues();
@@ -72,13 +73,31 @@ function obterDadosIniciais(filtroMes, filtroAno) {
           chavesValidadasSocial['SOCIAL_' + fSoc + '_' + dtSoc] = true;
         }
       }
+
+      // 2. Aba BASE_INTERNOS
+      var abaSocInt = ssSoc.getSheetByName('BASE_INTERNOS');
+      if (abaSocInt) {
+        var dSocInt = abaSocInt.getDataRange().getValues();
+        for (var si = 1; si < dSocInt.length; si++) {
+          var fSocInt = ("0000" + normalizarFilialId(dSocInt[si][1])).slice(-4);
+          var dtSocInt = formatarDataSegura(dSocInt[si][0] || new Date());
+          var emailCoordenador = String(dSocInt[si][2] || '').toLowerCase().trim();
+          chavesValidadasSocial['SOCIAL_' + fSocInt + '_' + dtSocInt] = true;
+          if (emailCoordenador) {
+            chavesValidadasSocial['SOCIAL_EMAIL_' + emailCoordenador + '_' + dtSocInt] = true;
+          }
+        }
+      }
     }
-  } catch (eSoc) {}
+  } catch (eSoc) {
+    Logger.log('Erro ao ler planilha Social: ' + eSoc.toString());
+  }
 
   var chavesValidadasApuracoes = {};
   try {
     var ssApur = SpreadsheetApp.openById(SPREADSHEET_APURACOES_ID);
     if (ssApur) {
+      // 1. Aba Historico_Envios
       var abaApurHist = ssApur.getSheetByName('Historico_Envios');
       if (abaApurHist) {
         var dApurHist = abaApurHist.getDataRange().getValues();
@@ -88,8 +107,32 @@ function obterDadosIniciais(filtroMes, filtroAno) {
           chavesValidadasApuracoes['APURACAO_' + fApur + '_' + dtApur] = true;
         }
       }
+
+      // 2. Aba Intervencoes_Feedback
+      var abaApurFeed = ssApur.getSheetByName('Intervencoes_Feedback');
+      if (abaApurFeed) {
+        var dApurFeed = abaApurFeed.getDataRange().getValues();
+        for (var af = 1; af < dApurFeed.length; af++) {
+          var fFeed = ("0000" + normalizarFilialId(dApurFeed[af][1])).slice(-4); // Col B (Filial)
+          var dtFeed = formatarDataSegura(dApurFeed[af][6] || dApurFeed[af][0] || new Date());
+          chavesValidadasApuracoes['APURACAO_' + fFeed + '_' + dtFeed] = true;
+        }
+      }
+
+      // 3. Aba Historico_Desligamentos
+      var abaApurDesl = ssApur.getSheetByName('Historico_Desligamentos');
+      if (abaApurDesl) {
+        var dApurDesl = abaApurDesl.getDataRange().getValues();
+        for (var ad = 1; ad < dApurDesl.length; ad++) {
+          var fDesl = ("0000" + normalizarFilialId(dApurDesl[ad][0])).slice(-4);
+          var dtDesl = formatarDataSegura(dApurDesl[ad][1] || new Date());
+          chavesValidadasApuracoes['APURACAO_' + fDesl + '_' + dtDesl] = true;
+        }
+      }
     }
-  } catch (eApur) {}
+  } catch (eApur) {
+    Logger.log('Erro ao ler planilha Apurações: ' + eApur.toString());
+  }
 
   var lancamentos = [];
   var moedasTotaisUser = 0;
@@ -136,13 +179,13 @@ function obterDadosIniciais(filtroMes, filtroAno) {
         statusFinal = ehEspecialista ? 'PENDENTE' : 'VALIDADO';
       }
 
-      // Reconciliação automática: Se PENDENTE, verifica se já consta na planilha externa
       if (statusFinal === 'PENDENTE') {
-        var encSoc = !!chavesValidadasSocial['SOCIAL_' + fIdLanc + '_' + dtStr];
+        var encSoc = !!chavesValidadasSocial['SOCIAL_' + fIdLanc + '_' + dtStr] || 
+                     !!chavesValidadasSocial['SOCIAL_EMAIL_' + emailAutor + '_' + dtStr];
         var encApur = !!chavesValidadasApuracoes['APURACAO_' + fIdLanc + '_' + dtStr];
+        
         if (encSoc || encApur) {
           statusFinal = 'VALIDADO';
-          // Atualiza a célula fisicamente na Coluna 28 (AB) da aba DADOS_LANCAMENTOS
           try {
             abaLanc.getRange(k + 1, 28).setValue('VALIDADO');
           } catch (eUpd) {}
@@ -156,7 +199,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
         pontuacaoPorUsuario[emailAutor] = { mes: 0, total: 0, email: emailAutor, foto: '' };
       }
 
-      // Concede moedas apenas se o registro estiver VALIDADO
       var chaveVisitaDia = emailAutor + '_' + fIdLanc + '_' + dtStr;
       var ehPrimeiraVisitaDoDia = !visitasLojasDiaSet[chaveVisitaDia];
       
@@ -242,6 +284,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     lancamentos: lancamentos,
     naturezas: naturezas,
     temas: temas,
+    dicionarioPremios: dicionarioPremios,
     gamificacao: {
       moedasTotais: moedasTotaisUser,
       moedasMes: moedasMesUser,

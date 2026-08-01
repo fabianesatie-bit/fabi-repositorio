@@ -369,10 +369,10 @@
       else if (index === 1) badgePos = '<span class="fw-bold text-secondary me-3 fs-4">2º</span>';
       else if (index === 2) badgePos = '<span class="fw-bold text-danger me-3 fs-4">3º</span>';
 
-      var faseTag = '<span class="badge bg-light text-primary border me-2">⛺ Acampamento Base</span>';
-      if (item.total >= 100) faseTag = '<span class="badge bg-success text-white border me-2">🚩 ⚡ Bandeira no Everest</span>';
-      else if (item.total >= 75) faseTag = '<span class="badge bg-info text-white border me-2">🏔️ Cume Alcançado</span>';
-      else if (item.total >= 40) faseTag = '<span class="badge bg-warning text-dark border me-2">🧗 Subida da Montanha</span>';
+      var faseTag = '<span class="badge bg-light text-primary border me-2">⛺ Fase 1: Acampamento Base</span>';
+      if (item.total >= 100) faseTag = '<span class="badge bg-success text-white border me-2">🚩 ⚡ Fase 4: Bandeira no Everest!</span>';
+      else if (item.total >= 75) faseTag = '<span class="badge bg-info text-white border me-2">🏔️ Fase 3: Cume Alcançado</span>';
+      else if (item.total >= 40) faseTag = '<span class="badge bg-warning text-dark border me-2">🧗 Fase 2: Subida da Montanha</span>';
 
       var avatarSrc = (item.foto && item.foto.length > 20) ? item.foto : gerarAvatarSVG(item.email);
 
