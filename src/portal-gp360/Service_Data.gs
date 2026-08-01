@@ -4,6 +4,56 @@
  * Subpasta Monorepo: src/portal-gp360/
  */
 
+function extrairMesAnoData(dataVal) {
+  if (!dataVal) return { dia: 0, mes: 0, ano: 0 };
+  try {
+    if (dataVal instanceof Date) {
+      return { 
+        dia: dataVal.getDate(), 
+        mes: dataVal.getMonth() + 1, 
+        ano: dataVal.getFullYear() 
+      };
+    }
+
+    var str = String(dataVal).trim();
+
+    // Formato DD/MM/YYYY ou DD/MM/YYYY HH:mm:ss
+    if (str.indexOf('/') !== -1) {
+      var partesBarra = str.split(' ')[0].split('/');
+      if (partesBarra.length === 3) {
+        return {
+          dia: parseInt(partesBarra[0], 10),
+          mes: parseInt(partesBarra[1], 10),
+          ano: parseInt(partesBarra[2], 10)
+        };
+      }
+    }
+
+    // Formato YYYY-MM-DD
+    if (str.indexOf('-') !== -1) {
+      var partesIso = str.split('T')[0].split('-');
+      if (partesIso.length === 3 && partesIso[0].length === 4) {
+        return {
+          dia: parseInt(partesIso[2], 10),
+          mes: parseInt(partesIso[1], 10),
+          ano: parseInt(partesIso[0], 10)
+        };
+      }
+    }
+
+    var dObj = new Date(dataVal);
+    if (!isNaN(dObj.getTime())) {
+      return { 
+        dia: dObj.getDate(), 
+        mes: dObj.getMonth() + 1, 
+        ano: dObj.getFullYear() 
+      };
+    }
+  } catch (e) {}
+
+  return { dia: 0, mes: 0, ano: 0 };
+}
+
 function obterDadosIniciais(filtroMes, filtroAno) {
   var controle = obterControleAcesso();
   if (!controle.temAcesso) {
@@ -12,8 +62,8 @@ function obterDadosIniciais(filtroMes, filtroAno) {
 
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var agora = new Date();
-  var mesAlvo = (filtroMes !== undefined && filtroMes !== null && filtroMes !== '') ? parseInt(filtroMes) : agora.getMonth() + 1;
-  var anoAlvo = (filtroAno !== undefined && filtroAno !== null && filtroAno !== '') ? parseInt(filtroAno) : agora.getFullYear();
+  var mesAlvo = (filtroMes !== undefined && filtroMes !== null && filtroMes !== '') ? parseInt(filtroMes, 10) : agora.getMonth() + 1;
+  var anoAlvo = (filtroAno !== undefined && filtroAno !== null && filtroAno !== '') ? parseInt(filtroAno, 10) : agora.getFullYear();
 
   var dicionarioPremios = {};
   var abaPremios = ss.getSheetByName('DICIONARIO_PREMIOS');
@@ -60,26 +110,25 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   }
 
   function registrarChavesValidadas(mapa, prefixo, filial, email, dataStr) {
-    if (!dataStr) return;
-    var partes = dataStr.split('/');
-    if (partes.length !== 3) return;
+    if (filial) {
+      mapa[prefixo + '_' + filial] = true;
+    }
+    if (email) {
+      mapa[prefixo + '_EMAIL_' + email] = true;
+    }
 
-    var dia = parseInt(partes[0], 10);
-    var mes = parseInt(partes[1], 10) - 1;
-    var ano = parseInt(partes[2], 10);
-
-    var dtBase = new Date(ano, mes, dia);
-
-    // Registra a data exata e tolerância de ±1 dia
-    for (var delta = -1; delta <= 1; delta++) {
-      var dtVar = new Date(dtBase.getTime() + (delta * 86400000));
-      var dtVarStr = formatarDataSegura(dtVar);
-
-      if (filial) {
-        mapa[prefixo + '_' + filial + '_' + dtVarStr] = true;
-      }
-      if (email) {
-        mapa[prefixo + '_EMAIL_' + email + '_' + dtVarStr] = true;
+    if (dataStr) {
+      var infoDt = extrairMesAnoData(dataStr);
+      if (infoDt.mes > 0) {
+        var dtFmt = ("0" + infoDt.dia).slice(-2) + '/' + ("0" + infoDt.mes).slice(-2) + '/' + infoDt.ano;
+        if (filial) {
+          mapa[prefixo + '_' + filial + '_' + dtFmt] = true;
+          mapa[prefixo + '_' + filial + '_M' + infoDt.mes + '_A' + infoDt.ano] = true;
+        }
+        if (email) {
+          mapa[prefixo + '_EMAIL_' + email + '_' + dtFmt] = true;
+          mapa[prefixo + '_EMAIL_' + email + '_M' + infoDt.mes + '_A' + infoDt.ano] = true;
+        }
       }
     }
   }
@@ -133,7 +182,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
         }
       }
 
-      // 2. Aba Intervencoes_Feedback (Coluna B: Filial, Coluna G: Data, Coluna H/I: E-mail)
+      // 2. Aba Intervencoes_Feedback (Coluna B: Filial, Coluna G: Data - Index 6)
       var abaApurFeed = ssApur.getSheetByName('Intervencoes_Feedback');
       if (abaApurFeed) {
         var dApurFeed = abaApurFeed.getDataRange().getValues();
@@ -166,7 +215,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   var lancamentos = [];
   var moedasTotaisUser = 0;
   var moedasMesUser = 0;
-  var visitasInLocoMes = 0;
   var reembolsoEstimadoMes = 0;
   var filiaisVisitadasSet = {};
   var pontuacaoPorUsuario = {};
@@ -178,7 +226,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     for (var k = 1; k < dLanc.length; k++) {
       var row = dLanc[k];
       var idReg = row[0];                                         // Col A: ID_Lancamento
-      var dtObj = row[1];                                         // Col B: Data_Hora
       var emailAutor = String(row[2] || '').toLowerCase().trim(); // Col C: Coordenador_Email
       if (!emailAutor) continue;
 
@@ -190,12 +237,14 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       var motivoLancUpper = motivoLanc.toUpperCase();
       var custoTotalItem = parseFloat(row[8]) || parseFloat(row[21]) || 0; // Col I ou Col V
 
-      var dtStr = formatarDataSegura(row[12] || dtObj);
-      var dtParsed = dtObj instanceof Date ? dtObj : new Date(dtObj || row[12]);
-      var mReg = dtParsed.getMonth() + 1;
-      var aReg = dtParsed.getFullYear();
+      // DATA PRIMÁRIA ABSOLUTA: Coluna M (index 12: Data_Ini)
+      var dataBrutaColunaM = row[12] || row[1];
+      var infoDt = extrairMesAnoData(dataBrutaColunaM);
+      var mReg = infoDt.mes;
+      var aReg = infoDt.ano;
+      var dtStr = ("0" + infoDt.dia).slice(-2) + '/' + ("0" + infoDt.mes).slice(-2) + '/' + infoDt.ano;
 
-      // Coluna 28 (AB): Status_Validacao_Especialista
+      // Coluna 28 (Col AB): Status_Validacao_Especialista (index 27)
       var statusSalvoCol28 = String(row[27] || '').trim().toUpperCase();
       var motivoLower = motivoLanc.toLowerCase();
       var ehEspecialista = motivoLower.includes('atendimento social') || 
@@ -210,11 +259,16 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       }
 
       if (statusFinal === 'PENDENTE') {
-        var encSoc = !!chavesValidadasSocial['SOCIAL_' + fIdLanc + '_' + dtStr] || 
-                     !!chavesValidadasSocial['SOCIAL_EMAIL_' + emailAutor + '_' + dtStr];
-        var encApur = !!chavesValidadasApuracoes['APURACAO_' + fIdLanc + '_' + dtStr] ||
-                      !!chavesValidadasApuracoes['APURACAO_EMAIL_' + emailAutor + '_' + dtStr];
-        
+        var encSoc = !!chavesValidadasSocial['SOCIAL_' + fIdLanc] || 
+                     !!chavesValidadasSocial['SOCIAL_' + fIdLanc + '_' + dtStr] ||
+                     !!chavesValidadasSocial['SOCIAL_' + fIdLanc + '_M' + mReg + '_A' + aReg] ||
+                     !!chavesValidadasSocial['SOCIAL_EMAIL_' + emailAutor];
+
+        var encApur = !!chavesValidadasApuracoes['APURACAO_' + fIdLanc] ||
+                      !!chavesValidadasApuracoes['APURACAO_' + fIdLanc + '_' + dtStr] ||
+                      !!chavesValidadasApuracoes['APURACAO_' + fIdLanc + '_M' + mReg + '_A' + aReg] ||
+                      !!chavesValidadasApuracoes['APURACAO_EMAIL_' + emailAutor];
+
         if (encSoc || encApur) {
           statusFinal = 'VALIDADO';
           try {
@@ -229,7 +283,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       var ehKmAvulso = motivoLower.includes('km avulso') || 
                        motivoLower.includes('deslocamento avulso') || 
                        String(fIdLanc).toUpperCase().includes('AVULSO');
-      
+
       var ptsItem = 0;
       if (!ehKmAvulso) {
         ptsItem = parseFloat(row[9]) || dicionarioPremios[motivoLancUpper] || 1;
@@ -239,7 +293,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
         pontuacaoPorUsuario[emailAutor] = { mes: 0, total: 0, email: emailAutor, foto: '' };
       }
 
-      // Todas as atividades validadas na mesma filial geram moedas acumulativas
+      // Acumula moedas para todas as atividades validadas
       if (estaValidadoEspecialista) {
         pontuacaoPorUsuario[emailAutor].total += ptsItem;
         if (mReg === mesAlvo && aReg === anoAlvo) {
@@ -256,7 +310,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
           if (estaValidadoEspecialista) {
             moedasMesUser += ptsItem;
             if (fIdLanc && !ehKmAvulso) {
-              visitasInLocoMes++;
               filiaisVisitadasSet[fIdLanc] = true;
             }
           }
@@ -320,7 +373,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     usuario: controle,
     lojas: lojas,
     lojasCarteiraTotal: lojas.length,
-    visitasInLocoMes: visitasInLocoMes,
+    visitasInLocoMes: Object.keys(filiaisVisitadasSet).length,
     reembolsoEstimadoMes: reembolsoEstimadoMes,
     distribuicaoAtividades: distribuicaoAtividadesMap,
     lancamentos: lancamentos,
