@@ -5,14 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Portal GP 360º</title>
 
-  <!-- PWA Metadata para Tela Inicial sem Barra de Navegação -->
+  <!-- PWA Metadata para Modo Standalone (Tela Cheia sem Barra de Navegacao) -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="GP 360º">
   <meta name="theme-color" content="#160048">
 
-  <!-- Ícone Néon Corporativo Oficial GP360 -->
+  <!-- Manifest PWA Oficial da Raiz -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Icone Neon Corporativo Oficial GP360 -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' width='512' height='512'><defs><linearGradient id='bgGrad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%234203A9;stop-opacity:1'/><stop offset='100%' style='stop-color:%23160048;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad1' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%2317F036;stop-opacity:1'/><stop offset='20%' style='stop-color:%23FBE53B;stop-opacity:1'/><stop offset='40%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='70%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad2' x1='100%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='50%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient><filter id='glow' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='8' result='blur'/><feComposite in='SourceGraphic' in2='blur' operator='over'/></filter></defs><rect width='512' height='512' rx='110' fill='url(%23bgGrad)'/><g filter='url(%23glow)'><ellipse cx='256' cy='256' rx='195' ry='120' fill='none' stroke='url(%23ringGrad1)' stroke-width='14' transform='rotate(-28 256 256)'/><ellipse cx='256' cy='256' rx='185' ry='105' fill='none' stroke='url(%23ringGrad2)' stroke-width='8' transform='rotate(28 256 256)'/></g><text x='51%' y='54%' font-family='Arial, sans-serif' font-size='180' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='middle' letter-spacing='-6'>GP</text></svg>">
   <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' width='512' height='512'><defs><linearGradient id='bgGrad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%234203A9;stop-opacity:1'/><stop offset='100%' style='stop-color:%23160048;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad1' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%2317F036;stop-opacity:1'/><stop offset='20%' style='stop-color:%23FBE53B;stop-opacity:1'/><stop offset='40%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='70%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad2' x1='100%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='50%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient></defs><rect width='512' height='512' fill='url(%23bgGrad)'/><ellipse cx='256' cy='256' rx='195' ry='120' fill='none' stroke='url(%23ringGrad1)' stroke-width='16' transform='rotate(-28 256 256)'/><ellipse cx='256' cy='256' rx='185' ry='105' fill='none' stroke='url(%23ringGrad2)' stroke-width='10' transform='rotate(28 256 256)'/><text x='51%' y='54%' font-family='Arial, sans-serif' font-size='180' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='middle' letter-spacing='-6'>GP</text></svg>">
 
@@ -37,10 +40,23 @@
 </head>
 <body>
 
-  <!-- URL EXECUTÁVEL OFICIAL DO GOOGLE APPS SCRIPT DO PORTAL GP 360 -->
+  <!-- URL EXECUTAVEL OFICIAL DO GOOGLE APPS SCRIPT DO PORTAL GP 360 -->
   <iframe id="appFrame" src="https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzuISkuZ2-KtWL-zI87DcTrZyN4e6dPK9H4M6c1r8c9EjpAkF87Go4LrmzwVDH94LI/exec" allow="geolocation; camera"></iframe>
 
   <script>
+    // Registro do Service Worker para suporte a PWA nativo e remocao de barra no Chrome/Android
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('./sw.js')
+          .then(function(reg) {
+            console.log('Service Worker GP360 registrado com sucesso:', reg.scope);
+          })
+          .catch(function(err) {
+            console.log('Falha ao registrar Service Worker:', err);
+          });
+      });
+    }
+
     window.addEventListener('DOMContentLoaded', function() {
       // Ajusta dinamicamente a altura para telas de celular com barra de status
       function adjustHeight() {
