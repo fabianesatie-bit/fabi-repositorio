@@ -11,7 +11,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   }
 
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  
   var agora = new Date();
   var mesAlvo = (filtroMes !== undefined && filtroMes !== null && filtroMes !== '') ? parseInt(filtroMes) : agora.getMonth() + 1;
   var anoAlvo = (filtroAno !== undefined && filtroAno !== null && filtroAno !== '') ? parseInt(filtroAno) : agora.getFullYear();
@@ -120,7 +119,9 @@ function obterDadosIniciais(filtroMes, filtroAno) {
           }
           reembolsoEstimadoMes += custoTotalItem;
 
-          distribuicaoAtividadesMap[motivoLanc] = (distribuicaoAtividadesMap[motivoLanc] || 0) + 1;
+          if (motivoLanc) {
+            distribuicaoAtividadesMap[motivoLanc] = (distribuicaoAtividadesMap[motivoLanc] || 0) + 1;
+          }
 
           if (controle.isSuperAdmin || controle.regionais.includes(regLanc)) {
             lancamentos.push({
@@ -128,7 +129,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
               data: dtStr,
               filial: fIdLanc,
               lojaNome: row[4],
-              motivo: row[5],
+              motivo: motivoLanc,
               tema: row[6] || '',
               observacao: row[7],
               evidenciaUrl: row[8] || '',
@@ -190,14 +191,23 @@ function obterDadosIniciais(filtroMes, filtroAno) {
 function carregarNaturezasSeguras(ss) {
   var config = ss.getSheetByName('CONFIGURAÇÕES');
   var naturezas = [];
-  if (!config) return ['Checklist de Loja', 'Roteiro Regional', 'Visita Presencial', 'Treinamento', 'Reunião Regional', 'Atendimento Social', 'Apurações e Feedback'];
-  
-  var dados = config.getDataRange().getValues();
-  for (var i = 1; i < dados.length; i++) {
-    var val = String(dados[i][0] || '').trim();
-    if (val && !val.startsWith('TEMA_')) naturezas.push(val);
+  if (config) {
+    var dados = config.getDataRange().getValues();
+    for (var i = 1; i < dados.length; i++) {
+      var val = String(dados[i][0] || '').trim();
+      if (val && !val.startsWith('TEMA_')) naturezas.push(val);
+    }
   }
-  return naturezas.length ? naturezas : ['Checklist de Loja', 'Roteiro Regional', 'Visita Presencial', 'Treinamento', 'Reunião Regional', 'Atendimento Social', 'Apurações e Feedback'];
+
+  if (naturezas.length === 0) {
+    naturezas = ['Apurações e Feedback', 'Atendimento Social', 'Checklist de Loja', 'Reunião Regional', 'Roteiro Regional', 'Treinamento', 'Visita Presencial'];
+  }
+
+  naturezas.sort(function(a, b) {
+    return a.localeCompare(b, 'pt-BR');
+  });
+
+  return naturezas;
 }
 
 function carregarTemasSeguras(ss) {

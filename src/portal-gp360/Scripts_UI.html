@@ -20,6 +20,7 @@
 
     if (abaId === 'aba-galeria') carregarGaleriaEvidencias();
     if (abaId === 'aba-historico') renderizarHistoricos();
+    if (abaId === 'aba-gestao') renderizarTimelineAtividades();
   }
 
   function abrirPainelInternoEmbutido(url, titulo) {
@@ -51,7 +52,7 @@
     }
 
     var imgUser = document.getElementById('user-avatar-img');
-    if (u.fotoUrl && u.fotoUrl.length > 20 && !u.fotoUrl.includes('placeholder')) {
+    if (u.fotoUrl && u.fotoUrl.length > 20) {
       imgUser.src = u.fotoUrl;
     } else {
       imgUser.src = gerarAvatarSVG(u.nome);
@@ -127,7 +128,12 @@
 
     var selNat = document.getElementById('select-natureza');
     selNat.innerHTML = '<option value="">Selecione a natureza...</option>';
-    dadosGlobais.naturezas.forEach(function(n) {
+    
+    var naturezasOrdenadas = (dadosGlobais.naturezas || []).slice().sort(function(a, b) {
+      return a.localeCompare(b, 'pt-BR');
+    });
+
+    naturezasOrdenadas.forEach(function(n) {
       selNat.innerHTML += '<option value="' + n + '">' + n + '</option>';
     });
 
@@ -263,6 +269,38 @@
         '</div>' +
         '<div class="fw-bold fs-5 text-primary"><i class="bi bi-coin text-warning me-1"></i>' + item.mes + ' <small class="fs-6 text-muted">moedas</small></div>' +
       '</li>';
+    });
+  }
+
+  function renderizarTimelineAtividades() {
+    var container = document.getElementById('timeline-atividades');
+    if (!container) return;
+    container.innerHTML = '';
+    var l = dadosGlobais.lancamentos || [];
+
+    if (l.length === 0) {
+      container.innerHTML = '<div class="alert alert-light border">Nenhuma atividade registrada no período.</div>';
+      return;
+    }
+
+    var u = dadosGlobais.usuario;
+
+    l.forEach(function(item) {
+      var localStr = item.filial ? ('Local: ' + item.filial) : ('Local: AVULSO');
+      var podeExcluir = (u.isSuperAdmin || (item.autor && item.autor.toLowerCase() === u.email.toLowerCase()));
+
+      var btnDeleteHtml = podeExcluir ? 
+        '<button class="btn btn-sm btn-outline-danger border-0" onclick="deletarHistorico(\'' + item.id + '\')"><i class="bi bi-trash fs-5"></i></button>' : 
+        '<i class="bi bi-lock-fill text-muted" title="Sem permissão para excluir"></i>';
+
+      container.innerHTML += '<div class="bento-card p-3 border-start border-4 border-primary shadow-sm mb-2">' +
+        '<div class="d-flex justify-content-between align-items-start mb-1">' +
+          '<small class="text-muted">' + item.data + ' • Lançado por: ' + (item.autor || 'Usuário GP') + '</small>' +
+          btnDeleteHtml +
+        '</div>' +
+        '<h6 class="fw-bold text-dark mb-1">' + localStr + '</h6>' +
+        '<div class="small text-secondary mb-2"><strong>Motivo:</strong> ' + item.motivo + (item.tema ? ' (' + item.tema + ')' : '') + (item.observacao ? ' - ' + item.observacao : '') + '</div>' +
+      '</div>';
     });
   }
 

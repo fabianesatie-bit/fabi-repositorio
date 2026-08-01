@@ -7,7 +7,6 @@
 
   var dadosGlobais = {};
 
-  // DECLARAÇÃO GLOBAL EXPLÍCITA PARA EVITAR REFERENCE_ERROR EM DROPDOWNS
   window.alterarPeriodoGeral = function() {
     inicializarAplicacao();
   };
@@ -165,6 +164,17 @@
         inicializarAplicacao();
       })
       .registrarAtividade(payloadData, null);
+  }
+
+  function deletarHistorico(id) {
+    if (!confirm('Deseja realmente excluir este lançamento?')) return;
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        alert(res.mensagem);
+        if (res.sucesso) inicializarAplicacao();
+      })
+      .excluirLancamento(id);
   }
 
   function addNatureza() {

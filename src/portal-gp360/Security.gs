@@ -28,8 +28,12 @@ function obterControleAcesso(email) {
   var usuarioEncontrado = null;
   
   for (var i = 1; i < dados.length; i++) {
-    var emailRow = String(dados[i][0] || '').toLowerCase().trim();
+    var emailRow = String(dados[i][0]).toLowerCase().trim();
     if (emailRow === String(emailAtivo).toLowerCase().trim()) {
+      var rawFoto = String(dados[i][6] || '').trim();
+      var driveId = extrairIdDrive(rawFoto);
+      var fotoUrl = driveId ? ('https://lh3.googleusercontent.com/d/' + driveId + '=w400') : '';
+
       usuarioEncontrado = {
         email: emailAtivo,
         nome: dados[i][1] || 'Usuário GP',
@@ -37,7 +41,7 @@ function obterControleAcesso(email) {
         diretoria: dados[i][3] || 'Geral',
         regionaisStr: String(dados[i][4] || ''),
         nivelAcesso: String(dados[i][5] || '').trim(),
-        fotoUrl: dados[i][6] || '',
+        fotoUrl: fotoUrl,
         observacoesAcesso: dados[i][7] || ''
       };
       break;
@@ -45,27 +49,26 @@ function obterControleAcesso(email) {
   }
 
   if (!usuarioEncontrado) {
-    registrarAuditoria('BLOQUEIO_ACESSO', 'E-mail ' + emailAtivo + ' não cadastrado.');
-    return { temAcesso: false, email: emailAtivo, motivo: 'Usuário não cadastrado na base oficial do Portal GP 360.' };
+    registrarAuditoria('BLOQUEIO_ACESSO', 'E-mail ' + emailAtivo + ' não cadastrado em DADOS_USUARIOS.');
+    return { temAcesso: false, email: emailAtivo, motivo: 'Usuário não cadastrado na base oficial de acessos do Portal GP 360.' };
   }
 
-  var nivelNorm = usuarioEncontrado.nivelAcesso.toLowerCase();
   var ehPermitido = PERMITTED_ROLES.some(function(role) {
-    return nivelNorm.includes(role);
+    return role.toLowerCase() === usuarioEncontrado.nivelAcesso.toLowerCase();
   });
 
   if (!ehPermitido) {
-    registrarAuditoria('BLOQUEIO_PERFIL', 'Acesso negado para ' + emailAtivo + ' com perfil: ' + usuarioEncontrado.nivelAcesso);
+    registrarAuditoria('BLOQUEIO_PERFIL', 'Acesso negado para ' + emailAtivo + ' com nível: ' + usuarioEncontrado.nivelAcesso);
     return { 
       temAcesso: false, 
       email: emailAtivo, 
-      motivo: 'Acesso restrito. Seu perfil (' + usuarioEncontrado.nivelAcesso + ') não possui permissão para este portal.' 
+      motivo: 'Acesso restrito ao Portal GP 360. Seu nível de acesso atual (' + usuarioEncontrado.nivelAcesso + ') não possui autorização.' 
     };
   }
 
-  var isSuperAdmin = (nivelNorm.includes('administrador'));
-  var isGerenteGP = (nivelNorm.includes('gerenterh'));
-  var isCoordenador = (nivelNorm.includes('coordenador'));
+  var isSuperAdmin = (usuarioEncontrado.nivelAcesso.toLowerCase() === 'administrador');
+  var isGerenteGP = (usuarioEncontrado.nivelAcesso.toLowerCase() === 'gerenterh');
+  var isCoordenador = (usuarioEncontrado.nivelAcesso.toLowerCase() === 'coordenador');
 
   var regionaisArray = usuarioEncontrado.regionaisStr.split(',')
     .map(function(r) { return r.trim().toUpperCase(); })
@@ -99,11 +102,17 @@ function validarAcessoFilial(email, filialId) {
 
   var dadosLojas = abaLojas.getDataRange().getValues();
   var regionalLoja = '';
-  var targetNorm = normalizarFilialId(filialId);
 
   for (var i = 1; i < dadosLojas.length; i++) {
-    var norm = normalizarFilialId(dadosLojas[i][0]);
-    if (norm === targetNorm) {
+    var rawId = dadosLojas[i][0];
+    var numFilial = normalizarFilialId(rawId);
+    if (!numFilial) continue;
+
+    var idFormatado = ("0000" + numFilial).slice(-4);
+    var targetNum = normalizarFilialId(filialId);
+    var targetIdFormatado = targetNum ? ("0000" + targetNum).slice(-4) : '';
+
+    if (idFormatado === targetIdFormatado) {
       regionalLoja = String(dadosLojas[i][2] || '').trim().toUpperCase();
       break;
     }
