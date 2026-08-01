@@ -19,6 +19,7 @@
     if (element) element.classList.add('active');
 
     if (abaId === 'aba-galeria') carregarGaleriaEvidencias();
+    if (abaId === 'aba-historico') renderizarHistoricos();
   }
 
   function abrirPainelInterno(url, titulo) {
@@ -33,7 +34,6 @@
     document.getElementById('user-nome-display').innerText = u.nome;
     document.getElementById('user-cargo-display').innerText = u.cargo + ' (' + u.nivelAcesso + ')';
 
-    // Pílulas de Regionais para evitar estouro da barra lateral
     var boxRegionais = document.getElementById('user-regional-display');
     boxRegionais.innerHTML = '';
     if (u.regionais && u.regionais.length > 0) {
@@ -44,7 +44,6 @@
       boxRegionais.innerHTML = '<span class="regional-pill bg-success-subtle text-success border-success">Visão Nacional</span>';
     }
 
-    // Avatar do Usuário (Inline SVG se não houver foto válida para evitar erro 502/404)
     if (u.fotoUrl && !u.fotoUrl.includes('placeholder')) {
       document.getElementById('user-avatar-img').src = u.fotoUrl;
     } else {
@@ -67,6 +66,7 @@
     renderizarRankingTop5();
     renderizarGraficoAtividades();
     renderizarTimelineAtividades();
+    renderizarListaNaturezasAdmin();
     renderizarGestaoTemasAdmin();
   }
 
@@ -125,7 +125,6 @@
       selNat.innerHTML += '<option value="' + n + '">' + n + '</option>';
     });
 
-    // Povoar Chips de Reunião
     var containerChips = document.getElementById('chips-container-reuniao');
     containerChips.innerHTML = '';
     var listaReuniao = dadosGlobais.temas.reuniao || ['NPS', 'GMD', 'Banco de Horas', 'PCD', 'Quadro', 'Lixo Eletrônico', 'Campanha Sazonais', 'Agente Integrador'];
@@ -133,7 +132,6 @@
       containerChips.innerHTML += '<span class="chip-tema" onclick="toggleChipTema(this, \'' + t + '\')">' + t + '</span>';
     });
 
-    // Povoar Dropdown de Treinamento
     var selTreinamento = document.getElementById('select-tema-treinamento');
     selTreinamento.innerHTML = '<option value="">Selecione o tema...</option>';
     var listaTreinamento = dadosGlobais.temas.treinamento || ['Liderança', 'Assédio', 'Jurídico', 'Auditoria', 'Integração', 'Atendimento 10 estrelas', 'Motivacional', 'Feedback', 'Inegociáveis', 'Apontamento'];
@@ -147,6 +145,13 @@
     var idx = temasReuniaoSelecionados.indexOf(tema);
     if (idx > -1) temasReuniaoSelecionados.splice(idx, 1);
     else temasReuniaoSelecionados.push(tema);
+  }
+
+  function alternarEscopoAtendimento() {
+    var escopo = document.getElementById('select-escopo-atendimento').value;
+    var boxFilial = document.getElementById('box-destino-filial');
+    if (escopo === 'FILIAL') boxFilial.classList.remove('d-none');
+    else boxFilial.classList.add('d-none');
   }
 
   function verificarCamposDinamicos() {
@@ -165,13 +170,18 @@
   }
 
   function calcularDespesas() {
+    var rate = parseFloat(document.getElementById('input-rate-km').value) || 1.20;
     var km = parseFloat(document.getElementById('input-km').value) || 0;
-    var ped = parseFloat(document.getElementById('input-pedagio').value) || 0;
+    var custoKm = km * rate;
+    document.getElementById('display-custo-km').value = custoKm.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
     var ali = parseFloat(document.getElementById('input-alimentacao').value) || 0;
     var hos = parseFloat(document.getElementById('input-hospedagem').value) || 0;
-    var out = parseFloat(document.getElementById('input-outros').value) || 0;
+    var aer = parseFloat(document.getElementById('input-aereo').value) || 0;
+    var ped = parseFloat(document.getElementById('input-pedagio').value) || 0;
+    var est = parseFloat(document.getElementById('input-estacionamento').value) || 0;
 
-    var total = (km * 1.10) + ped + ali + hos + out;
+    var total = custoKm + ali + hos + aer + ped + est;
     document.getElementById('display-gasto-total').innerText = 'Gasto Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
   }
 
@@ -198,7 +208,7 @@
     }
 
     r.forEach(function(item, index) {
-      var badgePos = '<span class="fw-bold me-3 fs-5" style="width:24px; display:inline-block;">#' + (index + 1) + '</span>';
+      var badgePos = '<span class="fw-bold me-3 fs-5 text-secondary" style="width:24px; display:inline-block;">#' + (index + 1) + '</span>';
       if (index === 0) badgePos = '<span class="fw-bold text-warning me-3 fs-4">1º</span>';
       else if (index === 1) badgePos = '<span class="fw-bold text-secondary me-3 fs-4">2º</span>';
       else if (index === 2) badgePos = '<span class="fw-bold text-danger me-3 fs-4">3º</span>';
@@ -224,23 +234,46 @@
     });
   }
 
-  function renderizarTimelineAtividades() {
-    var container = document.getElementById('timeline-atividades');
+  function renderizarHistoricos() {
+    var container = document.getElementById('tabela-extrato-container');
     container.innerHTML = '';
-    if (!dadosGlobais.lancamentos || dadosGlobais.lancamentos.length === 0) {
-      container.innerHTML = '<div class="alert alert-light border">Nenhuma atividade localizada no período.</div>';
+    var l = dadosGlobais.lancamentos || [];
+
+    var dtInicio = document.getElementById('filtro-extrato-inicio').value;
+    var dtFim = document.getElementById('filtro-extrato-fim').value;
+
+    if (l.length === 0) {
+      container.innerHTML = '<div class="alert alert-light border">Nenhum extrato localizado no período.</div>';
       return;
     }
 
-    dadosGlobais.lancamentos.forEach(function(l) {
-      var evTag = l.evidenciaUrl ? '<a href="' + l.evidenciaUrl + '" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-paperclip"></i> Evidência</a>' : '';
-      container.innerHTML += '<div class="bento-card d-flex justify-content-between align-items-center mb-2">' +
-        '<div>' +
-          '<h6 class="fw-bold mb-1">' + l.filial + ' - ' + l.lojaNome + ' <span class="badge bg-secondary">' + l.motivo + '</span></h6>' +
-          '<small class="text-muted">' + l.data + ' • Autor: ' + l.autor + (l.tema ? ' • Tema: ' + l.tema : '') + '</small>' +
-          (l.observacao ? '<p class="mb-0 mt-1 small text-dark">' + l.observacao + '</p>' : '') +
+    l.forEach(function(item) {
+      var localStr = item.filial ? ('Local: ' + item.filial) : ('Local: AVULSO');
+      var valKmStr = 'R$ ' + (item.custoTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+      container.innerHTML += '<div class="bento-card p-3 border-start border-4 border-primary">' +
+        '<div class="d-flex justify-content-between text-muted small mb-1">' +
+          '<span>' + item.data + ' • Lançado por: ' + (item.autor || 'Usuário GP') + '</span>' +
         '</div>' +
-        '<div>' + evTag + '</div>' +
+        '<h6 class="fw-bold text-dark mb-1">' + localStr + ' <span class="badge bg-warning text-dark ms-2">' + valKmStr + '</span></h6>' +
+        '<div class="small text-secondary mb-2">Motivo: ' + item.motivo + (item.observacao ? ' - ' + item.observacao : '') + '</div>' +
+        '<div class="p-2 bg-warning-subtle rounded border border-warning-subtle text-dark small fw-bold">' +
+          '<i class="bi bi-car-front me-1"></i> KM/Despesas: ' + valKmStr +
+        '</div>' +
+      '</div>';
+    });
+  }
+
+  function renderizarListaNaturezasAdmin() {
+    var container = document.getElementById('container-lista-naturezas');
+    if (!container) return;
+    container.innerHTML = '';
+
+    var nats = dadosGlobais.naturezas || [];
+    nats.forEach(function(nat) {
+      container.innerHTML += '<div class="bento-card p-2 d-flex justify-content-between align-items-center mb-1 border-start border-3 border-primary">' +
+        '<span class="fw-semibold text-dark">' + nat + '</span>' +
+        '<button class="btn btn-sm btn-outline-danger" onclick="delNatureza(\'' + nat + '\')"><i class="bi bi-trash"></i></button>' +
       '</div>';
     });
   }
@@ -264,6 +297,21 @@
     html += '</ul></div></div>';
 
     container.innerHTML = html;
+  }
+
+  function abrirModalAvulso() {
+    var m = new bootstrap.Modal(document.getElementById('modalKmAvulso'));
+    m.show();
+  }
+
+  function limparFiltroDatas() {
+    document.getElementById('filtro-extrato-inicio').value = '';
+    document.getElementById('filtro-extrato-fim').value = '';
+    renderizarHistoricos();
+  }
+
+  function imprimirRelatorioKM() {
+    window.print();
   }
 
   function carregarGaleriaEvidencias() {

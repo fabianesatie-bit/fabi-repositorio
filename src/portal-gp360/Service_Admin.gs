@@ -4,6 +4,37 @@
  * Subpasta Monorepo: src/portal-gp360/
  */
 
+function adicionarNatureza(novaNatureza) {
+  var controle = obterControleAcesso();
+  if (!controle.isAdmin) return { sucesso: false, mensagem: 'Acesso restrito a administradores.' };
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var config = ss.getSheetByName('CONFIGURAÇÕES');
+  if (!config) config = ss.insertSheet('CONFIGURAÇÕES');
+
+  config.appendRow([novaNatureza, 'NATUREZA_EXTRA', 'GERAL', novaNatureza]);
+  return { sucesso: true, mensagem: 'Natureza cadastrada com sucesso!' };
+}
+
+function excluirNatureza(naturezaTexto) {
+  var controle = obterControleAcesso();
+  if (!controle.isAdmin) return { sucesso: false, mensagem: 'Acesso negado.' };
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var config = ss.getSheetByName('CONFIGURAÇÕES');
+  if (!config) return { sucesso: false, mensagem: 'Aba não encontrada.' };
+
+  var dados = config.getDataRange().getValues();
+  for (var i = 1; i < dados.length; i++) {
+    var val = String(dados[i][0] || '').trim().toLowerCase();
+    if (val === naturezaTexto.trim().toLowerCase()) {
+      config.deleteRow(i + 1);
+      return { sucesso: true, mensagem: 'Natureza removida com sucesso.' };
+    }
+  }
+  return { sucesso: false, mensagem: 'Natureza não localizada.' };
+}
+
 function adicionarTema(categoria, temaTexto) {
   var controle = obterControleAcesso();
   if (!controle.isAdmin) return { sucesso: false, mensagem: 'Acesso restrito a administradores.' };
@@ -34,16 +65,4 @@ function excluirTema(categoria, temaTexto) {
     }
   }
   return { sucesso: false, mensagem: 'Tema não encontrado.' };
-}
-
-function publicarAviso(mensagem, diretoriaAlvo) {
-  var controle = obterControleAcesso();
-  if (!controle.isAdmin) return { sucesso: false, mensagem: 'Acesso restrito.' };
-
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var aba = ss.getSheetByName('DADOS_AVISOS');
-  if (!aba) aba = ss.insertSheet('DADOS_AVISOS');
-
-  aba.appendRow([new Date(), mensagem, controle.nome, diretoriaAlvo || 'TODAS']);
-  return { sucesso: true, mensagem: 'Aviso publicado no mural!' };
 }

@@ -8,6 +8,8 @@
   var dadosGlobais = {};
 
   window.onload = function() {
+    var hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('input-data-atividade').value = hoje;
     inicializarAplicacao();
   };
 
@@ -37,40 +39,20 @@
       .obterDadosIniciais(m, a);
   }
 
-  function alterarPeriodoGeral() {
-    var m = document.getElementById('seletor-mes').value;
-    var a = document.getElementById('seletor-ano').value;
-
-    google.script.run
-      .withSuccessHandler(function(res) {
-        if (res.temAcesso) {
-          dadosGlobais.gamificacao = res.gamificacao;
-          dadosGlobais.lancamentos = res.lancamentos;
-          dadosGlobais.distribuicaoAtividades = res.distribuicaoAtividades;
-          dadosGlobais.visitasInLocoMes = res.visitasInLocoMes;
-          dadosGlobais.reembolsoEstimadoMes = res.reembolsoEstimadoMes;
-          
-          document.getElementById('kpi-visitas-loco').innerText = res.visitasInLocoMes || 0;
-          document.getElementById('kpi-reembolso-mes').innerText = 'R$ ' + (res.reembolsoEstimadoMes || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-          
-          atualizarCardsGamificacao();
-          renderizarGraficoAtividades();
-          renderizarTimelineAtividades();
-        }
-      })
-      .obterDadosIniciais(m, a);
-  }
-
   function salvarAtividade() {
-    var filial = document.getElementById('select-filial').value;
+    var escopo = document.getElementById('select-escopo-atendimento').value;
+    var filial = (escopo === 'FILIAL') ? document.getElementById('select-filial').value : '';
     var natureza = document.getElementById('select-natureza').value;
-    var tema = document.getElementById('select-tema-dinamico').value;
     var obs = document.getElementById('input-observacao').value;
     var fileInput = document.getElementById('input-evidencia-file');
     var urlInput = document.getElementById('input-evidencia-url').value;
 
-    if (!filial || !natureza) {
-      alert('Preencha todos os campos obrigatórios!');
+    if (escopo === 'FILIAL' && !filial) {
+      alert('Selecione a loja de destino!');
+      return;
+    }
+    if (!natureza) {
+      alert('Selecione a natureza da atividade!');
       return;
     }
 
@@ -78,17 +60,30 @@
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...';
 
+    var temaStr = '';
+    if (natureza.toLowerCase().includes('reunião') || natureza.toLowerCase().includes('reuniao')) {
+      temaStr = temasReuniaoSelecionados.join(', ');
+    } else if (natureza.toLowerCase().includes('treinamento')) {
+      temaStr = document.getElementById('select-tema-treinamento').value;
+    }
+
     var payloadData = {
       filial: filial,
+      escopo: escopo,
+      tipoRoteiro: document.getElementById('select-tipo-roteiro').value,
       motivo: natureza,
-      tema: tema,
+      tema: temaStr,
+      pessoasImpactadas: document.getElementById('input-pessoas-impactadas').value,
+      tempoGasto: document.getElementById('input-tempo-gasto').value,
       observacao: obs,
       evidenciaUrlDirect: urlInput,
+      rateKm: document.getElementById('input-rate-km').value,
       kmPercorrido: document.getElementById('input-km').value,
-      valorPedagio: document.getElementById('input-pedagio').value,
       valorAlimentacao: document.getElementById('input-alimentacao').value,
       valorHospedagem: document.getElementById('input-hospedagem').value,
-      outrosCustos: document.getElementById('input-outros').value
+      valorAereo: document.getElementById('input-aereo').value,
+      valorPedagio: document.getElementById('input-pedagio').value,
+      valorEstacionamento: document.getElementById('input-estacionamento').value
     };
 
     if (fileInput.files.length > 0) {
@@ -116,9 +111,9 @@
 
         if (res.sucesso) {
           dispararConfetesFestao();
-          alert('Sua atividade foi registrada e as moedas foram creditadas!');
+          alert('Sua atividade foi registrada com sucesso!');
           document.getElementById('form-lancamento').reset();
-          alterarPeriodoGeral();
+          inicializarAplicacao();
         } else {
           alert('Erro ao salvar: ' + res.mensagem);
         }
@@ -129,6 +124,58 @@
         alert('Erro no servidor: ' + err.message);
       })
       .registrarAtividade(payloadData, fileData);
+  }
+
+  function salvarKMAvulso() {
+    var motivo = document.getElementById('avulso-motivo').value;
+    var km = document.getElementById('avulso-km').value;
+    var outros = document.getElementById('avulso-outros').value;
+
+    if (!motivo || !km) {
+      alert('Preencha o motivo e a quantidade de KM!');
+      return;
+    }
+
+    var payloadData = {
+      filial: 'AVULSO',
+      escopo: 'REGIONAL',
+      tipoRoteiro: 'Presencial (Visita in loco)',
+      motivo: 'Deslocamento Avulso (' + motivo + ')',
+      kmPercorrido: km,
+      valorPedagio: outros,
+      observacao: 'Lançamento de KM Avulso'
+    };
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        var m = bootstrap.Modal.getInstance(document.getElementById('modalKmAvulso'));
+        m.hide();
+        alert(res.mensagem);
+        inicializarAplicacao();
+      })
+      .registrarAtividade(payloadData, null);
+  }
+
+  function addNatureza() {
+    var txt = document.getElementById('input-nova-natureza').value.trim();
+    if (!txt) return;
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        alert(res.mensagem);
+        if (res.sucesso) inicializarAplicacao();
+      })
+      .adicionarNatureza(txt);
+  }
+
+  function delNatureza(texto) {
+    if (!confirm('Deseja excluir esta natureza?')) return;
+    google.script.run
+      .withSuccessHandler(function(res) {
+        alert(res.mensagem);
+        if (res.sucesso) inicializarAplicacao();
+      })
+      .excluirNatureza(texto);
   }
 
   function deletarTemaAdmin(cat, texto) {

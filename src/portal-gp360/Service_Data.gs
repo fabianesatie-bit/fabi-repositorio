@@ -29,7 +29,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
 
   if (!dicionarioPremios['CANAL']) dicionarioPremios['CANAL'] = 2;
   if (!dicionarioPremios['INTERNA']) dicionarioPremios['INTERNA'] = 4;
-  if (!dicionarioPremios['ATENDIMENTO_SOCIAL']) dicionarioPremios['ATENDIMENTO_SOCIAL'] = 2;
 
   var lojas = [];
   var mapaLojaRegional = {};

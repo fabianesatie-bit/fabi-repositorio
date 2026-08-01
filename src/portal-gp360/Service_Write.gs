@@ -4,9 +4,6 @@
  * Subpasta Monorepo: src/portal-gp360/
  */
 
-/**
- * Registra atividade no DADOS_LANCAMENTOS com trava de concorrência e upload de mídia
- */
 function registrarAtividade(dados, fileData) {
   var lock = LockService.getScriptLock();
   try {
@@ -37,13 +34,16 @@ function registrarAtividade(dados, fileData) {
     var novoId = Utilities.getUuid();
     var dataHora = new Date();
 
-    // Cálculo de Custos
+    var rate = parseFloat(dados.rateKm) || 1.20;
     var km = parseFloat(dados.kmPercorrido) || 0;
     var pedagio = parseFloat(dados.valorPedagio) || 0;
     var alimentacao = parseFloat(dados.valorAlimentacao) || 0;
     var hospedagem = parseFloat(dados.valorHospedagem) || 0;
+    var aereo = parseFloat(dados.valorAereo) || 0;
+    var estacionamento = parseFloat(dados.valorEstacionamento) || 0;
     var outros = parseFloat(dados.outrosCustos) || 0;
-    var custoTotal = (km * 1.10) + pedagio + alimentacao + hospedagem + outros; // Taxa KM Padrão
+
+    var custoTotal = (km * rate) + pedagio + alimentacao + hospedagem + aereo + estacionamento + outros;
 
     aba.appendRow([
       novoId,
@@ -69,7 +69,7 @@ function registrarAtividade(dados, fileData) {
     CacheService.getScriptCache().remove('IND_LOJA_' + dados.filial);
     registrarAuditoria('REGISTRO_ATIVIDADE', 'ID: ' + novoId + ' - Loja: ' + dados.filial);
 
-    return { sucesso: true, mensagem: 'Atividade e reembolso registrados com sucesso!', id: novoId };
+    return { sucesso: true, mensagem: 'Atividade e despesas registradas com sucesso!', id: novoId };
   } catch (err) {
     return { sucesso: false, mensagem: 'Erro na gravação: ' + err.toString() };
   } finally {
@@ -77,9 +77,6 @@ function registrarAtividade(dados, fileData) {
   }
 }
 
-/**
- * Exclui um lançamento do histórico
- */
 function excluirLancamento(idLancamento) {
   var lock = LockService.getScriptLock();
   try {

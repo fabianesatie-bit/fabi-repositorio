@@ -19,7 +19,7 @@
       --brand-blue: #0087FF;
       --brand-lightblue: #5EB5FF;
       --brand-green: #17F036;
-      --bg-neutral: #F1F5F9;
+      --bg-neutral: #F8FAFC;
       --card-bg: #FFFFFF;
       --text-dark: #0F172A;
     }
@@ -150,6 +150,13 @@
       box-shadow: 0 4px 12px rgba(0,135,255,0.3);
     }
 
+    .box-calculadora-despesas {
+      background: #FEF3C7;
+      border: 1px solid #FCD34D;
+      border-radius: 14px;
+      padding: 16px;
+    }
+
     #bloqueio-tela {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -188,10 +195,8 @@
   <div id="app-container" class="container-fluid d-none p-0">
     <div class="row g-0">
       
-      <!-- Sidebar Perfil & Navegação Estilizada -->
       <div class="col-md-3 col-lg-2 sidebar p-3 text-center">
         <div class="mb-3 mt-2">
-          <!-- SVG Data URI nativo para evitar erro 502/404 de via.placeholder -->
           <img id="user-avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%230087FF'/><text x='50%' y='55%' font-size='32' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>GP</text></svg>" class="avatar-profile mb-2" alt="Foto">
           <h6 class="fw-bold mb-0 text-dark" id="user-nome-display">Carregando...</h6>
           <small class="badge bg-light text-primary border mt-1" id="user-cargo-display">Coordenador</small>
@@ -250,7 +255,6 @@
 
       <div class="col-md-9 col-lg-10 p-4">
         
-        <!-- Header Topo com Seletores Temporizados -->
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-stars text-warning me-2"></i>Portal GP 360</h4>
           <div class="d-flex align-items-center gap-2">
@@ -269,7 +273,6 @@
         <!-- ABA INÍCIO (HOME BENTO GRID) -->
         <div id="aba-home" class="view-aba">
           
-          <!-- Escalada de Governança -->
           <div class="card-governanca p-4 mb-4 d-flex justify-content-between align-items-center shadow-sm">
             <div>
               <h5 class="fw-bold text-success mb-2">
@@ -283,7 +286,6 @@
             </div>
           </div>
 
-          <!-- Top 3 KPIs -->
           <div class="row g-3 mb-4">
             <div class="col-md-4">
               <div class="bento-card d-flex align-items-center gap-3">
@@ -339,26 +341,52 @@
         </div>
 
         <div id="aba-lancamento" class="view-aba d-none">
-          <div class="bento-card" style="max-width: 850px; margin: 0 auto;">
-            <h5 class="fw-bold mb-4 text-primary"><i class="bi bi-plus-square-fill me-2"></i> Registrar Atividade</h5>
+          <div class="bento-card" style="max-width: 900px; margin: 0 auto;">
+            <h5 class="fw-bold mb-4 text-primary"><i class="bi bi-plus-square-fill me-2"></i> Nova Atividade</h5>
+            <p class="text-muted small mb-4">Preencha os detalhes do seu roteiro ou interação.</p>
             
             <form id="form-lancamento" onsubmit="event.preventDefault(); salvarAtividade();">
               <div class="row g-3">
+                
                 <div class="col-md-6">
-                  <label class="form-label fw-semibold">Filial / Loja</label>
-                  <select id="select-filial" class="form-select" required>
-                    <option value="">Selecione a loja...</option>
+                  <label class="form-label fw-semibold">Data da Atividade/Viagem</label>
+                  <input type="date" id="input-data-atividade" class="form-control" required>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Este atendimento foi para:</label>
+                  <select id="select-escopo-atendimento" class="form-select" onchange="alternarEscopoAtendimento()" required>
+                    <option value="FILIAL" selected>Uma Filial Específica</option>
+                    <option value="REGIONAL">Regional</option>
+                    <option value="DIRETORIA">Diretoria</option>
                   </select>
                 </div>
 
                 <div class="col-md-6">
+                  <label class="form-label fw-semibold">Tipo de Roteiro:</label>
+                  <select id="select-tipo-roteiro" class="form-select" required>
+                    <option value="Presencial (Visita in loco)" selected>Presencial (Visita in loco)</option>
+                    <option value="Online">Online</option>
+                    <option value="Presencial (evento/reuniões)">Presencial (evento/reuniões)</option>
+                    <option value="Híbrido">Híbrido</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6" id="box-destino-filial">
+                  <label class="form-label fw-semibold">Destino (Filial)</label>
+                  <select id="select-filial" class="form-select">
+                    <option value="">Selecione a loja...</option>
+                  </select>
+                </div>
+
+                <div class="col-md-12">
                   <label class="form-label fw-semibold">Qual a natureza deste atendimento?</label>
                   <select id="select-natureza" class="form-select" required onchange="verificarCamposDinamicos()">
                     <option value="">Selecione a natureza...</option>
                   </select>
                 </div>
 
-                <!-- Bloco Dinâmico para Reunião Regional (Chips de Múltipla Escolha) -->
+                <!-- Chips Reunião Regional -->
                 <div class="col-12 d-none" id="box-temas-reuniao">
                   <div class="p-3 bg-light rounded-3 border">
                     <label class="form-label fw-bold text-primary mb-2"><i class="bi bi-tags-fill me-1"></i> Temas da Reunião (Múltipla Escolha):</label>
@@ -366,7 +394,7 @@
                   </div>
                 </div>
 
-                <!-- Bloco Dinâmico para Treinamento (Dropdown) -->
+                <!-- Dropdown Treinamentos -->
                 <div class="col-12 d-none" id="box-tema-treinamento">
                   <div class="p-3 bg-light rounded-3 border">
                     <label class="form-label fw-bold text-primary mb-2"><i class="bi bi-easel-fill me-1"></i> Tema do Treinamento:</label>
@@ -376,7 +404,6 @@
                   </div>
                 </div>
 
-                <!-- Campos de Pessoas Impactadas e Tempo Gasto -->
                 <div class="col-md-6">
                   <label class="form-label fw-semibold">Pessoas Impactadas</label>
                   <input type="number" id="input-pessoas-impactadas" class="form-control" placeholder="Ex: 15">
@@ -388,26 +415,44 @@
                   <small class="text-danger small d-block mt-1">* O tempo gasto deve incluir preparação de materiais e execução.</small>
                 </div>
 
-                <!-- Calculadora de Despesas -->
+                <!-- Calculadora de Despesas Completa -->
                 <div class="col-12">
-                  <div class="p-3 bg-warning-subtle rounded-3 border border-warning-subtle">
-                    <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-calculator"></i> Calculadora de Despesas e Reembolso</h6>
-                    <div class="row g-2">
-                      <div class="col-md-4"><label class="small text-muted">KM Percorrido</label><input type="number" id="input-km" class="form-control form-control-sm" placeholder="0" oninput="calcularDespesas()"></div>
-                      <div class="col-md-4"><label class="small text-muted">Pedágio (R$)</label><input type="number" id="input-pedagio" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
-                      <div class="col-md-4"><label class="small text-muted">Alimentação (R$)</label><input type="number" id="input-alimentacao" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
-                      <div class="col-md-6"><label class="small text-muted">Hospedagem (R$)</label><input type="number" id="input-hospedagem" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
-                      <div class="col-md-6"><label class="small text-muted">Outros Custos (R$)</label><input type="number" id="input-outros" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
+                  <div class="box-calculadora-despesas">
+                    <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-car-front-fill me-2"></i>Deslocamento e Despesas da Visita</h6>
+                    <div class="row g-2 mb-2">
+                      <div class="col-md-4">
+                        <label class="small fw-semibold text-secondary">Valor do KM (R$)</label>
+                        <input type="number" step="0.01" id="input-rate-km" class="form-control form-control-sm" value="1.20" oninput="calcularDespesas()">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="small fw-semibold text-secondary">Qtd de KM</label>
+                        <input type="number" id="input-km" class="form-control form-control-sm" placeholder="0" oninput="calcularDespesas()">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="small fw-semibold text-secondary">Custo KM (R$)</label>
+                        <input type="text" id="display-custo-km" class="form-control form-control-sm bg-light" value="0.00" readonly>
+                      </div>
                     </div>
-                    <div class="mt-2 text-end fw-bold text-dark fs-5" id="display-gasto-total">Gasto Total: R$ 0,00</div>
+
+                    <hr class="my-2 border-warning">
+
+                    <h6 class="fw-bold mb-2 text-dark small"><i class="bi bi-receipt me-1"></i>Outros Gastos (Opcional)</h6>
+                    <div class="row g-2">
+                      <div class="col-md-4"><label class="small text-secondary">Alimentação (R$)</label><input type="number" step="0.01" id="input-alimentacao" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
+                      <div class="col-md-4"><label class="small text-secondary">Hospedagem (R$)</label><input type="number" step="0.01" id="input-hospedagem" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
+                      <div class="col-md-4"><label class="small text-secondary">Aéreo (R$)</label><input type="number" step="0.01" id="input-aereo" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
+                      <div class="col-md-6"><label class="small text-secondary">Pedágio (R$)</label><input type="number" step="0.01" id="input-pedagio" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
+                      <div class="col-md-6"><label class="small text-secondary">Estacion. (R$)</label><input type="number" step="0.01" id="input-estacionamento" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
+                    </div>
+
+                    <div class="mt-3 text-end fw-bold text-dark fs-5" id="display-gasto-total">Gasto Total: R$ 0,00</div>
                   </div>
                 </div>
 
-                <!-- Tríplice Escolha de Evidência -->
                 <div class="col-12">
                   <label class="form-label fw-semibold"><i class="bi bi-paperclip"></i> Evidência da Atividade (Seleção de Opção Única)</label>
                   <div class="p-3 bg-light rounded-3 border">
-                    <small class="d-block text-muted mb-2">Opção 1: Enviar Arquivo do Computador/Celular</small>
+                    <small class="d-block text-muted mb-2">Opção 1: Enviar Arquivo (PC/Celular)</small>
                     <input type="file" id="input-evidencia-file" class="form-control form-control-sm mb-3" accept="image/*" onchange="limparOutrasEvidencias('file')">
 
                     <small class="d-block text-muted mb-1">Opção 2: Colar Imagem da Área de Transferência (Ctrl+V)</small>
@@ -438,77 +483,133 @@
 
         <div id="aba-consultas" class="view-aba d-none">
           <div class="bento-card mb-4">
-            <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-search text-primary me-2"></i>Consultas Gerais e Painéis Corporativos</h5>
-            <p class="text-muted small mb-4">Acesse rapidamente as ferramentas e painéis de gestão do ecossistema.</p>
+            <h5 class="fw-bold mb-2 text-dark"><i class="bi bi-search text-primary me-2"></i>Consultas Gerais</h5>
+            <p class="text-muted small mb-4">Acesse rapidamente outros painéis e recursos corporativos.</p>
             
             <div class="row g-3">
-              <!-- Perfil e Gestão do Gerente de Loja (Link Atualizado Rígido) -->
-              <div class="col-md-6">
-                <div class="bento-card border p-3 d-flex justify-content-between align-items-center bg-light">
-                  <div>
-                    <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-person-badge text-primary me-2"></i>Perfil do Gerente de Loja</h6>
-                    <small class="text-muted d-block">Ferramenta exclusiva do Gerente de Loja.</small>
-                  </div>
-                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzqQNOM7dAJb4o2Q9Wp5OPcNEcRrh8J1N74-L_NSagvRF1XdfRrOvRk1yFpIoI8ePZt/exec', 'Perfil do Gerente')" class="btn btn-primary btn-sm fw-bold px-3">Abrir Painel</button>
+              <div class="col-md-6 col-lg-4">
+                <div class="bento-card border p-3 text-center bg-light">
+                  <i class="bi bi-person-badge text-primary display-6 mb-2"></i>
+                  <h6 class="fw-bold text-dark">Perfil do Gerente de Loja</h6>
+                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzqQNOM7dAJb4o2Q9Wp5OPcNEcRrh8J1N74-L_NSagvRF1XdfRrOvRk1yFpIoI8ePZt/exec', 'Perfil do Gerente')" class="btn btn-primary btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
                 </div>
               </div>
 
-              <!-- Atendimento Social -->
-              <div class="col-md-6">
-                <div class="bento-card border p-3 d-flex justify-content-between align-items-center bg-light">
-                  <div>
-                    <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-heart-pulse text-danger me-2"></i>Atendimento Social</h6>
-                    <small class="text-muted d-block">Acompanhamento e acionamentos sociais.</small>
-                  </div>
-                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', 'Atendimento Social')" class="btn btn-danger btn-sm fw-bold px-3">Abrir Painel</button>
+              <div class="col-md-6 col-lg-4">
+                <div class="bento-card border p-3 text-center bg-light">
+                  <i class="bi bi-heart-pulse text-danger display-6 mb-2"></i>
+                  <h6 class="fw-bold text-dark">Atendimento Social</h6>
+                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', 'Atendimento Social')" class="btn btn-danger btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
                 </div>
               </div>
 
-              <!-- Apurações e Feedback -->
-              <div class="col-md-6">
-                <div class="bento-card border p-3 d-flex justify-content-between align-items-center bg-light">
-                  <div>
-                    <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-shield-check text-warning me-2"></i>Apurações / Feedback</h6>
-                    <small class="text-muted d-block">Gestão de denúncias e desligamentos.</small>
-                  </div>
-                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback')" class="btn btn-warning text-dark btn-sm fw-bold px-3">Abrir Painel</button>
+              <div class="col-md-6 col-lg-4">
+                <div class="bento-card border p-3 text-center bg-light">
+                  <i class="bi bi-shield-check text-warning display-6 mb-2"></i>
+                  <h6 class="fw-bold text-dark">Apurações / Feedback</h6>
+                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback')" class="btn btn-warning text-dark btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
                 </div>
               </div>
 
-              <!-- Agente Integrador -->
-              <div class="col-md-6">
-                <div class="bento-card border p-3 d-flex justify-content-between align-items-center bg-light">
-                  <div>
-                    <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-people text-success me-2"></i>Agente Integrador</h6>
-                    <small class="text-muted d-block">Painel de integração de equipes.</small>
-                  </div>
-                  <button onclick="abrirPainelInterno('https://script.google.com', 'Agente Integrador')" class="btn btn-success btn-sm fw-bold px-3">Abrir Painel</button>
+              <div class="col-md-6 col-lg-4">
+                <div class="bento-card border p-3 text-center bg-light">
+                  <i class="bi bi-people text-success display-6 mb-2"></i>
+                  <h6 class="fw-bold text-dark">Agente Integrador</h6>
+                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbySeCo0Pao_eydyF9ZZfetcSf6Rc-kgmdCiXjJkhf4O1r0jnQI6yRCWG_tGkIgwBzXY2A/exec', 'Agente Integrador')" class="btn btn-success btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="bento-card border p-3 text-center bg-light">
+                  <i class="bi bi-clock-history text-purple display-6 mb-2" style="color:#8000FF;"></i>
+                  <h6 class="fw-bold text-dark">Banco de Horas</h6>
+                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzWpN0-LZa_Lvd6VugBL5k3tWbHa5jdwKhJyD4UCH4Ml00BeNzved493zspKCgZAmz5Vg/exec', 'Banco de Horas')" class="btn btn-outline-purple btn-sm w-100 fw-bold mt-2" style="border-color:#8000FF; color:#8000FF;">Acessar Painel</button>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="bento-card border p-3 text-center bg-light">
+                  <i class="bi bi-database text-info display-6 mb-2"></i>
+                  <h6 class="fw-bold text-dark">Base Rol</h6>
+                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbx8faffOLaa2D34yPcmyCTh1k4twGCvH-8GoUaKqOMejk9n6CBJbYA0khBu4Yd2WCai/exec', 'Base Rol')" class="btn btn-info text-white btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="bento-card border p-3 text-center bg-light">
+                  <i class="bi bi-recycle text-success display-6 mb-2"></i>
+                  <h6 class="fw-bold text-dark">Lixo Eletrônico</h6>
+                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbybafdaQteFy4FuWwPxIQLGJDGWUsac8jo_agut6PlF42-1ta3mW8uyyjdbtLYGsgWn/exec', 'Lixo Eletrônico')" class="btn btn-outline-success btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- ABA VISÃO GERAL GP -->
-        <div id="aba-visao-gp" class="view-aba d-none">
+        <div id="aba-historico" class="view-aba d-none">
           <div class="bento-card">
-            <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Visão Geral GP</h5>
-            <p class="text-muted mb-3">Consolidação geral do ecossistema de indicadores de pessoas.</p>
-            <a href="https://script.google.com" target="_blank" class="btn btn-primary fw-bold"><i class="bi bi-box-arrow-up-right me-1"></i> Abrir Visão Geral GP em Nova Guia</a>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="fw-bold mb-0 text-dark">Extrato de Reembolso e Despesas</h5>
+              <div class="d-flex gap-2">
+                <button onclick="abrirModalAvulso()" class="btn btn-warning text-white fw-bold shadow-sm"><i class="bi bi-car-front-fill me-1"></i> + KM Avulso</button>
+                <button onclick="imprimirRelatorioKM()" class="btn btn-light border fw-bold shadow-sm"><i class="bi bi-printer me-1"></i> Imprimir Extrato</button>
+              </div>
+            </div>
+
+            <!-- Filtro de Datas do Extrato -->
+            <div class="p-3 bg-light rounded-3 border mb-4">
+              <div class="row g-2 align-items-end">
+                <div class="col-md-5">
+                  <label class="small text-muted fw-semibold">Data Início:</label>
+                  <input type="date" id="filtro-extrato-inicio" class="form-control form-control-sm" onchange="renderizarHistoricos()">
+                </div>
+                <div class="col-md-5">
+                  <label class="small text-muted fw-semibold">Data Fim:</label>
+                  <input type="date" id="filtro-extrato-fim" class="form-control form-control-sm" onchange="renderizarHistoricos()">
+                </div>
+                <div class="col-md-2">
+                  <button class="btn btn-secondary btn-sm w-100 fw-bold" onclick="limparFiltroDatas()"><i class="bi bi-arrow-counterclockwise me-1"></i> Limpar</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="tabela-extrato-container" class="d-flex flex-column gap-3">
+              <div class="text-muted p-3">Carregando extrato de lançamentos...</div>
+            </div>
           </div>
         </div>
 
-        <!-- DEMAIS ABAS OPERACIONAIS -->
+        <div id="aba-configuracoes" class="view-aba d-none">
+          <div class="bento-card">
+            <h5 class="fw-bold mb-1 text-dark">Configurações do Sistema</h5>
+            <p class="text-muted small mb-4">Gerencie as naturezas extras de atividade e o dicionário de prêmios da gamificação.</p>
+
+            <div class="p-4 bg-light rounded-3 border mb-4">
+              <h6 class="fw-bold text-dark mb-3"><i class="bi bi-tag-fill text-primary me-2"></i>Naturezas Extras Customizadas</h6>
+              <div class="input-group mb-3" style="max-width: 600px;">
+                <input type="text" id="input-nova-natureza" class="form-control" placeholder="Nova natureza (Ex: Integração RH)">
+                <button class="btn btn-primary fw-bold" onclick="addNatureza()"><i class="bi bi-plus-lg me-1"></i> Adicionar</button>
+              </div>
+
+              <div id="container-lista-naturezas" class="d-flex flex-column gap-2 mt-3">
+                <div class="text-muted small">Carregando naturezas...</div>
+              </div>
+            </div>
+
+            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-sliders me-2"></i>Gestão de Temas Admin</h6>
+            <div id="container-lista-temas"></div>
+          </div>
+        </div>
+
+        <!-- OUTRAS ABAS OPERACIONAIS -->
         <div id="aba-gestao" class="view-aba d-none"><div id="timeline-atividades" class="d-flex flex-column gap-2"></div></div>
         <div id="aba-galeria" class="view-aba d-none"><div class="row g-3" id="grid-galeria"></div></div>
-        <div id="aba-historico" class="view-aba d-none"><div class="bento-card"><h5 class="fw-bold mb-3">Extrato de Despesas</h5><div id="tabela-extrato-container"></div></div></div>
-        <div id="aba-configuracoes" class="view-aba d-none"><div class="bento-card"><h5 class="fw-bold mb-3">Gestão de Temas Admin</h5><div id="container-lista-temas"></div></div></div>
+        <div id="aba-visao-gp" class="view-aba d-none"><div class="bento-card"><h5 class="fw-bold mb-3">Visão Geral GP</h5><a href="https://script.google.com" target="_blank" class="btn btn-primary fw-bold"><i class="bi bi-box-arrow-up-right me-1"></i> Abrir em Nova Guia</a></div></div>
 
       </div>
     </div>
   </div>
 
-  <!-- Modal para visualização de painéis em Iframe Interno -->
   <div class="modal fade" id="modalIframeInterno" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content">
@@ -523,8 +624,26 @@
     </div>
   </div>
 
+  <div class="modal fade" id="modalKmAvulso" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title fw-bold"><i class="bi bi-car-front-fill me-2"></i>Registrar KM Avulso</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-km-avulso" onsubmit="event.preventDefault(); salvarKMAvulso();">
+            <div class="mb-3"><label class="form-label fw-semibold">Motivo do Deslocamento</label><input type="text" id="avulso-motivo" class="form-control" placeholder="Ex: Deslocamento para Evento Sede" required></div>
+            <div class="mb-3"><label class="form-label fw-semibold">KM Percorrido</label><input type="number" id="avulso-km" class="form-control" placeholder="0" required></div>
+            <div class="mb-3"><label class="form-label fw-semibold">Valor do Pedágio/Outros (R$)</label><input type="number" step="0.01" id="avulso-outros" class="form-control" placeholder="0.00"></div>
+            <button type="submit" class="btn btn-warning w-100 fw-bold text-dark">Salvar Registro Avulso</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  
   <?!= include('Scripts_Core'); ?>
   <?!= include('Scripts_UI'); ?>
 </body>
