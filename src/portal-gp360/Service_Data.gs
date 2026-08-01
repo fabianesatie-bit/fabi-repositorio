@@ -74,27 +74,29 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     var dLanc = abaLanc.getDataRange().getValues();
     for (var k = 1; k < dLanc.length; k++) {
       var row = dLanc[k];
-      var idReg = row[0];
-      var dtObj = row[1];
-      var emailAutor = String(row[2] || '').toLowerCase().trim();
-      var numFilialLanc = normalizarFilialId(row[3]);
-      var fIdLanc = numFilialLanc ? ("0000" + numFilialLanc).slice(-4) : '';
+      var idReg = row[0];                                   // Col A: ID_Lancamento
+      var dtObj = row[1];                                   // Col B: Data_Hora
+      var emailAutor = String(row[2] || '').toLowerCase().trim(); // Col C: Coordenador_Email
+      var rawFilialLanc = row[3];                          // Col D: Destino_Filial_Regional
+      var numFilialLanc = normalizarFilialId(rawFilialLanc);
+      var fIdLanc = numFilialLanc ? ("0000" + numFilialLanc).slice(-4) : String(rawFilialLanc || '');
       var regLanc = mapaLojaRegional[fIdLanc] || '';
-      var motivoLanc = String(row[5] || '').trim();
+      var motivoLanc = String(row[4] || '').trim();         // Col E: Motivo_Meta
       var motivoLancUpper = motivoLanc.toUpperCase();
-      var custoTotalItem = parseFloat(row[14]) || 0;
+      var custoTotalItem = parseFloat(row[8]) || parseFloat(row[21]) || 0; // Col I ou V: Total_Gastos / Total despesa
 
-      var dtStr = formatarDataSegura(dtObj);
-      var dtParsed = dtObj instanceof Date ? dtObj : new Date(dtObj);
+      var dtStr = formatarDataSegura(dtObj || row[12]);
+      var dtParsed = dtObj instanceof Date ? dtObj : new Date(dtObj || row[12]);
       var mReg = dtParsed.getMonth() + 1;
       var aReg = dtParsed.getFullYear();
 
-      var ptsItem = dicionarioPremios[motivoLancUpper] || 1;
+      var ptsItem = parseFloat(row[9]) || dicionarioPremios[motivoLancUpper] || 1; // Col J: Moedas_Geradas
 
       if (!pontuacaoPorUsuario[emailAutor]) {
         pontuacaoPorUsuario[emailAutor] = { mes: 0, total: 0, email: emailAutor, foto: '' };
       }
 
+      // Trava de 1 visita por dia por loja por coordenador
       var chaveVisitaDia = emailAutor + '_' + fIdLanc + '_' + dtStr;
       var ehPrimeiraVisitaDoDia = !visitasLojasDiaSet[chaveVisitaDia];
       
@@ -123,21 +125,25 @@ function obterDadosIniciais(filtroMes, filtroAno) {
             distribuicaoAtividadesMap[motivoLanc] = (distribuicaoAtividadesMap[motivoLanc] || 0) + 1;
           }
 
-          if (controle.isSuperAdmin || controle.regionais.includes(regLanc)) {
+          if (controle.isSuperAdmin || controle.regionais.includes(regLanc) || !fIdLanc) {
             lancamentos.push({
               id: idReg,
               data: dtStr,
               filial: fIdLanc,
-              lojaNome: row[4],
               motivo: motivoLanc,
-              tema: row[6] || '',
-              observacao: row[7],
-              evidenciaUrl: row[8] || '',
-              kmPercorrido: row[9] || 0,
-              valorPedagio: row[10] || 0,
-              valorAlimentacao: row[11] || 0,
-              valorHospedagem: row[12] || 0,
-              outrosCustos: row[13] || 0,
+              tema: row[18] || '',                           // Col S: Sub temas
+              observacao: row[10] || '',                     // Col K: Observacoes
+              evidenciaUrl: row[11] || '',                   // Col L: Link_Evidencia
+              kmPercorrido: row[15] || 0,                    // Col P: Qde_Km
+              custoKm: row[16] || 0,                         // Col Q: Total Km
+              tipoRoteiro: row[17] || '',                    // Col R: Tipo_Roteiro
+              pessoasImpactadas: row[19] || 0,               // Col T: Pessoas Impactas
+              tempoGasto: row[20] || 0,                      // Col U: Tempo Gasto
+              valorPedagio: row[25] || 0,                    // Col Z: Pedagio
+              valorAlimentacao: row[22] || 0,                // Col W: Alimentação
+              valorHospedagem: row[23] || 0,                 // Col X: Hospedagem
+              valorAereo: row[24] || 0,                      // Col Y: Aereo
+              valorEstacionamento: row[26] || 0,             // Col AA: Estacionamento
               custoTotal: custoTotalItem,
               autor: row[2]
             });

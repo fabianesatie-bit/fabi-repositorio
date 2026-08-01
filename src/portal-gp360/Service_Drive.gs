@@ -4,9 +4,6 @@
  * Subpasta Monorepo: src/portal-gp360/
  */
 
-/**
- * Recupera os últimos arquivos de evidência salvos para a Galeria com filtro de Mês e Ano
- */
 function getEvidenciasUsuario(filtroMes, filtroAno) {
   var controle = obterControleAcesso();
   if (!controle.temAcesso) return [];
@@ -23,23 +20,23 @@ function getEvidenciasUsuario(filtroMes, filtroAno) {
   var galeria = [];
 
   for (var i = dados.length - 1; i >= 1; i--) {
-    var dtObj = dados[i][1];
+    var dtObj = dados[i][1] || dados[i][12]; // Col B (Data_Hora) ou Col M (Data_Ini)
     var dtParsed = dtObj instanceof Date ? dtObj : new Date(dtObj);
     var mReg = dtParsed.getMonth() + 1;
     var aReg = dtParsed.getFullYear();
 
     if (mReg === mesAlvo && aReg === anoAlvo) {
-      var urlEvidencia = String(dados[i][8] || '').trim();
+      var urlEvidencia = String(dados[i][11] || '').trim(); // Col L: Link_Evidencia (index 11)
       if (urlEvidencia) {
         var fileId = extrairIdDrive(urlEvidencia);
         galeria.push({
-          id: dados[i][0],
-          data: formatarDataSegura(dados[i][1]),
-          loja: (dados[i][4] || 'Filial') + ' (' + (dados[i][3] || '') + ')',
-          motivo: dados[i][5] || 'Atividade',
+          id: dados[i][0], // Col A: ID_Lancamento
+          data: formatarDataSegura(dtObj),
+          loja: String(dados[i][3] || 'Filial/Regional'), // Col D: Destino_Filial_Regional
+          motivo: String(dados[i][4] || 'Atividade'),     // Col E: Motivo_Meta
           url: urlEvidencia,
           fileId: fileId,
-          thumbUrl: 'https://lh3.googleusercontent.com/d/' + fileId + '=w400'
+          thumbUrl: fileId ? 'https://lh3.googleusercontent.com/d/' + fileId + '=w400' : urlEvidencia
         });
       }
     }
