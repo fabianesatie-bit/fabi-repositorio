@@ -13,19 +13,18 @@
 
   window.onload = function() {
     var hoje = new Date().toISOString().split('T')[0];
-    var fieldDataAtividade = document.getElementById('input-data-atividade');
-    if (fieldDataAtividade) fieldDataAtividade.value = hoje;
+    var fieldData = document.getElementById('input-data-atividade');
+    if (fieldData) fieldData.value = hoje;
     var fieldAvulsoData = document.getElementById('avulso-data');
     if (fieldAvulsoData) fieldAvulsoData.value = hoje;
-    
     inicializarAplicacao();
   };
 
   function inicializarAplicacao() {
-    var mSel = document.getElementById('seletor-mes');
-    var aSel = document.getElementById('seletor-ano');
-    var m = mSel ? mSel.value : (new Date().getMonth() + 1);
-    var a = aSel ? aSel.value : new Date().getFullYear();
+    var mElem = document.getElementById('seletor-mes');
+    var aElem = document.getElementById('seletor-ano');
+    var m = mElem ? mElem.value : '';
+    var a = aElem ? aElem.value : '';
 
     google.script.run
       .withSuccessHandler(function(res) {
@@ -33,40 +32,25 @@
         if (splash) splash.classList.add('d-none');
 
         if (!res.temAcesso) {
-          var bloqueio = document.getElementById('bloqueio-tela');
-          if (bloqueio) bloqueio.classList.remove('d-none');
-          var msg = document.getElementById('bloqueio-mensagem');
-          if (msg) msg.innerText = res.motivo || 'Acesso Restrito ao Portal GP 360.';
+          var lockScreen = document.getElementById('bloqueio-tela');
+          if (lockScreen) lockScreen.classList.remove('d-none');
+          var lockMsg = document.getElementById('bloqueio-mensagem');
+          if (lockMsg) lockMsg.innerText = res.motivo || 'Acesso Restrito ao Portal GP 360.';
           return;
         }
 
-        var app = document.getElementById('app-container');
-        if (app) app.classList.remove('d-none');
+        var appCont = document.getElementById('app-container');
+        if (appCont) appCont.classList.remove('d-none');
         dadosGlobais = res;
-        
         renderizarInterfaceCompleta();
-
-        // Refresh currently active tab if needed
-        var abaGaleria = document.getElementById('aba-galeria');
-        if (abaGaleria && !abaGaleria.classList.contains('d-none')) {
-          carregarGaleriaEvidencias();
-        }
-        var abaHistorico = document.getElementById('aba-historico');
-        if (abaHistorico && !abaHistorico.classList.contains('d-none')) {
-          renderizarHistoricos();
-        }
-        var abaGestao = document.getElementById('aba-gestao');
-        if (abaGestao && !abaGestao.classList.contains('d-none')) {
-          renderizarTimelineAtividades();
-        }
       })
       .withFailureHandler(function(err) {
         var splash = document.getElementById('loading-splash');
         if (splash) splash.classList.add('d-none');
-        var bloqueio = document.getElementById('bloqueio-tela');
-        if (bloqueio) bloqueio.classList.remove('d-none');
-        var msg = document.getElementById('bloqueio-mensagem');
-        if (msg) msg.innerText = 'Erro ao conectar: ' + err.message;
+        var lockScreen = document.getElementById('bloqueio-tela');
+        if (lockScreen) lockScreen.classList.remove('d-none');
+        var lockMsg = document.getElementById('bloqueio-mensagem');
+        if (lockMsg) lockMsg.innerText = 'Erro ao conectar ao servidor: ' + err.message;
       })
       .obterDadosIniciais(m, a);
   }
@@ -80,11 +64,11 @@
     var urlInput = document.getElementById('input-evidencia-url').value;
 
     if (escopo === 'FILIAL' && !filial) {
-      alert('Selecione a loja de destino!');
+      mostrarToast('Selecione a loja de destino!', 'danger');
       return;
     }
     if (!natureza) {
-      alert('Selecione a natureza da atividade!');
+      mostrarToast('Selecione a natureza da atividade!', 'danger');
       return;
     }
 
@@ -95,11 +79,12 @@
     }
 
     var temaStr = '';
-    if (natureza.toLowerCase().includes('reunião') || natureza.toLowerCase().includes('reuniao')) {
-      temaStr = (typeof temasReuniaoSelecionados !== 'undefined') ? temasReuniaoSelecionados.join(', ') : '';
-    } else if (natureza.toLowerCase().includes('treinamento')) {
-      var selTr = document.getElementById('select-tema-treinamento');
-      if (selTr) temaStr = selTr.value;
+    var natLower = natureza.toLowerCase();
+    if (natLower.includes('reunião') || natLower.includes('reuniao')) {
+      temaStr = temasReuniaoSelecionados.join(', ');
+    } else if (natLower.includes('treinamento')) {
+      var selTreina = document.getElementById('select-tema-treinamento');
+      if (selTreina) temaStr = selTreina.value;
     }
 
     var payloadData = {
@@ -130,15 +115,15 @@
           mimeType: file.type,
           ext: file.name.split('.').pop()
         };
-        enviarBackendSalvar(payloadData, fileData, btn);
+        enviarBackendSalvar(payloadData, fileData, btn, natureza);
       };
       reader.readAsDataURL(file);
     } else {
-      enviarBackendSalvar(payloadData, null, btn);
+      enviarBackendSalvar(payloadData, null, btn, natureza);
     }
   }
 
-  function enviarBackendSalvar(payloadData, fileData, btn) {
+  function enviarBackendSalvar(payloadData, fileData, btn, natureza) {
     google.script.run
       .withSuccessHandler(function(res) {
         if (btn) {
@@ -148,12 +133,24 @@
 
         if (res.sucesso) {
           dispararConfetesFestao();
-          alert('Sua atividade foi registrada com sucesso!');
-          var form = document.getElementById('form-lancamento');
-          if (form) form.reset();
+          var formLanc = document.getElementById('form-lancamento');
+          if (formLanc) formLanc.reset();
+
+          var natLower = String(natureza || '').toLowerCase();
+          
+          if (natLower.includes('atendimento social')) {
+            mostrarToast('Atividade salva no histórico! Abrindo formulário detalhado...', 'success');
+            abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', 'Atendimento Social');
+          } else if (natLower.includes('apuraç') || natLower.includes('apurac') || natLower.includes('feedback') || natLower.includes('acompanhamento')) {
+            mostrarToast('Atividade salva no histórico! Abrindo painel de apuração...', 'success');
+            abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback');
+          } else {
+            mostrarToast('Sua atividade foi registrada com sucesso!', 'success');
+          }
+
           inicializarAplicacao();
         } else {
-          alert('Erro ao salvar: ' + res.mensagem);
+          mostrarToast('Erro ao salvar: ' + res.mensagem, 'danger');
         }
       })
       .withFailureHandler(function(err) {
@@ -161,7 +158,7 @@
           btn.disabled = false;
           btn.innerHTML = '<i class="bi bi-coin me-1"></i> Salvar e Ganhar Moeda';
         }
-        alert('Erro no servidor: ' + err.message);
+        mostrarToast('Erro no servidor: ' + err.message, 'danger');
       })
       .registrarAtividade(payloadData, fileData);
   }
@@ -172,7 +169,7 @@
     var km = document.getElementById('avulso-km').value;
 
     if (!destino || !km) {
-      alert('Preencha o Destino e a Quantidade de KM!');
+      mostrarToast('Preencha o Destino e a Quantidade de KM!', 'danger');
       return;
     }
 
@@ -194,50 +191,47 @@
     google.script.run
       .withSuccessHandler(function(res) {
         alternarFormularioKMAvulso();
-        alert(res.mensagem);
+        mostrarToast(res.mensagem, res.sucesso ? 'success' : 'danger');
         inicializarAplicacao();
       })
       .registrarAtividade(payloadData, null);
   }
 
   function deletarHistorico(id) {
-    if (!confirm('Deseja realmente excluir este lançamento?')) return;
-
     google.script.run
       .withSuccessHandler(function(res) {
-        alert(res.mensagem);
+        mostrarToast(res.mensagem, res.sucesso ? 'success' : 'danger');
         if (res.sucesso) inicializarAplicacao();
       })
       .excluirLancamento(id);
   }
 
   function addNatureza() {
-    var txt = document.getElementById('input-nova-natureza').value.trim();
+    var txtElem = document.getElementById('input-nova-natureza');
+    var txt = txtElem ? txtElem.value.trim() : '';
     if (!txt) return;
 
     google.script.run
       .withSuccessHandler(function(res) {
-        alert(res.mensagem);
+        mostrarToast(res.mensagem, res.sucesso ? 'success' : 'danger');
         if (res.sucesso) inicializarAplicacao();
       })
       .adicionarNatureza(txt);
   }
 
   function delNatureza(texto) {
-    if (!confirm('Deseja excluir esta natureza?')) return;
     google.script.run
       .withSuccessHandler(function(res) {
-        alert(res.mensagem);
+        mostrarToast(res.mensagem, res.sucesso ? 'success' : 'danger');
         if (res.sucesso) inicializarAplicacao();
       })
       .excluirNatureza(texto);
   }
 
   function deletarTemaAdmin(cat, texto) {
-    if (!confirm('Deseja excluir este tema?')) return;
     google.script.run
       .withSuccessHandler(function(res) {
-        alert(res.mensagem);
+        mostrarToast(res.mensagem, res.sucesso ? 'success' : 'danger');
         if (res.sucesso) inicializarAplicacao();
       })
       .excluirTema(cat, texto);

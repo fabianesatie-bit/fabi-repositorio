@@ -34,6 +34,78 @@
     return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%230087FF'/><text x='50%' y='55%' font-size='30' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>" + inis + "</text></svg>";
   }
 
+  function mostrarToast(mensagem, tipo) {
+    var container = document.getElementById('toast-container');
+    if (!container) return;
+
+    var bgClass = 'bg-dark text-white';
+    var icon = 'bi-info-circle-fill text-info';
+    if (tipo === 'success') { bgClass = 'bg-success text-white'; icon = 'bi-check-circle-fill text-white'; }
+    if (tipo === 'danger') { bgClass = 'bg-danger text-white'; icon = 'bi-exclamation-triangle-fill text-white'; }
+
+    var toastHtml = '<div class="toast-custom ' + bgClass + '">' +
+      '<i class="bi ' + icon + ' fs-5"></i>' +
+      '<span>' + mensagem + '</span>' +
+    '</div>';
+
+    var elem = document.createElement('div');
+    elem.innerHTML = toastHtml;
+    var toastNode = elem.firstChild;
+    container.appendChild(toastNode);
+
+    setTimeout(function() {
+      if (toastNode && toastNode.parentNode) {
+        toastNode.parentNode.removeChild(toastNode);
+      }
+    }, 4000);
+  }
+
+  function ativarDropzoneClipboard(elem) {
+    elem.focus();
+    var txt = document.getElementById('txt-dropzone');
+    if (txt) txt.innerText = 'Pronto! Aperte Ctrl+V para colar sua imagem agora';
+
+    if (navigator.clipboard && navigator.clipboard.read) {
+      navigator.clipboard.read().then(function(items) {
+        for (var i = 0; i < items.length; i++) {
+          for (var j = 0; j < items[i].types.length; j++) {
+            if (items[i].types[j].indexOf('image') !== -1) {
+              items[i].getType(items[i].types[j]).then(function(blob) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                  document.getElementById('input-evidencia-url').value = e.target.result;
+                  if (txt) txt.innerText = '✓ Imagem colada com sucesso da área de transferência!';
+                  mostrarToast('Imagem capturada do Clipboard!', 'success');
+                };
+                reader.readAsDataURL(blob);
+              });
+            }
+          }
+        }
+      }).catch(function(e) {
+        // Fallback for Ctrl+V key listener
+      });
+    }
+  }
+
+  document.addEventListener('paste', function(e) {
+    var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+    for (var index in items) {
+      var item = items[index];
+      if (item.kind === 'file') {
+        var blob = item.getAsFile();
+        var reader = new FileReader();
+        reader.onload = function(event) {
+          document.getElementById('input-evidencia-url').value = event.target.result;
+          var txt = document.getElementById('txt-dropzone');
+          if (txt) txt.innerText = '✓ Imagem colada com sucesso via Ctrl+V!';
+          mostrarToast('Imagem colada com sucesso!', 'success');
+        };
+        reader.readAsDataURL(blob);
+      }
+    }
+  });
+
   function mudarAba(abaId, element) {
     var abas = document.querySelectorAll('.view-aba');
     abas.forEach(function(a) { a.classList.add('d-none'); });
@@ -341,13 +413,24 @@
         '<button class="btn btn-sm btn-outline-danger border-0" onclick="deletarHistorico(\'' + item.id + '\')"><i class="bi bi-trash fs-5"></i></button>' : 
         '<i class="bi bi-lock-fill text-muted" title="Sem permissão para excluir"></i>';
 
+      var motLower = String(item.motivo || '').toLowerCase();
+      var statusBadge = '';
+
+      if (motLower.includes('atendimento social') || motLower.includes('apuraç') || motLower.includes('apurac') || motLower.includes('feedback')) {
+        if (item.validadoEspecialista) {
+          statusBadge = '<span class="badge bg-success-subtle text-success border border-success me-2"><i class="bi bi-patch-check-fill me-1"></i> VALIDADO NA PLANILHA ESPECIALISTA</span>';
+        } else {
+          statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning text-dark me-2"><i class="bi bi-clock-history me-1"></i> PENDENTE REGISTRO EXTERNO</span>';
+        }
+      }
+
       container.innerHTML += '<div class="bento-card p-3 border-start border-4 border-primary shadow-sm mb-2">' +
         '<div class="d-flex justify-content-between align-items-start mb-1">' +
           '<small class="text-muted">' + item.data + ' • Lançado por: ' + (item.autor || 'Usuário GP') + '</small>' +
           btnDeleteHtml +
         '</div>' +
         '<h6 class="fw-bold text-dark mb-1">' + localStr + '</h6>' +
-        '<div class="small text-secondary mb-2"><strong>Motivo:</strong> ' + item.motivo + (item.tema ? ' (' + item.tema + ')' : '') + (item.observacao ? ' - ' + item.observacao : '') + '</div>' +
+        '<div class="small text-secondary mb-2">' + statusBadge + '<strong>Motivo:</strong> ' + item.motivo + (item.tema ? ' (' + item.tema + ')' : '') + (item.observacao ? ' - ' + item.observacao : '') + '</div>' +
       '</div>';
     });
   }

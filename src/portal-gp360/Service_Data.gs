@@ -59,6 +59,22 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     }
   }
 
+  var chavesValidadasSocial = {};
+  try {
+    var ssSoc = SpreadsheetApp.openById(SPREADSHEET_SOCIAL_ID);
+    if (ssSoc) {
+      var abaSocReg = ssSoc.getSheetByName('BASE_REGISTRO');
+      if (abaSocReg) {
+        var dSocReg = abaSocReg.getDataRange().getValues();
+        for (var sr = 1; sr < dSocReg.length; sr++) {
+          var fSoc = ("0000" + normalizarFilialId(dSocReg[sr][1])).slice(-4);
+          var dtSoc = formatarDataSegura(dSocReg[sr][0] || new Date());
+          chavesValidadasSocial['SOCIAL_' + fSoc + '_' + dtSoc] = true;
+        }
+      }
+    }
+  } catch (eSoc) {}
+
   var lancamentos = [];
   var moedasTotaisUser = 0;
   var moedasMesUser = 0;
@@ -108,6 +124,13 @@ function obterDadosIniciais(filtroMes, filtroAno) {
         }
       }
 
+      var estaValidadoEspecialista = false;
+      if (motivoLancUpper.includes('SOCIAL')) {
+        estaValidadoEspecialista = !!chavesValidadasSocial['SOCIAL_' + fIdLanc + '_' + dtStr];
+      } else {
+        estaValidadoEspecialista = true;
+      }
+
       if (emailAutor === controle.email.toLowerCase()) {
         if (ehPrimeiraVisitaDoDia) {
           moedasTotaisUser += ptsItem;
@@ -145,6 +168,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
               valorAereo: row[24] || 0,                      // Col Y: Aereo
               valorEstacionamento: row[26] || 0,             // Col AA: Estacionamento
               custoTotal: custoTotalItem,
+              validadoEspecialista: estaValidadoEspecialista,
               autor: row[2]
             });
           }

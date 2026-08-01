@@ -157,6 +157,22 @@
       padding: 16px;
     }
 
+    .dropzone-paste {
+      border: 2px dashed #0087FF;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      background: #F0F9FF;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .dropzone-paste:hover, .dropzone-paste:focus {
+      background: #E0F2FE;
+      border-color: #0052CC;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(0,135,255,0.25);
+    }
+
     #bloqueio-tela {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -177,6 +193,31 @@
       height: 100%;
       border: none;
     }
+
+    /* Toast Notification Styling */
+    .toast-container-custom {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 10000;
+    }
+    .toast-custom {
+      background: #0F172A;
+      color: #FFFFFF;
+      padding: 14px 20px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      min-width: 280px;
+      animation: slideInRight 0.3s ease;
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -195,6 +236,9 @@
     <div class="spinner-border text-primary mb-3" role="status" style="width: 3.5rem; height: 3.5rem;"></div>
     <p class="fw-bold fs-5 text-secondary">Carregando Ecossistema GP360...</p>
   </div>
+
+  <!-- Custom Toast Container -->
+  <div class="toast-container-custom" id="toast-container"></div>
 
   <div id="app-container" class="container-fluid d-none p-0">
     <div class="row g-0">
@@ -266,13 +310,13 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-stars text-warning me-2"></i>Portal GP 360</h4>
           <div class="d-flex align-items-center gap-2">
-            <select id="seletor-mes" class="form-select form-select-sm fw-semibold shadow-sm" onchange="alterarPeriodoGeral()">
+            <select id="seletor-mes" class="form-select form-select-sm fw-semibold shadow-sm" onchange="window.alterarPeriodoGeral()">
               <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
               <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
               <option value="7">Julho</option><option value="8" selected>Agosto</option><option value="9">Setembro</option>
               <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
             </select>
-            <select id="seletor-ano" class="form-select form-select-sm fw-semibold shadow-sm" onchange="alterarPeriodoGeral()">
+            <select id="seletor-ano" class="form-select form-select-sm fw-semibold shadow-sm" onchange="window.alterarPeriodoGeral()">
               <option value="2025">2025</option><option value="2026" selected>2026</option>
             </select>
           </div>
@@ -348,7 +392,6 @@
 
         </div>
 
-        <!-- ABA LANÇAR ATIVIDADE -->
         <div id="aba-lancamento" class="view-aba d-none">
           <div class="bento-card" style="max-width: 900px; margin: 0 auto;">
             <h5 class="fw-bold mb-4 text-primary"><i class="bi bi-plus-square-fill me-2"></i> Nova Atividade</h5>
@@ -464,10 +507,10 @@
                     <small class="d-block text-muted mb-2">Opção 1: Enviar Arquivo (PC/Celular)</small>
                     <input type="file" id="input-evidencia-file" class="form-control form-control-sm mb-3" accept="image/*" onchange="limparOutrasEvidencias('file')">
 
-                    <small class="d-block text-muted mb-1">Opção 2: Colar Imagem da Área de Transferência (Ctrl+V)</small>
-                    <div class="dropzone-paste mb-3" id="dropzone-ctrlv" tabIndex="0" style="border: 2px dashed #CBD5E1; border-radius: 12px; padding: 20px; text-align: center;">
-                      <i class="bi bi-clipboard-plus fs-3 text-secondary"></i>
-                      <p class="mb-0 small text-secondary" id="txt-dropzone">Clique aqui e aperte Ctrl+V para colar a imagem</p>
+                    <small class="d-block text-muted mb-1">Opção 2: Colar Imagem da Área de Transferência (Clique & Ctrl+V)</small>
+                    <div class="dropzone-paste mb-3" id="dropzone-ctrlv" tabIndex="0" onclick="ativarDropzoneClipboard(this)">
+                      <i class="bi bi-clipboard-plus fs-3 text-primary"></i>
+                      <p class="mb-0 small text-dark fw-bold" id="txt-dropzone">Clique aqui e aperte Ctrl+V para colar a imagem</p>
                     </div>
 
                     <small class="d-block text-muted mb-1">Opção 3: Link do Google Drive (Público)</small>
@@ -490,7 +533,6 @@
           </div>
         </div>
 
-        <!-- ABA CONSULTAS GERAIS -->
         <div id="aba-consultas" class="view-aba d-none">
           <div class="bento-card mb-4">
             <h5 class="fw-bold mb-2 text-dark"><i class="bi bi-search text-primary me-2"></i>Consultas Gerais</h5>
@@ -567,7 +609,6 @@
           </div>
         </div>
 
-        <!-- ABA EXTRATO E DESPESAS -->
         <div id="aba-historico" class="view-aba d-none">
           <div class="bento-card">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -645,7 +686,6 @@
           </div>
         </div>
 
-        <!-- ABA CONFIGURAÇÕES -->
         <div id="aba-configuracoes" class="view-aba d-none">
           <div class="bento-card">
             <h5 class="fw-bold mb-1 text-dark">Configurações do Sistema</h5>
@@ -668,7 +708,6 @@
           </div>
         </div>
 
-        <!-- OUTRAS ABAS OPERACIONAIS -->
         <div id="aba-gestao" class="view-aba d-none">
           <div class="bento-card">
             <h5 class="fw-bold mb-2 text-dark"><i class="bi bi-list-task text-primary me-2"></i>Gestão de Atividades</h5>
