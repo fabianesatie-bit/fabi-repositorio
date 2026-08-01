@@ -19,9 +19,9 @@
       --brand-blue: #0087FF;
       --brand-lightblue: #5EB5FF;
       --brand-green: #17F036;
-      --bg-neutral: #F4F6F9;
+      --bg-neutral: #F1F5F9;
       --card-bg: #FFFFFF;
-      --text-dark: #1E293B;
+      --text-dark: #0F172A;
     }
 
     body {
@@ -31,7 +31,7 @@
     }
 
     .top-accent-line {
-      height: 4px;
+      height: 5px;
       background: linear-gradient(90deg, var(--brand-yellow), var(--brand-orange), var(--brand-red), var(--brand-pink), var(--brand-purple), var(--brand-blue), var(--brand-lightblue), var(--brand-green));
       width: 100%;
     }
@@ -40,59 +40,114 @@
       min-height: 100vh;
       background: #FFFFFF;
       border-right: 1px solid #E2E8F0;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.03);
     }
 
     .avatar-profile {
-      width: 80px;
-      height: 80px;
+      width: 84px;
+      height: 84px;
       border-radius: 50%;
       object-fit: cover;
       border: 3px solid var(--brand-blue);
+      box-shadow: 0 4px 12px rgba(0,135,255,0.25);
     }
 
-    .nav-link-custom {
-      color: #64748B;
-      border-radius: 12px;
-      padding: 12px 16px;
-      font-weight: 500;
+    .regional-pills-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: center;
+      max-width: 100%;
+    }
+    .regional-pill {
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border: 1px solid #BFDBFE;
+      border-radius: 20px;
+      padding: 2px 8px;
+      word-break: break-word;
+    }
+
+    .nav-btn-card {
+      color: #334155;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 600;
       display: flex;
       align-items: center;
       gap: 12px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s ease;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      text-decoration: none;
+      margin-bottom: 8px;
     }
-    .nav-link-custom:hover, .nav-link-custom.active {
-      background-color: #E0F2FE;
-      color: var(--brand-blue);
-      font-weight: 600;
+    .nav-btn-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+      background: #FFFFFF;
+    }
+    .nav-btn-card.active {
+      background: linear-gradient(135deg, #0087FF 0%, #0052CC 100%);
+      color: #FFFFFF !important;
+      border-color: #0087FF;
+      box-shadow: 0 6px 18px rgba(0,135,255,0.35);
+    }
+    .nav-btn-card.active .nav-icon-badge {
+      background: rgba(255,255,255,0.2) !important;
+      color: #FFFFFF !important;
+    }
+
+    .nav-icon-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
     }
 
     .bento-card {
       background: var(--card-bg);
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 4px 20px -2px rgba(0,0,0,0.04);
-      border: 1px solid #F1F5F9;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05);
+      border: 1px solid #E2E8F0;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .bento-card:hover {
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
     }
 
     .card-governanca {
-      background: #F0FDF4;
-      border: 1px solid #DCFCE7;
-      border-radius: 16px;
+      background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+      border: 1px solid #A7F3D0;
+      border-radius: 20px;
     }
 
-    .dropzone-paste {
-      border: 2px dashed #CBD5E1;
-      border-radius: 12px;
-      padding: 25px;
-      text-align: center;
-      background: #F8FAFC;
+    .chip-tema {
       cursor: pointer;
-      transition: border-color 0.2s ease;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: #F1F5F9;
+      color: #475569;
+      border: 1px solid #CBD5E1;
+      transition: all 0.2s ease;
+      display: inline-block;
+      margin: 3px;
     }
-    .dropzone-paste:hover {
-      border-color: var(--brand-blue);
-      background: #F0F9FF;
+    .chip-tema.selected {
+      background: #0087FF;
+      color: white;
+      border-color: #0087FF;
+      box-shadow: 0 4px 12px rgba(0,135,255,0.3);
     }
 
     #bloqueio-tela {
@@ -100,6 +155,16 @@
       top: 0; left: 0; width: 100vw; height: 100vh;
       background: #0F172A; color: white; z-index: 9999;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+
+    .iframe-modal-body {
+      padding: 0;
+      height: 80vh;
+    }
+    .iframe-modal-body iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
     }
   </style>
 </head>
@@ -116,65 +181,105 @@
   </div>
 
   <div id="loading-splash" class="d-flex flex-column align-items-center justify-content-center py-5 mt-5">
-    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
-    <p class="fw-semibold text-secondary">Carregando Ecossistema GP360...</p>
+    <div class="spinner-border text-primary mb-3" role="status" style="width: 3.5rem; height: 3.5rem;"></div>
+    <p class="fw-bold fs-5 text-secondary">Carregando Ecossistema GP360...</p>
   </div>
 
-  <div id="app-container" class="container-fluid d-none">
-    <div class="row">
+  <div id="app-container" class="container-fluid d-none p-0">
+    <div class="row g-0">
       
-      <!-- Sidebar Perfil & Navegação Restaurada (8 Abas) -->
+      <!-- Sidebar Perfil & Navegação Estilizada -->
       <div class="col-md-3 col-lg-2 sidebar p-3 text-center">
         <div class="mb-3 mt-2">
-          <img id="user-avatar-img" src="https://via.placeholder.com/80" class="avatar-profile mb-2" alt="Foto">
-          <h6 class="fw-bold mb-0" id="user-nome-display">Carregando...</h6>
-          <small class="badge bg-light text-secondary border mt-1" id="user-cargo-display">Coordenador</small>
-          <div class="mt-1"><span class="badge bg-primary text-white" id="user-regional-display">Regional</span></div>
+          <!-- SVG Data URI nativo para evitar erro 502/404 de via.placeholder -->
+          <img id="user-avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%230087FF'/><text x='50%' y='55%' font-size='32' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>GP</text></svg>" class="avatar-profile mb-2" alt="Foto">
+          <h6 class="fw-bold mb-0 text-dark" id="user-nome-display">Carregando...</h6>
+          <small class="badge bg-light text-primary border mt-1" id="user-cargo-display">Coordenador</small>
+          
+          <div class="mt-2" id="box-regional-pills">
+            <div class="regional-pills-container" id="user-regional-display">
+              <span class="regional-pill">Carregando...</span>
+            </div>
+          </div>
         </div>
 
-        <hr class="my-3">
+        <hr class="my-3 text-muted">
 
         <nav class="nav flex-column gap-1 text-start">
-          <a class="nav-link-custom active" onclick="mudarAba('aba-home', this)"><i class="bi bi-house-door-fill"></i> Início</a>
-          <a class="nav-link-custom" onclick="mudarAba('aba-lancamento', this)"><i class="bi bi-plus-circle-fill"></i> Lançar Atividade</a>
-          <a class="nav-link-custom" onclick="mudarAba('aba-gestao', this)"><i class="bi bi-list-task"></i> Gestão de Atividades</a>
-          <a class="nav-link-custom" onclick="mudarAba('aba-galeria', this)"><i class="bi bi-images"></i> Galeria de Evidências</a>
-          <a class="nav-link-custom" onclick="mudarAba('aba-historico', this)"><i class="bi bi-receipt"></i> Extrato e Despesas</a>
-          <a class="nav-link-custom" onclick="mudarAba('aba-consultas', this)"><i class="bi bi-search"></i> Consultas Gerais</a>
-          <a class="nav-link-custom" onclick="mudarAba('aba-visao-gp', this)"><i class="bi bi-pie-chart-fill"></i> Visão Geral GP</a>
-          <a class="nav-link-custom" onclick="mudarAba('aba-configuracoes', this)" id="menu-admin"><i class="bi bi-gear-fill"></i> Configurações</a>
+          <a class="nav-btn-card active" onclick="mudarAba('aba-home', this)">
+            <div class="nav-icon-badge bg-primary-subtle text-primary"><i class="bi bi-house-door-fill"></i></div>
+            <span>Início</span>
+          </a>
+
+          <a class="nav-btn-card" onclick="mudarAba('aba-lancamento', this)">
+            <div class="nav-icon-badge bg-success-subtle text-success"><i class="bi bi-plus-circle-fill"></i></div>
+            <span>Lançar Atividade</span>
+          </a>
+
+          <a class="nav-btn-card" onclick="mudarAba('aba-gestao', this)">
+            <div class="nav-icon-badge bg-warning-subtle text-warning"><i class="bi bi-list-task"></i></div>
+            <span>Gestão Atividades</span>
+          </a>
+
+          <a class="nav-btn-card" onclick="mudarAba('aba-galeria', this)">
+            <div class="nav-icon-badge bg-info-subtle text-info"><i class="bi bi-images"></i></div>
+            <span>Galeria Evidências</span>
+          </a>
+
+          <a class="nav-btn-card" onclick="mudarAba('aba-historico', this)">
+            <div class="nav-icon-badge bg-danger-subtle text-danger"><i class="bi bi-receipt"></i></div>
+            <span>Extrato e Despesas</span>
+          </a>
+
+          <a class="nav-btn-card" onclick="mudarAba('aba-consultas', this)">
+            <div class="nav-icon-badge bg-purple-subtle text-purple" style="background:#F3E8FF; color:#8000FF;"><i class="bi bi-search"></i></div>
+            <span>Consultas Gerais</span>
+          </a>
+
+          <a class="nav-btn-card" onclick="mudarAba('aba-visao-gp', this)">
+            <div class="nav-icon-badge bg-teal-subtle text-teal" style="background:#E0F2FE; color:#0284C7;"><i class="bi bi-pie-chart-fill"></i></div>
+            <span>Visão Geral GP</span>
+          </a>
+
+          <a class="nav-btn-card" onclick="mudarAba('aba-configuracoes', this)" id="menu-admin">
+            <div class="nav-icon-badge bg-secondary-subtle text-secondary"><i class="bi bi-gear-fill"></i></div>
+            <span>Configurações</span>
+          </a>
         </nav>
       </div>
 
       <div class="col-md-9 col-lg-10 p-4">
         
-        <!-- Header Topo com Seletor Temporizado -->
+        <!-- Header Topo com Seletores Temporizados -->
         <div class="d-flex justify-content-between align-items-center mb-4">
-          <h4 class="fw-bold mb-0">Portal GP 360</h4>
+          <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-stars text-warning me-2"></i>Portal GP 360</h4>
           <div class="d-flex align-items-center gap-2">
-            <select id="seletor-mes" class="form-select form-select-sm" onchange="alterarPeriodoGeral()">
+            <select id="seletor-mes" class="form-select form-select-sm fw-semibold shadow-sm" onchange="alterarPeriodoGeral()">
               <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
               <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
               <option value="7">Julho</option><option value="8" selected>Agosto</option><option value="9">Setembro</option>
               <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
             </select>
-            <select id="seletor-ano" class="form-select form-select-sm" onchange="alterarPeriodoGeral()">
+            <select id="seletor-ano" class="form-select form-select-sm fw-semibold shadow-sm" onchange="alterarPeriodoGeral()">
               <option value="2025">2025</option><option value="2026" selected>2026</option>
             </select>
           </div>
         </div>
 
-        <!-- ABA INÍCIO (HOME BENTO GRID RESTAURADO) -->
+        <!-- ABA INÍCIO (HOME BENTO GRID) -->
         <div id="aba-home" class="view-aba">
           
           <!-- Escalada de Governança -->
-          <div class="card-governanca p-3 mb-4 d-flex justify-content-between align-items-center">
+          <div class="card-governanca p-4 mb-4 d-flex justify-content-between align-items-center shadow-sm">
             <div>
-              <h5 class="fw-bold text-success mb-1"><i class="bi bi-mountain me-2"></i>Sua Escalada de Governança <span class="badge bg-success text-white ms-2" id="badge-fase-nome">Fase 1: Acampamento Base</span></h5>
-              <p class="mb-0 text-muted small">Moedas do Mês Vigente: <strong class="text-dark" id="kpi-moedas-mes">0</strong> | Total Acumulado: <strong class="text-dark" id="kpi-moedas-totais">0</strong></p>
+              <h5 class="fw-bold text-success mb-2">
+                <i class="bi bi-mountain me-2 fs-4"></i>Sua Escalada de Governança 
+                <span class="badge bg-success text-white ms-2 shadow-sm" id="badge-fase-nome">⛺ Fase 1: Acampamento Base</span>
+              </h5>
+              <p class="mb-0 text-secondary fs-6">Moedas do Mês Vigente: <strong class="text-dark fs-5" id="kpi-moedas-mes">0</strong> | Total Acumulado: <strong class="text-dark fs-5" id="kpi-moedas-totais">0</strong></p>
             </div>
-            <div class="bg-white p-3 rounded-circle border shadow-sm">
-              <i class="bi bi-boot-fill display-6 text-success"></i>
+            <div class="bg-white p-3 rounded-circle border shadow">
+              <i class="bi bi-boot-fill display-5 text-success"></i>
             </div>
           </div>
 
@@ -182,40 +287,39 @@
           <div class="row g-3 mb-4">
             <div class="col-md-4">
               <div class="bento-card d-flex align-items-center gap-3">
-                <div class="p-3 bg-primary-subtle text-primary rounded-3"><i class="bi bi-shop fs-3"></i></div>
+                <div class="p-3 bg-primary-subtle text-primary rounded-4"><i class="bi bi-shop fs-2"></i></div>
                 <div>
-                  <small class="text-muted d-block">Lojas na Carteira</small>
-                  <h3 class="fw-bold mb-0" id="kpi-lojas-carteira">0</h3>
+                  <small class="text-muted fw-semibold d-block">Lojas na Carteira</small>
+                  <h3 class="fw-bold mb-0 text-dark" id="kpi-lojas-carteira">0</h3>
                 </div>
               </div>
             </div>
 
             <div class="col-md-4">
               <div class="bento-card d-flex align-items-center gap-3">
-                <div class="p-3 bg-info-subtle text-info rounded-3"><i class="bi bi-geo-alt-fill fs-3"></i></div>
+                <div class="p-3 bg-info-subtle text-info rounded-4"><i class="bi bi-geo-alt-fill fs-2"></i></div>
                 <div>
-                  <small class="text-muted d-block">Visitas (In Loco)</small>
-                  <h3 class="fw-bold mb-0" id="kpi-visitas-loco">0</h3>
+                  <small class="text-muted fw-semibold d-block">Visitas (In Loco)</small>
+                  <h3 class="fw-bold mb-0 text-dark" id="kpi-visitas-loco">0</h3>
                 </div>
               </div>
             </div>
 
             <div class="col-md-4">
               <div class="bento-card d-flex align-items-center gap-3">
-                <div class="p-3 bg-warning-subtle text-warning rounded-3"><i class="bi bi-cash-stack fs-3"></i></div>
+                <div class="p-3 bg-warning-subtle text-warning rounded-4"><i class="bi bi-cash-stack fs-2"></i></div>
                 <div>
-                  <small class="text-muted d-block">Reembolso Estimado (Mês)</small>
-                  <h3 class="fw-bold mb-0" id="kpi-reembolso-mes">R$ 0,00</h3>
+                  <small class="text-muted fw-semibold d-block">Reembolso Estimado (Mês)</small>
+                  <h3 class="fw-bold mb-0 text-dark" id="kpi-reembolso-mes">R$ 0,00</h3>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Ranking Top 5 + Gráfico de Atividades do Coordenador -->
           <div class="row g-3 mb-4">
             <div class="col-md-6">
               <div class="bento-card h-100">
-                <h6 class="fw-bold mb-3"><i class="bi bi-trophy-fill text-warning me-2"></i>Top Engajamento (Top 5)</h6>
+                <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-trophy-fill text-warning me-2"></i>Top Engajamento (Top 5)</h6>
                 <ul class="list-group list-group-flush" id="lista-ranking">
                   <li class="list-group-item text-muted">Carregando pódio...</li>
                 </ul>
@@ -224,8 +328,8 @@
 
             <div class="col-md-6">
               <div class="bento-card h-100">
-                <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Distribuição de Atividades do Período</h6>
-                <div style="max-height: 220px;" class="d-flex justify-content-center">
+                <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Distribuição de Atividades do Período</h6>
+                <div style="max-height: 230px;" class="d-flex justify-content-center">
                   <canvas id="chart-atividades"></canvas>
                 </div>
               </div>
@@ -235,8 +339,8 @@
         </div>
 
         <div id="aba-lancamento" class="view-aba d-none">
-          <div class="bento-card" style="max-width: 800px; margin: 0 auto;">
-            <h5 class="fw-bold mb-3"><i class="bi bi-plus-square-fill text-primary"></i> Registrar Atividade</h5>
+          <div class="bento-card" style="max-width: 850px; margin: 0 auto;">
+            <h5 class="fw-bold mb-4 text-primary"><i class="bi bi-plus-square-fill me-2"></i> Registrar Atividade</h5>
             
             <form id="form-lancamento" onsubmit="event.preventDefault(); salvarAtividade();">
               <div class="row g-3">
@@ -248,24 +352,46 @@
                 </div>
 
                 <div class="col-md-6">
-                  <label class="form-label fw-semibold">Natureza da Atividade</label>
+                  <label class="form-label fw-semibold">Qual a natureza deste atendimento?</label>
                   <select id="select-natureza" class="form-select" required onchange="verificarCamposDinamicos()">
                     <option value="">Selecione a natureza...</option>
                   </select>
                 </div>
 
-                <!-- Campo Dinâmico de Tema -->
-                <div class="col-md-12 d-none" id="box-tema-dinamico">
-                  <label class="form-label fw-semibold" id="label-tema-dinamico">Tema Específico</label>
-                  <select id="select-tema-dinamico" class="form-select">
-                    <option value="">Selecione o tema...</option>
-                  </select>
+                <!-- Bloco Dinâmico para Reunião Regional (Chips de Múltipla Escolha) -->
+                <div class="col-12 d-none" id="box-temas-reuniao">
+                  <div class="p-3 bg-light rounded-3 border">
+                    <label class="form-label fw-bold text-primary mb-2"><i class="bi bi-tags-fill me-1"></i> Temas da Reunião (Múltipla Escolha):</label>
+                    <div id="chips-container-reuniao" class="d-flex flex-wrap"></div>
+                  </div>
+                </div>
+
+                <!-- Bloco Dinâmico para Treinamento (Dropdown) -->
+                <div class="col-12 d-none" id="box-tema-treinamento">
+                  <div class="p-3 bg-light rounded-3 border">
+                    <label class="form-label fw-bold text-primary mb-2"><i class="bi bi-easel-fill me-1"></i> Tema do Treinamento:</label>
+                    <select id="select-tema-treinamento" class="form-select">
+                      <option value="">Selecione o tema...</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Campos de Pessoas Impactadas e Tempo Gasto -->
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Pessoas Impactadas</label>
+                  <input type="number" id="input-pessoas-impactadas" class="form-control" placeholder="Ex: 15">
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold">Tempo Gasto (Horas)</label>
+                  <input type="number" step="0.1" id="input-tempo-gasto" class="form-control" placeholder="Ex: 2 ou 1.5">
+                  <small class="text-danger small d-block mt-1">* O tempo gasto deve incluir preparação de materiais e execução.</small>
                 </div>
 
                 <!-- Calculadora de Despesas -->
                 <div class="col-12">
-                  <div class="p-3 bg-light rounded-3 border">
-                    <h6 class="fw-bold mb-2"><i class="bi bi-calculator"></i> Calculadora de Despesas e Reembolso</h6>
+                  <div class="p-3 bg-warning-subtle rounded-3 border border-warning-subtle">
+                    <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-calculator"></i> Calculadora de Despesas e Reembolso</h6>
                     <div class="row g-2">
                       <div class="col-md-4"><label class="small text-muted">KM Percorrido</label><input type="number" id="input-km" class="form-control form-control-sm" placeholder="0" oninput="calcularDespesas()"></div>
                       <div class="col-md-4"><label class="small text-muted">Pedágio (R$)</label><input type="number" id="input-pedagio" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
@@ -273,20 +399,20 @@
                       <div class="col-md-6"><label class="small text-muted">Hospedagem (R$)</label><input type="number" id="input-hospedagem" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
                       <div class="col-md-6"><label class="small text-muted">Outros Custos (R$)</label><input type="number" id="input-outros" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
                     </div>
-                    <div class="mt-2 text-end fw-bold text-dark fs-6" id="display-gasto-total">Gasto Total: R$ 0,00</div>
+                    <div class="mt-2 text-end fw-bold text-dark fs-5" id="display-gasto-total">Gasto Total: R$ 0,00</div>
                   </div>
                 </div>
 
                 <!-- Tríplice Escolha de Evidência -->
                 <div class="col-12">
-                  <label class="form-label fw-semibold"><i class="bi bi-paperclip"></i> Evidência da Atividade (Escolha 1 opção)</label>
+                  <label class="form-label fw-semibold"><i class="bi bi-paperclip"></i> Evidência da Atividade (Seleção de Opção Única)</label>
                   <div class="p-3 bg-light rounded-3 border">
-                    <small class="d-block text-muted mb-2">Opção 1: Enviar Arquivo do Computador</small>
+                    <small class="d-block text-muted mb-2">Opção 1: Enviar Arquivo do Computador/Celular</small>
                     <input type="file" id="input-evidencia-file" class="form-control form-control-sm mb-3" accept="image/*" onchange="limparOutrasEvidencias('file')">
 
                     <small class="d-block text-muted mb-1">Opção 2: Colar Imagem da Área de Transferência (Ctrl+V)</small>
-                    <div class="dropzone-paste mb-3" id="dropzone-ctrlv" tabIndex="0">
-                      <i class="bi bi-clipboard-plus fs-4 text-secondary"></i>
+                    <div class="dropzone-paste mb-3" id="dropzone-ctrlv" tabIndex="0" style="border: 2px dashed #CBD5E1; border-radius: 12px; padding: 20px; text-align: center;">
+                      <i class="bi bi-clipboard-plus fs-3 text-secondary"></i>
                       <p class="mb-0 small text-secondary" id="txt-dropzone">Clique aqui e aperte Ctrl+V para colar a imagem</p>
                     </div>
 
@@ -301,7 +427,7 @@
                 </div>
 
                 <div class="col-12 mt-4 text-end">
-                  <button type="submit" class="btn btn-primary px-4 fw-bold py-2 w-100 fs-5" id="btn-salvar-lancamento">
+                  <button type="submit" class="btn btn-primary px-4 fw-bold py-3 w-100 fs-5 shadow" id="btn-salvar-lancamento">
                     <i class="bi bi-coin me-1"></i> Salvar e Ganhar Moeda
                   </button>
                 </div>
@@ -312,15 +438,51 @@
 
         <div id="aba-consultas" class="view-aba d-none">
           <div class="bento-card mb-4">
-            <h5 class="fw-bold mb-3"><i class="bi bi-search text-primary"></i> Consultas Gerais e Painéis</h5>
+            <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-search text-primary me-2"></i>Consultas Gerais e Painéis Corporativos</h5>
+            <p class="text-muted small mb-4">Acesse rapidamente as ferramentas e painéis de gestão do ecossistema.</p>
+            
             <div class="row g-3">
+              <!-- Perfil e Gestão do Gerente de Loja (Link Atualizado Rígido) -->
               <div class="col-md-6">
-                <div class="bento-card border p-3 d-flex justify-content-between align-items-center">
+                <div class="bento-card border p-3 d-flex justify-content-between align-items-center bg-light">
                   <div>
-                    <h6 class="fw-bold mb-1"><i class="bi bi-person-badge text-primary me-2"></i>Perfil e Gestão do Gerente de Loja</h6>
-                    <small class="text-muted">Acesso direto à ferramenta do Gerente de Loja.</small>
+                    <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-person-badge text-primary me-2"></i>Perfil do Gerente de Loja</h6>
+                    <small class="text-muted d-block">Ferramenta exclusiva do Gerente de Loja.</small>
                   </div>
-                  <a href="https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbyLISH60R60d0NsT3HJ8jBcduSs2V9FpJ3zZdYGVxTyZ-WCk4aIGELAAeapH9tuM0tb0g/exec" target="_blank" class="btn btn-primary btn-sm fw-bold px-3">Abrir Página</a>
+                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzqQNOM7dAJb4o2Q9Wp5OPcNEcRrh8J1N74-L_NSagvRF1XdfRrOvRk1yFpIoI8ePZt/exec', 'Perfil do Gerente')" class="btn btn-primary btn-sm fw-bold px-3">Abrir Painel</button>
+                </div>
+              </div>
+
+              <!-- Atendimento Social -->
+              <div class="col-md-6">
+                <div class="bento-card border p-3 d-flex justify-content-between align-items-center bg-light">
+                  <div>
+                    <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-heart-pulse text-danger me-2"></i>Atendimento Social</h6>
+                    <small class="text-muted d-block">Acompanhamento e acionamentos sociais.</small>
+                  </div>
+                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', 'Atendimento Social')" class="btn btn-danger btn-sm fw-bold px-3">Abrir Painel</button>
+                </div>
+              </div>
+
+              <!-- Apurações e Feedback -->
+              <div class="col-md-6">
+                <div class="bento-card border p-3 d-flex justify-content-between align-items-center bg-light">
+                  <div>
+                    <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-shield-check text-warning me-2"></i>Apurações / Feedback</h6>
+                    <small class="text-muted d-block">Gestão de denúncias e desligamentos.</small>
+                  </div>
+                  <button onclick="abrirPainelInterno('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback')" class="btn btn-warning text-dark btn-sm fw-bold px-3">Abrir Painel</button>
+                </div>
+              </div>
+
+              <!-- Agente Integrador -->
+              <div class="col-md-6">
+                <div class="bento-card border p-3 d-flex justify-content-between align-items-center bg-light">
+                  <div>
+                    <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-people text-success me-2"></i>Agente Integrador</h6>
+                    <small class="text-muted d-block">Painel de integração de equipes.</small>
+                  </div>
+                  <button onclick="abrirPainelInterno('https://script.google.com', 'Agente Integrador')" class="btn btn-success btn-sm fw-bold px-3">Abrir Painel</button>
                 </div>
               </div>
             </div>
@@ -330,17 +492,33 @@
         <!-- ABA VISÃO GERAL GP -->
         <div id="aba-visao-gp" class="view-aba d-none">
           <div class="bento-card">
-            <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-primary"></i> Visão Geral GP</h5>
-            <p class="text-muted">Consolidação geral do ecossistema de indicadores de pessoas.</p>
+            <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Visão Geral GP</h5>
+            <p class="text-muted mb-3">Consolidação geral do ecossistema de indicadores de pessoas.</p>
+            <a href="https://script.google.com" target="_blank" class="btn btn-primary fw-bold"><i class="bi bi-box-arrow-up-right me-1"></i> Abrir Visão Geral GP em Nova Guia</a>
           </div>
         </div>
 
-        <!-- OUTRAS ABAS (GESTAO, GALERIA, HISTORICO, CONFIGURAÇÕES) -->
+        <!-- DEMAIS ABAS OPERACIONAIS -->
         <div id="aba-gestao" class="view-aba d-none"><div id="timeline-atividades" class="d-flex flex-column gap-2"></div></div>
         <div id="aba-galeria" class="view-aba d-none"><div class="row g-3" id="grid-galeria"></div></div>
         <div id="aba-historico" class="view-aba d-none"><div class="bento-card"><h5 class="fw-bold mb-3">Extrato de Despesas</h5><div id="tabela-extrato-container"></div></div></div>
         <div id="aba-configuracoes" class="view-aba d-none"><div class="bento-card"><h5 class="fw-bold mb-3">Gestão de Temas Admin</h5><div id="container-lista-temas"></div></div></div>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para visualização de painéis em Iframe Interno -->
+  <div class="modal fade" id="modalIframeInterno" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold" id="tituloModalIframe">Painel Corporativo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body iframe-modal-body">
+          <iframe id="iframePainelConteudo" src="about:blank"></iframe>
+        </div>
       </div>
     </div>
   </div>

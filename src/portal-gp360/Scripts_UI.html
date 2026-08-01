@@ -6,12 +6,13 @@
    */
 
   var meuGraficoAtividades = null;
+  var temasReuniaoSelecionados = [];
 
   function mudarAba(abaId, element) {
     var abas = document.querySelectorAll('.view-aba');
     abas.forEach(function(a) { a.classList.add('d-none'); });
 
-    var links = document.querySelectorAll('.nav-link-custom');
+    var links = document.querySelectorAll('.nav-btn-card');
     links.forEach(function(l) { l.classList.remove('active'); });
 
     document.getElementById(abaId).classList.remove('d-none');
@@ -20,14 +21,34 @@
     if (abaId === 'aba-galeria') carregarGaleriaEvidencias();
   }
 
+  function abrirPainelInterno(url, titulo) {
+    document.getElementById('tituloModalIframe').innerText = titulo;
+    document.getElementById('iframePainelConteudo').src = url;
+    var myModal = new bootstrap.Modal(document.getElementById('modalIframeInterno'));
+    myModal.show();
+  }
+
   function renderizarInterfaceCompleta() {
     var u = dadosGlobais.usuario;
     document.getElementById('user-nome-display').innerText = u.nome;
     document.getElementById('user-cargo-display').innerText = u.cargo + ' (' + u.nivelAcesso + ')';
-    document.getElementById('user-regional-display').innerText = u.regionais.length ? 'Regionais: ' + u.regionais.join(', ') : 'Visão Nacional';
 
-    if (u.fotoUrl) {
+    // Pílulas de Regionais para evitar estouro da barra lateral
+    var boxRegionais = document.getElementById('user-regional-display');
+    boxRegionais.innerHTML = '';
+    if (u.regionais && u.regionais.length > 0) {
+      u.regionais.forEach(function(reg) {
+        boxRegionais.innerHTML += '<span class="regional-pill">' + reg + '</span>';
+      });
+    } else {
+      boxRegionais.innerHTML = '<span class="regional-pill bg-success-subtle text-success border-success">Visão Nacional</span>';
+    }
+
+    // Avatar do Usuário (Inline SVG se não houver foto válida para evitar erro 502/404)
+    if (u.fotoUrl && !u.fotoUrl.includes('placeholder')) {
       document.getElementById('user-avatar-img').src = u.fotoUrl;
+    } else {
+      document.getElementById('user-avatar-img').src = gerarAvatarSVG(u.nome);
     }
 
     if (!u.isAdmin) {
@@ -49,6 +70,16 @@
     renderizarGestaoTemasAdmin();
   }
 
+  function gerarAvatarSVG(nome) {
+    var inis = 'GP';
+    if (nome) {
+      var partes = nome.trim().split(' ');
+      inis = partes[0].charAt(0).toUpperCase();
+      if (partes.length > 1) inis += partes[partes.length - 1].charAt(0).toUpperCase();
+    }
+    return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%230087FF'/><text x='50%' y='55%' font-size='30' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>" + inis + "</text></svg>";
+  }
+
   function renderizarGraficoAtividades() {
     var ctx = document.getElementById('chart-atividades');
     if (!ctx) return;
@@ -58,13 +89,11 @@
     var valores = Object.values(mapa);
 
     if (labels.length === 0) {
-      labels = ['Sem registros'];
+      labels = ['Sem registros no período'];
       valores = [1];
     }
 
-    if (meuGraficoAtividades) {
-      meuGraficoAtividades.destroy();
-    }
+    if (meuGraficoAtividades) meuGraficoAtividades.destroy();
 
     meuGraficoAtividades = new Chart(ctx, {
       type: 'doughnut',
@@ -72,17 +101,67 @@
         labels: labels,
         datasets: [{
           data: valores,
-          backgroundColor: ['#0087FF', '#FF8A00', '#17F036', '#FF253A', '#8000FF', '#FBE53B']
+          backgroundColor: ['#0087FF', '#FF8A00', '#17F036', '#FF253A', '#8000FF', '#FBE53B', '#5EB5FF', '#FF14B3']
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom' }
-        }
+        plugins: { legend: { position: 'bottom' } }
       }
     });
+  }
+
+  function povoarDropdownsFormulario() {
+    var selFilial = document.getElementById('select-filial');
+    selFilial.innerHTML = '<option value="">Selecione a loja...</option>';
+    dadosGlobais.lojas.forEach(function(l) {
+      selFilial.innerHTML += '<option value="' + l.id + '">' + l.id + ' - ' + l.nome + ' (' + l.regional + ')</option>';
+    });
+
+    var selNat = document.getElementById('select-natureza');
+    selNat.innerHTML = '<option value="">Selecione a natureza...</option>';
+    dadosGlobais.naturezas.forEach(function(n) {
+      selNat.innerHTML += '<option value="' + n + '">' + n + '</option>';
+    });
+
+    // Povoar Chips de Reunião
+    var containerChips = document.getElementById('chips-container-reuniao');
+    containerChips.innerHTML = '';
+    var listaReuniao = dadosGlobais.temas.reuniao || ['NPS', 'GMD', 'Banco de Horas', 'PCD', 'Quadro', 'Lixo Eletrônico', 'Campanha Sazonais', 'Agente Integrador'];
+    listaReuniao.forEach(function(t) {
+      containerChips.innerHTML += '<span class="chip-tema" onclick="toggleChipTema(this, \'' + t + '\')">' + t + '</span>';
+    });
+
+    // Povoar Dropdown de Treinamento
+    var selTreinamento = document.getElementById('select-tema-treinamento');
+    selTreinamento.innerHTML = '<option value="">Selecione o tema...</option>';
+    var listaTreinamento = dadosGlobais.temas.treinamento || ['Liderança', 'Assédio', 'Jurídico', 'Auditoria', 'Integração', 'Atendimento 10 estrelas', 'Motivacional', 'Feedback', 'Inegociáveis', 'Apontamento'];
+    listaTreinamento.forEach(function(t) {
+      selTreinamento.innerHTML += '<option value="' + t + '">' + t + '</option>';
+    });
+  }
+
+  function toggleChipTema(elem, tema) {
+    elem.classList.toggle('selected');
+    var idx = temasReuniaoSelecionados.indexOf(tema);
+    if (idx > -1) temasReuniaoSelecionados.splice(idx, 1);
+    else temasReuniaoSelecionados.push(tema);
+  }
+
+  function verificarCamposDinamicos() {
+    var nat = document.getElementById('select-natureza').value.toLowerCase();
+    var boxReuniao = document.getElementById('box-temas-reuniao');
+    var boxTreinamento = document.getElementById('box-tema-treinamento');
+
+    boxReuniao.classList.add('d-none');
+    boxTreinamento.classList.add('d-none');
+
+    if (nat.includes('reunião') || nat.includes('reuniao')) {
+      boxReuniao.classList.remove('d-none');
+    } else if (nat.includes('treinamento')) {
+      boxTreinamento.classList.remove('d-none');
+    }
   }
 
   function calcularDespesas() {
@@ -99,44 +178,6 @@
   function limparOutrasEvidencias(origem) {
     if (origem !== 'file') document.getElementById('input-evidencia-file').value = '';
     if (origem !== 'url') document.getElementById('input-evidencia-url').value = '';
-  }
-
-  function povoarDropdownsFormulario() {
-    var selFilial = document.getElementById('select-filial');
-    selFilial.innerHTML = '<option value="">Selecione a loja...</option>';
-    dadosGlobais.lojas.forEach(function(l) {
-      selFilial.innerHTML += '<option value="' + l.id + '">' + l.id + ' - ' + l.nome + ' (' + l.regional + ')</option>';
-    });
-
-    var selNat = document.getElementById('select-natureza');
-    selNat.innerHTML = '<option value="">Selecione a natureza...</option>';
-    dadosGlobais.naturezas.forEach(function(n) {
-      selNat.innerHTML += '<option value="' + n + '">' + n + '</option>';
-    });
-  }
-
-  function verificarCamposDinamicos() {
-    var nat = document.getElementById('select-natureza').value;
-    var boxTema = document.getElementById('box-tema-dinamico');
-    var selTema = document.getElementById('select-tema-dinamico');
-    var lblTema = document.getElementById('label-tema-dinamico');
-
-    var isReuniao = nat.toLowerCase().includes('reunião') || nat.toLowerCase().includes('reuniao');
-    var isTreinamento = nat.toLowerCase().includes('treinamento');
-
-    if (isReuniao || isTreinamento) {
-      boxTema.classList.remove('d-none');
-      selTema.innerHTML = '<option value="">Selecione o tema...</option>';
-      lblTema.innerText = isReuniao ? 'Tema da Reunião Regional' : 'Tema do Treinamento';
-
-      var lista = isReuniao ? dadosGlobais.temas.reuniao : dadosGlobais.temas.treinamento;
-      lista.forEach(function(t) {
-        selTema.innerHTML += '<option value="' + t + '">' + t + '</option>';
-      });
-    } else {
-      boxTema.classList.add('d-none');
-      selTema.innerHTML = '<option value="">Selecione o tema...</option>';
-    }
   }
 
   function atualizarCardsGamificacao() {
@@ -157,11 +198,29 @@
     }
 
     r.forEach(function(item, index) {
-      var badgeClass = index === 0 ? 'bg-warning text-dark' : (index === 1 ? 'bg-secondary text-white' : 'bg-dark text-white');
-      lista.innerHTML += '<li class="list-group-item d-flex justify-content-between align-items-center">' +
-        '<div><span class="badge ' + badgeClass + ' me-2">#' + (index + 1) + '</span>' + item.email + '</div>' +
-        '<span class="fw-bold text-primary">' + item.mes + ' moedas</span>' +
-        '</li>';
+      var badgePos = '<span class="fw-bold me-3 fs-5" style="width:24px; display:inline-block;">#' + (index + 1) + '</span>';
+      if (index === 0) badgePos = '<span class="fw-bold text-warning me-3 fs-4">1º</span>';
+      else if (index === 1) badgePos = '<span class="fw-bold text-secondary me-3 fs-4">2º</span>';
+      else if (index === 2) badgePos = '<span class="fw-bold text-danger me-3 fs-4">3º</span>';
+
+      var faseTag = '<span class="badge bg-light text-primary border me-2">⛺ Acampamento Base</span>';
+      if (item.total >= 100) faseTag = '<span class="badge bg-success text-white border me-2">🚩 ⚡ Bandeira no Everest</span>';
+      else if (item.total >= 75) faseTag = '<span class="badge bg-info text-white border me-2">🏔️ Cume Alcançado</span>';
+      else if (item.total >= 40) faseTag = '<span class="badge bg-warning text-dark border me-2">🧗 Subida da Montanha</span>';
+
+      var avatarSrc = item.foto || gerarAvatarSVG(item.email);
+
+      lista.innerHTML += '<li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0 border-bottom">' +
+        '<div class="d-flex align-items-center">' +
+          badgePos +
+          '<img src="' + avatarSrc + '" class="rounded-circle me-3 border" style="width:42px; height:42px; object-fit:cover;">' +
+          '<div>' +
+            '<div class="fw-bold text-dark mb-1">' + item.email + '</div>' +
+            '<div>' + faseTag + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="fw-bold fs-5 text-primary"><i class="bi bi-coin text-warning me-1"></i>' + item.mes + ' <small class="fs-6 text-muted">moedas</small></div>' +
+      '</li>';
     });
   }
 
@@ -234,9 +293,7 @@
 
   function dispararConfetesFestao() {
     if (typeof confetti !== 'function') return;
-
     var coresMarca = ['#FBE53B', '#FF8A00', '#FF253A', '#FF14B3', '#8000FF', '#0087FF', '#5EB5FF', '#17F036'];
-
     confetti({ particleCount: 80, angle: 60, spread: 70, origin: { x: 0, y: 0.7 }, colors: coresMarca });
     setTimeout(function() {
       confetti({ particleCount: 80, angle: 120, spread: 70, origin: { x: 1, y: 0.7 }, colors: coresMarca });

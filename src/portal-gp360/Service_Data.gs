@@ -33,20 +33,30 @@ function obterDadosIniciais(filtroMes, filtroAno) {
 
   var lojas = [];
   var mapaLojaRegional = {};
+  var filiaisUnicasContadas = {};
+
   var abaLojas = ss.getSheetByName('DADOS_LOJAS');
   if (abaLojas) {
     var dadosLojas = abaLojas.getDataRange().getValues();
     for (var j = 1; j < dadosLojas.length; j++) {
-      var fId = ("0000" + dadosLojas[j][0]).slice(-4);
+      var rawId = dadosLojas[j][0];
+      var numFilial = normalizarFilialId(rawId);
+      if (!numFilial) continue;
+
+      var fId = ("0000" + numFilial).slice(-4);
       var reg = String(dadosLojas[j][2] || '').trim().toUpperCase();
       mapaLojaRegional[fId] = reg;
-      if (controle.isSuperAdmin || controle.regionais.includes(reg)) {
-        lojas.push({
-          id: fId,
-          nome: dadosLojas[j][1],
-          regional: reg,
-          diretoria: dadosLojas[j][3]
-        });
+
+      if (!filiaisUnicasContadas[fId]) {
+        if (controle.isSuperAdmin || controle.regionais.includes(reg)) {
+          filiaisUnicasContadas[fId] = true;
+          lojas.push({
+            id: fId,
+            nome: dadosLojas[j][1],
+            regional: reg,
+            diretoria: dadosLojas[j][3]
+          });
+        }
       }
     }
   }
@@ -69,7 +79,8 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       var idReg = row[0];
       var dtObj = row[1];
       var emailAutor = String(row[2] || '').toLowerCase().trim();
-      var fIdLanc = ("0000" + row[3]).slice(-4);
+      var numFilialLanc = normalizarFilialId(row[3]);
+      var fIdLanc = numFilialLanc ? ("0000" + numFilialLanc).slice(-4) : '';
       var regLanc = mapaLojaRegional[fIdLanc] || '';
       var motivoLanc = String(row[5] || '').trim();
       var motivoLancUpper = motivoLanc.toUpperCase();
@@ -147,10 +158,10 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   var temas = carregarTemasSeguras(ss);
 
   var pctEverest = Math.min(100, Math.round((moedasMesUser / META_EVEREST) * 100));
-  var faseNome = "Fase 1: Acampamento Base";
-  if (pctEverest >= 100) faseNome = "Fase 4: Bandeira no Everest!";
-  else if (pctEverest >= 75) faseNome = "Fase 3: Cume Alcançado";
-  else if (pctEverest >= 40) faseNome = "Fase 2: Subida da Montanha";
+  var faseNome = "⛺ Fase 1: Acampamento Base";
+  if (pctEverest >= 100) faseNome = "🚩 ⚡ Fase 4: Bandeira no Everest!";
+  else if (pctEverest >= 75) faseNome = "🏔️ Fase 3: Cume Alcançado";
+  else if (pctEverest >= 40) faseNome = "🧗 Fase 2: Subida da Montanha";
 
   return {
     temAcesso: true,
@@ -180,20 +191,25 @@ function obterDadosIniciais(filtroMes, filtroAno) {
 function carregarNaturezasSeguras(ss) {
   var config = ss.getSheetByName('CONFIGURAÇÕES');
   var naturezas = [];
-  if (!config) return ['Checklist de Loja', 'Roteiro Regional', 'Visita Presencial', 'Treinamento', 'Reunião Regional'];
+  if (!config) return ['Checklist de Loja', 'Roteiro Regional', 'Visita Presencial', 'Treinamento', 'Reunião Regional', 'Atendimento Social', 'Apurações e Feedback'];
   
   var dados = config.getDataRange().getValues();
   for (var i = 1; i < dados.length; i++) {
     var val = String(dados[i][0] || '').trim();
     if (val && !val.startsWith('TEMA_')) naturezas.push(val);
   }
-  return naturezas.length ? naturezas : ['Checklist de Loja', 'Roteiro Regional', 'Visita Presencial', 'Treinamento', 'Reunião Regional'];
+  return naturezas.length ? naturezas : ['Checklist de Loja', 'Roteiro Regional', 'Visita Presencial', 'Treinamento', 'Reunião Regional', 'Atendimento Social', 'Apurações e Feedback'];
 }
 
 function carregarTemasSeguras(ss) {
   var config = ss.getSheetByName('CONFIGURAÇÕES');
   var temas = { reuniao: [], treinamento: [] };
-  if (!config) return temas;
+  if (!config) {
+    return {
+      reuniao: ['NPS', 'GMD', 'Banco de Horas', 'PCD', 'Quadro', 'Lixo Eletrônico', 'Campanha Sazonais', 'Agente Integrador'],
+      treinamento: ['Liderança', 'Assédio', 'Jurídico', 'Auditoria', 'Integração', 'Atendimento 10 estrelas', 'Motivacional', 'Feedback', 'Inegociáveis', 'Apontamento']
+    };
+  }
 
   var dados = config.getDataRange().getValues();
   for (var i = 1; i < dados.length; i++) {
@@ -202,5 +218,9 @@ function carregarTemasSeguras(ss) {
     if (cat === 'REUNIAO_REGIONAL' && val) temas.reuniao.push(val);
     if (cat === 'TREINAMENTO' && val) temas.treinamento.push(val);
   }
+
+  if (temas.reuniao.length === 0) temas.reuniao = ['NPS', 'GMD', 'Banco de Horas', 'PCD', 'Quadro', 'Lixo Eletrônico', 'Campanha Sazonais', 'Agente Integrador'];
+  if (temas.treinamento.length === 0) temas.treinamento = ['Liderança', 'Assédio', 'Jurídico', 'Auditoria', 'Integração', 'Atendimento 10 estrelas', 'Motivacional', 'Feedback', 'Inegociáveis', 'Apontamento'];
+
   return temas;
 }
