@@ -4,19 +4,24 @@
  * Subpasta Monorepo: src/portal-gp360/
  */
 
+
 /**
  * Normaliza o ID da filial eliminando duplicações para lojas com número acima de 3000
+ * @param {string|number} id - ID bruto da filial
+ * @return {string} ID normalizado
  */
 function normalizarFilialId(id) {
-  if (!id) return null;
+  if (id === undefined || id === null || id === '') return '';
   var num = parseInt(String(id).replace(/\D/g, ''), 10);
-  if (isNaN(num)) return null;
+  if (isNaN(num)) return String(id).trim();
   if (num > 3000) num -= 3000;
-  return num;
+  return String(num);
 }
 
 /**
  * Extrai o ID alfanumérico do Google Drive de uma URL ou ID direto
+ * @param {string} linkOuId - Link completo do Google Drive ou o ID isolado
+ * @return {string} ID extraído
  */
 function extrairIdDrive(linkOuId) {
   if (!linkOuId) return '';
@@ -28,8 +33,11 @@ function extrairIdDrive(linkOuId) {
   return match ? match[0] : str;
 }
 
+
 /**
- * Padroniza saída de datas para string dd/MM/yyyy
+ * Padroniza saída de datas para string dd/MM/yyyy tratando problemas de fuso horário (GMT-3)
+ * @param {Date|string} dataValor - Data a ser formatada
+ * @return {string} Data formatada no padrão dd/MM/yyyy
  */
 function formatarDataSegura(dataValor) {
   if (!dataValor) return '';
@@ -37,18 +45,41 @@ function formatarDataSegura(dataValor) {
     if (dataValor instanceof Date) {
       return Utilities.formatDate(dataValor, Session.getScriptTimeZone(), 'dd/MM/yyyy');
     }
-    var d = new Date(dataValor);
-    if (!isNaN(d.getTime())) {
-      return Utilities.formatDate(d, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+
+    var str = String(dataValor).trim();
+
+    // Tratamento direto para formato ISO YYYY-MM-DD sem recuo de fuso horário
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+      var partesIso = str.split('T')[0].split('-');
+      if (partesIso.length === 3) {
+        return partesIso[2] + '/' + partesIso[1] + '/' + partesIso[0];
+      }
     }
-    return String(dataValor);
+
+    // Tratamento direto para formato dd/MM/yyyy
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(str)) {
+      var pBarra = str.split('/');
+      var d = ("0" + pBarra[0]).slice(-2);
+      var m = ("0" + pBarra[1]).slice(-2);
+      var a = pBarra[2].substring(0, 4);
+      return d + '/' + m + '/' + a;
+    }
+
+    var dObj = new Date(dataValor);
+    if (!isNaN(dObj.getTime())) {
+      return Utilities.formatDate(dObj, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+    }
+    return str;
   } catch (e) {
     return String(dataValor);
   }
 }
 
+
 /**
- * Converte strings ou objetos de data em Timestamp para ordenação
+ * Converte strings ou objetos de data em Timestamp para ordenação em arrays
+ * @param {Date|string} dataValor - Data de entrada
+ * @return {number} Timestamp numérico em milissegundos
  */
 function obterDataRawSegura(dataValor) {
   if (!dataValor) return 0;

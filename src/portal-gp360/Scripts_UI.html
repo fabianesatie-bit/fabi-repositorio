@@ -370,9 +370,9 @@
       else if (index === 2) badgePos = '<span class="fw-bold text-danger me-3 fs-4">3º</span>';
 
       var faseTag = '<span class="badge bg-light text-primary border me-2">⛺ Fase 1: Acampamento Base</span>';
-      if (item.total >= 100) faseTag = '<span class="badge bg-success text-white border me-2">🚩 ⚡ Fase 4: Bandeira no Everest!</span>';
-      else if (item.total >= 75) faseTag = '<span class="badge bg-info text-white border me-2">🏔️ Fase 3: Cume Alcançado</span>';
-      else if (item.total >= 40) faseTag = '<span class="badge bg-warning text-dark border me-2">🧗 Fase 2: Subida da Montanha</span>';
+      if (item.mes >= 100) faseTag = '<span class="badge bg-success text-white border me-2">🚩 ⚡ Fase 4: Bandeira no Everest!</span>';
+      else if (item.mes >= 75) faseTag = '<span class="badge bg-info text-white border me-2">🏔️ Fase 3: Cume Alcançado</span>';
+      else if (item.mes >= 40) faseTag = '<span class="badge bg-warning text-dark border me-2">🧗 Fase 2: Subida da Montanha</span>';
 
       var avatarSrc = (item.foto && item.foto.length > 20) ? item.foto : gerarAvatarSVG(item.email);
 
@@ -437,7 +437,12 @@
     var container = document.getElementById('tabela-extrato-container');
     if (!container) return;
     container.innerHTML = '';
-    var l = dadosGlobais.lancamentos || [];
+    var l = (dadosGlobais.lancamentos || []).slice();
+
+    // Filtro Rígido: Exibir apenas lançamentos com custo total calculado maior que zero (reembolsáveis)
+    l = l.filter(function(item) {
+      return (parseFloat(item.custoTotal) || 0) > 0;
+    });
 
     var dtInicio = document.getElementById('filtro-extrato-inicio').value;
     var dtFim = document.getElementById('filtro-extrato-fim').value;
@@ -452,7 +457,7 @@
     }
 
     if (l.length === 0) {
-      container.innerHTML = '<div class="alert alert-light border">Nenhum extrato localizado no período selecionado.</div>';
+      container.innerHTML = '<div class="alert alert-light border">Nenhum reembolso/despesa localizado no período selecionado.</div>';
       return;
     }
 
@@ -460,7 +465,7 @@
       var localStr = item.filial ? ('Local: ' + item.filial) : ('Local: AVULSO');
       var valKmStr = 'R$ ' + (item.custoTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
-      container.innerHTML += '<div class="bento-card p-3 border-start border-4 border-primary">' +
+      container.innerHTML += '<div class="bento-card p-3 border-start border-4 border-primary shadow-sm mb-2">' +
         '<div class="d-flex justify-content-between text-muted small mb-1">' +
           '<span>' + item.data + ' • Lançado por: ' + (item.autor || 'Usuário GP') + '</span>' +
         '</div>' +
@@ -476,6 +481,23 @@
   function imprimirRelatorioKM() {
     var u = (dadosGlobais.usuario && dadosGlobais.usuario.nome) ? dadosGlobais.usuario.nome : 'Usuário GP';
     var l = (dadosGlobais.lancamentos || []).slice();
+
+    // Filtra apenas itens com despesas calculadas
+    l = l.filter(function(item) {
+      return (parseFloat(item.custoTotal) || 0) > 0;
+    });
+
+    var dtInicio = document.getElementById('filtro-extrato-inicio').value;
+    var dtFim = document.getElementById('filtro-extrato-fim').value;
+
+    if (dtInicio || dtFim) {
+      l = l.filter(function(item) {
+        var rawDt = obterDataRawSegura(item.data);
+        var rawIni = dtInicio ? new Date(dtInicio).getTime() : 0;
+        var rawFim = dtFim ? new Date(dtFim).getTime() : Infinity;
+        return rawDt >= rawIni && rawDt <= rawFim;
+      });
+    }
 
     var mSel = document.getElementById('seletor-mes').value;
     var aSel = document.getElementById('seletor-ano').value;

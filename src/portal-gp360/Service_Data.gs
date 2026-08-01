@@ -59,6 +59,32 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     }
   }
 
+  // Função interna para gerar variação de datas vizinhas (tolerância de fusos e atrasos de lançamento)
+  function registrarChavesValidadas(mapa, prefixo, filial, email, dataStr) {
+    if (!dataStr) return;
+    var partes = dataStr.split('/');
+    if (partes.length !== 3) return;
+
+    var dia = parseInt(partes[0], 10);
+    var mes = parseInt(partes[1], 10) - 1;
+    var ano = parseInt(partes[2], 10);
+
+    var dtBase = new Date(ano, mes, dia);
+
+    // Registra a data exata e tolerância de ±1 dia
+    for (var delta = -1; delta <= 1; delta++) {
+      var dtVar = new Date(dtBase.getTime() + (delta * 86400000));
+      var dtVarStr = formatarDataSegura(dtVar);
+
+      if (filial) {
+        mapa[prefixo + '_' + filial + '_' + dtVarStr] = true;
+      }
+      if (email) {
+        mapa[prefixo + '_EMAIL_' + email + '_' + dtVarStr] = true;
+      }
+    }
+  }
+
   var chavesValidadasSocial = {};
   try {
     var ssSoc = SpreadsheetApp.openById(SPREADSHEET_SOCIAL_ID);
@@ -68,9 +94,10 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       if (abaSocReg) {
         var dSocReg = abaSocReg.getDataRange().getValues();
         for (var sr = 1; sr < dSocReg.length; sr++) {
-          var fSoc = ("0000" + normalizarFilialId(dSocReg[sr][1])).slice(-4);
+          var numSoc = normalizarFilialId(dSocReg[sr][1]);
+          var fSoc = numSoc ? ("0000" + numSoc).slice(-4) : '';
           var dtSoc = formatarDataSegura(dSocReg[sr][0] || new Date());
-          chavesValidadasSocial['SOCIAL_' + fSoc + '_' + dtSoc] = true;
+          registrarChavesValidadas(chavesValidadasSocial, 'SOCIAL', fSoc, null, dtSoc);
         }
       }
 
@@ -79,13 +106,11 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       if (abaSocInt) {
         var dSocInt = abaSocInt.getDataRange().getValues();
         for (var si = 1; si < dSocInt.length; si++) {
-          var fSocInt = ("0000" + normalizarFilialId(dSocInt[si][1])).slice(-4);
+          var numSocInt = normalizarFilialId(dSocInt[si][1]);
+          var fSocInt = numSocInt ? ("0000" + numSocInt).slice(-4) : '';
           var dtSocInt = formatarDataSegura(dSocInt[si][0] || new Date());
           var emailCoordenador = String(dSocInt[si][2] || '').toLowerCase().trim();
-          chavesValidadasSocial['SOCIAL_' + fSocInt + '_' + dtSocInt] = true;
-          if (emailCoordenador) {
-            chavesValidadasSocial['SOCIAL_EMAIL_' + emailCoordenador + '_' + dtSocInt] = true;
-          }
+          registrarChavesValidadas(chavesValidadasSocial, 'SOCIAL', fSocInt, emailCoordenador, dtSocInt);
         }
       }
     }
@@ -102,20 +127,23 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       if (abaApurHist) {
         var dApurHist = abaApurHist.getDataRange().getValues();
         for (var ah = 1; ah < dApurHist.length; ah++) {
-          var fApur = ("0000" + normalizarFilialId(dApurHist[ah][0])).slice(-4);
+          var numApur = normalizarFilialId(dApurHist[ah][0]);
+          var fApur = numApur ? ("0000" + numApur).slice(-4) : '';
           var dtApur = formatarDataSegura(dApurHist[ah][1] || new Date());
-          chavesValidadasApuracoes['APURACAO_' + fApur + '_' + dtApur] = true;
+          registrarChavesValidadas(chavesValidadasApuracoes, 'APURACAO', fApur, null, dtApur);
         }
       }
 
-      // 2. Aba Intervencoes_Feedback
+      // 2. Aba Intervencoes_Feedback (Coluna B: Filial, Coluna G: Data, Coluna H/I: E-mail)
       var abaApurFeed = ssApur.getSheetByName('Intervencoes_Feedback');
       if (abaApurFeed) {
         var dApurFeed = abaApurFeed.getDataRange().getValues();
         for (var af = 1; af < dApurFeed.length; af++) {
-          var fFeed = ("0000" + normalizarFilialId(dApurFeed[af][1])).slice(-4); // Col B (Filial)
-          var dtFeed = formatarDataSegura(dApurFeed[af][6] || dApurFeed[af][0] || new Date());
-          chavesValidadasApuracoes['APURACAO_' + fFeed + '_' + dtFeed] = true;
+          var numFeed = normalizarFilialId(dApurFeed[af][1]); // Coluna B (Filial)
+          var fFeed = numFeed ? ("0000" + numFeed).slice(-4) : '';
+          var dtFeed = formatarDataSegura(dApurFeed[af][6] || dApurFeed[af][0] || new Date()); // Coluna G (Data)
+          var emailFeed = String(dApurFeed[af][7] || dApurFeed[af][8] || '').toLowerCase().trim();
+          registrarChavesValidadas(chavesValidadasApuracoes, 'APURACAO', fFeed, emailFeed, dtFeed);
         }
       }
 
@@ -124,9 +152,11 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       if (abaApurDesl) {
         var dApurDesl = abaApurDesl.getDataRange().getValues();
         for (var ad = 1; ad < dApurDesl.length; ad++) {
-          var fDesl = ("0000" + normalizarFilialId(dApurDesl[ad][0])).slice(-4);
+          var numDesl = normalizarFilialId(dApurDesl[ad][0]);
+          var fDesl = numDesl ? ("0000" + numDesl).slice(-4) : '';
           var dtDesl = formatarDataSegura(dApurDesl[ad][1] || new Date());
-          chavesValidadasApuracoes['APURACAO_' + fDesl + '_' + dtDesl] = true;
+          var emailReg = String(dApurDesl[ad][2] || '').toLowerCase().trim();
+          registrarChavesValidadas(chavesValidadasApuracoes, 'APURACAO', fDesl, emailReg, dtDesl);
         }
       }
     }
@@ -160,7 +190,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       var motivoLancUpper = motivoLanc.toUpperCase();
       var custoTotalItem = parseFloat(row[8]) || parseFloat(row[21]) || 0; // Col I ou Col V
 
-      var dtStr = formatarDataSegura(dtObj || row[12]);
+      var dtStr = formatarDataSegura(row[12] || dtObj);
       var dtParsed = dtObj instanceof Date ? dtObj : new Date(dtObj || row[12]);
       var mReg = dtParsed.getMonth() + 1;
       var aReg = dtParsed.getFullYear();
@@ -182,7 +212,8 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       if (statusFinal === 'PENDENTE') {
         var encSoc = !!chavesValidadasSocial['SOCIAL_' + fIdLanc + '_' + dtStr] || 
                      !!chavesValidadasSocial['SOCIAL_EMAIL_' + emailAutor + '_' + dtStr];
-        var encApur = !!chavesValidadasApuracoes['APURACAO_' + fIdLanc + '_' + dtStr];
+        var encApur = !!chavesValidadasApuracoes['APURACAO_' + fIdLanc + '_' + dtStr] ||
+                      !!chavesValidadasApuracoes['APURACAO_EMAIL_' + emailAutor + '_' + dtStr];
         
         if (encSoc || encApur) {
           statusFinal = 'VALIDADO';
