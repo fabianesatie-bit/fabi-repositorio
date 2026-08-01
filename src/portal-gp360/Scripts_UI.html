@@ -8,6 +8,32 @@
   var meuGraficoAtividades = null;
   var temasReuniaoSelecionados = [];
 
+  function obterDataRawSegura(dataValor) {
+    if (!dataValor) return 0;
+    try {
+      if (dataValor instanceof Date) return dataValor.getTime();
+      var parts = String(dataValor).split('/');
+      if (parts.length === 3) {
+        var d = new Date(parts[2], parts[1] - 1, parts[0]);
+        return d.getTime();
+      }
+      var d2 = new Date(dataValor);
+      return isNaN(d2.getTime()) ? 0 : d2.getTime();
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  function gerarAvatarSVG(nome) {
+    var inis = 'GP';
+    if (nome) {
+      var partes = String(nome).trim().split(' ');
+      inis = partes[0].charAt(0).toUpperCase();
+      if (partes.length > 1) inis += partes[partes.length - 1].charAt(0).toUpperCase();
+    }
+    return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%230087FF'/><text x='50%' y='55%' font-size='30' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>" + inis + "</text></svg>";
+  }
+
   function mudarAba(abaId, element) {
     var abas = document.querySelectorAll('.view-aba');
     abas.forEach(function(a) { a.classList.add('d-none'); });
@@ -15,7 +41,8 @@
     var links = document.querySelectorAll('.nav-btn-card');
     links.forEach(function(l) { l.classList.remove('active'); });
 
-    document.getElementById(abaId).classList.remove('d-none');
+    var targetAba = document.getElementById(abaId);
+    if (targetAba) targetAba.classList.remove('d-none');
     if (element) element.classList.add('active');
 
     if (abaId === 'aba-galeria') carregarGaleriaEvidencias();
@@ -24,38 +51,50 @@
   }
 
   function abrirPainelInternoEmbutido(url, titulo) {
-    document.getElementById('titulo-painel-embutido').innerText = titulo;
-    document.getElementById('iframe-painel-embutido-src').src = url;
+    var titleElem = document.getElementById('titulo-painel-embutido');
+    if (titleElem) titleElem.innerText = titulo;
+    var iframe = document.getElementById('iframe-painel-embutido-src');
+    if (iframe) iframe.src = url;
     var container = document.getElementById('container-embutido-painel');
-    container.classList.remove('d-none');
-    container.scrollIntoView({ behavior: 'smooth' });
+    if (container) {
+      container.classList.remove('d-none');
+      container.scrollIntoView({ behavior: 'smooth' });
+    }
   }
 
   function fecharPainelEmbutido() {
-    document.getElementById('iframe-painel-embutido-src').src = 'about:blank';
-    document.getElementById('container-embutido-painel').classList.add('d-none');
+    var iframe = document.getElementById('iframe-painel-embutido-src');
+    if (iframe) iframe.src = 'about:blank';
+    var container = document.getElementById('container-embutido-painel');
+    if (container) container.classList.add('d-none');
   }
 
   function renderizarInterfaceCompleta() {
-    var u = dadosGlobais.usuario;
-    document.getElementById('user-nome-display').innerText = u.nome;
-    document.getElementById('user-cargo-display').innerText = u.cargo + ' (' + u.nivelAcesso + ')';
+    var u = dadosGlobais.usuario || {};
+    var nameElem = document.getElementById('user-nome-display');
+    if (nameElem) nameElem.innerText = u.nome || 'Usuário GP';
+    var cargoElem = document.getElementById('user-cargo-display');
+    if (cargoElem) cargoElem.innerText = (u.cargo || 'Colaborador') + ' (' + (u.nivelAcesso || '') + ')';
 
     var boxRegionais = document.getElementById('user-regional-display');
-    boxRegionais.innerHTML = '';
-    if (u.regionais && u.regionais.length > 0) {
-      u.regionais.forEach(function(reg) {
-        boxRegionais.innerHTML += '<span class="regional-pill">' + reg + '</span>';
-      });
-    } else {
-      boxRegionais.innerHTML = '<span class="regional-pill bg-success-subtle text-success border-success">Visão Nacional</span>';
+    if (boxRegionais) {
+      boxRegionais.innerHTML = '';
+      if (u.regionais && u.regionais.length > 0) {
+        u.regionais.forEach(function(reg) {
+          boxRegionais.innerHTML += '<span class="regional-pill">' + reg + '</span>';
+        });
+      } else {
+        boxRegionais.innerHTML = '<span class="regional-pill bg-success-subtle text-success border-success">Visão Nacional</span>';
+      }
     }
 
     var imgUser = document.getElementById('user-avatar-img');
-    if (u.fotoUrl && u.fotoUrl.length > 20) {
-      imgUser.src = u.fotoUrl;
-    } else {
-      imgUser.src = gerarAvatarSVG(u.nome);
+    if (imgUser) {
+      if (u.fotoUrl && u.fotoUrl.length > 20) {
+        imgUser.src = u.fotoUrl;
+      } else {
+        imgUser.src = gerarAvatarSVG(u.nome);
+      }
     }
 
     if (!u.isAdmin) {
@@ -63,11 +102,14 @@
       if (btnAdmin) btnAdmin.classList.add('d-none');
     }
 
-    document.getElementById('kpi-lojas-carteira').innerText = dadosGlobais.lojasCarteiraTotal || 0;
-    document.getElementById('kpi-visitas-loco').innerText = dadosGlobais.visitasInLocoMes || 0;
+    var kpiLojas = document.getElementById('kpi-lojas-carteira');
+    if (kpiLojas) kpiLojas.innerText = dadosGlobais.lojasCarteiraTotal || 0;
+    var kpiVisitas = document.getElementById('kpi-visitas-loco');
+    if (kpiVisitas) kpiVisitas.innerText = dadosGlobais.visitasInLocoMes || 0;
     
     var valReembolso = dadosGlobais.reembolsoEstimadoMes || 0;
-    document.getElementById('kpi-reembolso-mes').innerText = 'R$ ' + valReembolso.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    var kpiReembolso = document.getElementById('kpi-reembolso-mes');
+    if (kpiReembolso) kpiReembolso.innerText = 'R$ ' + valReembolso.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
     povoarDropdownsFormulario();
     atualizarCardsGamificacao();
@@ -75,16 +117,6 @@
     renderizarGraficoAtividades();
     renderizarListaNaturezasAdmin();
     renderizarGestaoTemasAdmin();
-  }
-
-  function gerarAvatarSVG(nome) {
-    var inis = 'GP';
-    if (nome) {
-      var partes = nome.trim().split(' ');
-      inis = partes[0].charAt(0).toUpperCase();
-      if (partes.length > 1) inis += partes[partes.length - 1].charAt(0).toUpperCase();
-    }
-    return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%230087FF'/><text x='50%' y='55%' font-size='30' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>" + inis + "</text></svg>";
   }
 
   function renderizarGraficoAtividades() {
@@ -121,35 +153,41 @@
 
   function povoarDropdownsFormulario() {
     var selFilial = document.getElementById('select-filial');
-    selFilial.innerHTML = '<option value="">Selecione a loja...</option>';
-    dadosGlobais.lojas.forEach(function(l) {
-      selFilial.innerHTML += '<option value="' + l.id + '">' + l.id + ' - ' + l.nome + ' (' + l.regional + ')</option>';
-    });
+    if (selFilial) {
+      selFilial.innerHTML = '<option value="">Selecione a loja...</option>';
+      (dadosGlobais.lojas || []).forEach(function(l) {
+        selFilial.innerHTML += '<option value="' + l.id + '">' + l.id + ' - ' + l.nome + ' (' + l.regional + ')</option>';
+      });
+    }
 
     var selNat = document.getElementById('select-natureza');
-    selNat.innerHTML = '<option value="">Selecione a natureza...</option>';
-    
-    var naturezasOrdenadas = (dadosGlobais.naturezas || []).slice().sort(function(a, b) {
-      return a.localeCompare(b, 'pt-BR');
-    });
-
-    naturezasOrdenadas.forEach(function(n) {
-      selNat.innerHTML += '<option value="' + n + '">' + n + '</option>';
-    });
+    if (selNat) {
+      selNat.innerHTML = '<option value="">Selecione a natureza...</option>';
+      var naturezasOrdenadas = (dadosGlobais.naturezas || []).slice().sort(function(a, b) {
+        return a.localeCompare(b, 'pt-BR');
+      });
+      naturezasOrdenadas.forEach(function(n) {
+        selNat.innerHTML += '<option value="' + n + '">' + n + '</option>';
+      });
+    }
 
     var containerChips = document.getElementById('chips-container-reuniao');
-    containerChips.innerHTML = '';
-    var listaReuniao = dadosGlobais.temas.reuniao || ['NPS', 'GMD', 'Banco de Horas', 'PCD', 'Quadro', 'Lixo Eletrônico', 'Campanha Sazonais', 'Agente Integrador'];
-    listaReuniao.forEach(function(t) {
-      containerChips.innerHTML += '<span class="chip-tema" onclick="toggleChipTema(this, \'' + t + '\')">' + t + '</span>';
-    });
+    if (containerChips) {
+      containerChips.innerHTML = '';
+      var listaReuniao = (dadosGlobais.temas && dadosGlobais.temas.reuniao) ? dadosGlobais.temas.reuniao : ['NPS', 'GMD', 'Banco de Horas', 'PCD', 'Quadro', 'Lixo Eletrônico', 'Campanha Sazonais', 'Agente Integrador'];
+      listaReuniao.forEach(function(t) {
+        containerChips.innerHTML += '<span class="chip-tema" onclick="toggleChipTema(this, \'' + t + '\')">' + t + '</span>';
+      });
+    }
 
     var selTreinamento = document.getElementById('select-tema-treinamento');
-    selTreinamento.innerHTML = '<option value="">Selecione o tema...</option>';
-    var listaTreinamento = dadosGlobais.temas.treinamento || ['Liderança', 'Assédio', 'Jurídico', 'Auditoria', 'Integração', 'Atendimento 10 estrelas', 'Motivacional', 'Feedback', 'Inegociáveis', 'Apontamento'];
-    listaTreinamento.forEach(function(t) {
-      selTreinamento.innerHTML += '<option value="' + t + '">' + t + '</option>';
-    });
+    if (selTreinamento) {
+      selTreinamento.innerHTML = '<option value="">Selecione o tema...</option>';
+      var listaTreinamento = (dadosGlobais.temas && dadosGlobais.temas.treinamento) ? dadosGlobais.temas.treinamento : ['Liderança', 'Assédio', 'Jurídico', 'Auditoria', 'Integração', 'Atendimento 10 estrelas', 'Motivacional', 'Feedback', 'Inegociáveis', 'Apontamento'];
+      listaTreinamento.forEach(function(t) {
+        selTreinamento.innerHTML += '<option value="' + t + '">' + t + '</option>';
+      });
+    }
   }
 
   function toggleChipTema(elem, tema) {
@@ -162,8 +200,10 @@
   function alternarEscopoAtendimento() {
     var escopo = document.getElementById('select-escopo-atendimento').value;
     var boxFilial = document.getElementById('box-destino-filial');
-    if (escopo === 'FILIAL') boxFilial.classList.remove('d-none');
-    else boxFilial.classList.add('d-none');
+    if (boxFilial) {
+      if (escopo === 'FILIAL') boxFilial.classList.remove('d-none');
+      else boxFilial.classList.add('d-none');
+    }
   }
 
   function verificarCamposDinamicos() {
@@ -171,13 +211,13 @@
     var boxReuniao = document.getElementById('box-temas-reuniao');
     var boxTreinamento = document.getElementById('box-tema-treinamento');
 
-    boxReuniao.classList.add('d-none');
-    boxTreinamento.classList.add('d-none');
+    if (boxReuniao) boxReuniao.classList.add('d-none');
+    if (boxTreinamento) boxTreinamento.classList.add('d-none');
 
     if (nat.includes('reunião') || nat.includes('reuniao')) {
-      boxReuniao.classList.remove('d-none');
+      if (boxReuniao) boxReuniao.classList.remove('d-none');
     } else if (nat.includes('treinamento')) {
-      boxTreinamento.classList.remove('d-none');
+      if (boxTreinamento) boxTreinamento.classList.remove('d-none');
     }
   }
 
@@ -185,7 +225,8 @@
     var rate = parseFloat(document.getElementById('input-rate-km').value) || 1.20;
     var km = parseFloat(document.getElementById('input-km').value) || 0;
     var custoKm = km * rate;
-    document.getElementById('display-custo-km').value = custoKm.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    var displayKm = document.getElementById('display-custo-km');
+    if (displayKm) displayKm.value = custoKm.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
     var ali = parseFloat(document.getElementById('input-alimentacao').value) || 0;
     var hos = parseFloat(document.getElementById('input-hospedagem').value) || 0;
@@ -194,7 +235,8 @@
     var est = parseFloat(document.getElementById('input-estacionamento').value) || 0;
 
     var total = custoKm + ali + hos + aer + ped + est;
-    document.getElementById('display-gasto-total').innerText = 'Gasto Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    var displayTotal = document.getElementById('display-gasto-total');
+    if (displayTotal) displayTotal.innerText = 'Gasto Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
   }
 
   function calcularDespesasAvulso() {
@@ -209,12 +251,13 @@
     var est = parseFloat(document.getElementById('avulso-estacionamento').value) || 0;
 
     var total = custoKm + ali + hos + aer + ped + est;
-    document.getElementById('avulso-display-total').innerText = 'Gasto Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    var displayAvulso = document.getElementById('avulso-display-total');
+    if (displayAvulso) displayAvulso.innerText = 'Gasto Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
   }
 
   function alternarFormularioKMAvulso() {
     var box = document.getElementById('box-form-km-avulso');
-    box.classList.toggle('d-none');
+    if (box) box.classList.toggle('d-none');
   }
 
   function limparOutrasEvidencias(origem) {
@@ -223,22 +266,27 @@
   }
 
   function atualizarCardsGamificacao() {
-    var g = dadosGlobais.gamificacao;
-    document.getElementById('kpi-moedas-mes').innerText = g.moedasMes;
-    document.getElementById('kpi-moedas-totais').innerText = g.moedasTotais;
-    document.getElementById('badge-fase-nome').innerText = g.faseNome;
+    var g = dadosGlobais.gamificacao || {};
+    var moedasMesElem = document.getElementById('kpi-moedas-mes');
+    if (moedasMesElem) moedasMesElem.innerText = g.moedasMes || 0;
+    var moedasTotElem = document.getElementById('kpi-moedas-totais');
+    if (moedasTotElem) moedasTotElem.innerText = g.moedasTotais || 0;
+    var badgeFaseElem = document.getElementById('badge-fase-nome');
+    if (badgeFaseElem) badgeFaseElem.innerText = g.faseNome || '⛺ Fase 1: Acampamento Base';
 
     var iconeVisual = '🥾';
-    if (g.faseNome.includes('Fase 4')) iconeVisual = '🚩';
-    else if (g.faseNome.includes('Fase 3')) iconeVisual = '🏔️';
-    else if (g.faseNome.includes('Fase 2')) iconeVisual = '🧗';
-    document.getElementById('icone-fase-visual').innerText = iconeVisual;
+    if (g.faseNome && g.faseNome.includes('Fase 4')) iconeVisual = '🚩';
+    else if (g.faseNome && g.faseNome.includes('Fase 3')) iconeVisual = '🏔️';
+    else if (g.faseNome && g.faseNome.includes('Fase 2')) iconeVisual = '🧗';
+    var iconeElem = document.getElementById('icone-fase-visual');
+    if (iconeElem) iconeElem.innerText = iconeVisual;
   }
 
   function renderizarRankingTop5() {
     var lista = document.getElementById('lista-ranking');
+    if (!lista) return;
     lista.innerHTML = '';
-    var r = dadosGlobais.gamificacao.ranking;
+    var r = (dadosGlobais.gamificacao && dadosGlobais.gamificacao.ranking) ? dadosGlobais.gamificacao.ranking : [];
 
     if (!r || r.length === 0) {
       lista.innerHTML = '<li class="list-group-item text-muted">Nenhum registro no período.</li>';
@@ -283,11 +331,11 @@
       return;
     }
 
-    var u = dadosGlobais.usuario;
+    var u = dadosGlobais.usuario || {};
 
     l.forEach(function(item) {
       var localStr = item.filial ? ('Local: ' + item.filial) : ('Local: AVULSO');
-      var podeExcluir = (u.isSuperAdmin || (item.autor && item.autor.toLowerCase() === u.email.toLowerCase()));
+      var podeExcluir = (u.isSuperAdmin || (item.autor && item.autor.toLowerCase() === (u.email || '').toLowerCase()));
 
       var btnDeleteHtml = podeExcluir ? 
         '<button class="btn btn-sm btn-outline-danger border-0" onclick="deletarHistorico(\'' + item.id + '\')"><i class="bi bi-trash fs-5"></i></button>' : 
@@ -306,6 +354,7 @@
 
   function renderizarHistoricos() {
     var container = document.getElementById('tabela-extrato-container');
+    if (!container) return;
     container.innerHTML = '';
     var l = dadosGlobais.lancamentos || [];
 
@@ -344,8 +393,8 @@
   }
 
   function imprimirRelatorioKM() {
-    var u = dadosGlobais.usuario ? dadosGlobais.usuario.nome : 'Usuário GP';
-    var l = dadosGlobais.lancamentos || [];
+    var u = (dadosGlobais.usuario && dadosGlobais.usuario.nome) ? dadosGlobais.usuario.nome : 'Usuário GP';
+    var l = (dadosGlobais.lancamentos || []).slice();
 
     var mSel = document.getElementById('seletor-mes').value;
     var aSel = document.getElementById('seletor-ano').value;
@@ -409,14 +458,14 @@
     if (!container) return;
     container.innerHTML = '';
 
-    var t = dadosGlobais.temas;
+    var t = dadosGlobais.temas || { reuniao: [], treinamento: [] };
     var html = '<div class="row"><div class="col-md-6"><h6 class="fw-bold text-primary">Reunião Regional</h6><ul class="list-group">';
-    t.reuniao.forEach(function(item) {
+    (t.reuniao || []).forEach(function(item) {
       html += '<li class="list-group-item d-flex justify-content-between align-items-center">' + item + 
         '<button class="btn btn-sm btn-outline-danger" onclick="deletarTemaAdmin(\'REUNIAO_REGIONAL\', \'' + item + '\')"><i class="bi bi-trash"></i></button></li>';
     });
     html += '</ul></div><div class="col-md-6"><h6 class="fw-bold text-success">Treinamento</h6><ul class="list-group">';
-    t.treinamento.forEach(function(item) {
+    (t.treinamento || []).forEach(function(item) {
       html += '<li class="list-group-item d-flex justify-content-between align-items-center">' + item + 
         '<button class="btn btn-sm btn-outline-danger" onclick="deletarTemaAdmin(\'TREINAMENTO\', \'' + item + '\')"><i class="bi bi-trash"></i></button></li>';
     });
@@ -433,19 +482,25 @@
 
   function carregarGaleriaEvidencias() {
     var grid = document.getElementById('grid-galeria');
+    if (!grid) return;
     grid.innerHTML = '<div class="col-12 text-center py-4"><span class="spinner-border text-primary"></span> Carregando evidências...</div>';
+
+    var mSel = document.getElementById('seletor-mes');
+    var aSel = document.getElementById('seletor-ano');
+    var m = mSel ? mSel.value : '';
+    var a = aSel ? aSel.value : '';
 
     google.script.run
       .withSuccessHandler(function(fotos) {
         grid.innerHTML = '';
         if (!fotos || fotos.length === 0) {
-          grid.innerHTML = '<div class="col-12"><div class="alert alert-light border">Nenhuma imagem localizada.</div></div>';
+          grid.innerHTML = '<div class="col-12"><div class="alert alert-light border">Nenhuma imagem localizada no período selecionado.</div></div>';
           return;
         }
         fotos.forEach(function(f) {
           grid.innerHTML += '<div class="col-md-4 col-lg-3">' +
             '<div class="bento-card p-2 text-center">' +
-              '<img src="' + f.thumbUrl + '" class="img-fluid rounded mb-2" style="max-height: 180px; object-fit: cover;" onerror="this.src=gerarAvatarSVG(\'Sem Imagem\');">' +
+              '<img src="' + f.thumbUrl + '" class="img-fluid rounded mb-2" style="max-height: 180px; object-fit: cover; width:100%;" onerror="this.src=gerarAvatarSVG(\'Galeria\');">' +
               '<small class="d-block fw-bold">' + f.loja + '</small>' +
               '<small class="text-muted d-block">' + f.data + ' • ' + f.motivo + '</small>' +
               '<a href="' + f.url + '" target="_blank" class="btn btn-sm btn-light border mt-2 w-100">Abrir Imagem</a>' +
@@ -453,7 +508,7 @@
           '</div>';
         });
       })
-      .getEvidenciasUsuario();
+      .getEvidenciasUsuario(m, a);
   }
 
   function dispararConfetesFestao() {

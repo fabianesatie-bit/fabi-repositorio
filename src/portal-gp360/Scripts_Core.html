@@ -13,34 +13,60 @@
 
   window.onload = function() {
     var hoje = new Date().toISOString().split('T')[0];
-    document.getElementById('input-data-atividade').value = hoje;
+    var fieldDataAtividade = document.getElementById('input-data-atividade');
+    if (fieldDataAtividade) fieldDataAtividade.value = hoje;
     var fieldAvulsoData = document.getElementById('avulso-data');
     if (fieldAvulsoData) fieldAvulsoData.value = hoje;
+    
     inicializarAplicacao();
   };
 
   function inicializarAplicacao() {
-    var m = document.getElementById('seletor-mes').value;
-    var a = document.getElementById('seletor-ano').value;
+    var mSel = document.getElementById('seletor-mes');
+    var aSel = document.getElementById('seletor-ano');
+    var m = mSel ? mSel.value : (new Date().getMonth() + 1);
+    var a = aSel ? aSel.value : new Date().getFullYear();
 
     google.script.run
       .withSuccessHandler(function(res) {
-        document.getElementById('loading-splash').classList.add('d-none');
+        var splash = document.getElementById('loading-splash');
+        if (splash) splash.classList.add('d-none');
 
         if (!res.temAcesso) {
-          document.getElementById('bloqueio-tela').classList.remove('d-none');
-          document.getElementById('bloqueio-mensagem').innerText = res.motivo || 'Acesso Restrito ao Portal GP 360.';
+          var bloqueio = document.getElementById('bloqueio-tela');
+          if (bloqueio) bloqueio.classList.remove('d-none');
+          var msg = document.getElementById('bloqueio-mensagem');
+          if (msg) msg.innerText = res.motivo || 'Acesso Restrito ao Portal GP 360.';
           return;
         }
 
-        document.getElementById('app-container').classList.remove('d-none');
+        var app = document.getElementById('app-container');
+        if (app) app.classList.remove('d-none');
         dadosGlobais = res;
+        
         renderizarInterfaceCompleta();
+
+        // Refresh currently active tab if needed
+        var abaGaleria = document.getElementById('aba-galeria');
+        if (abaGaleria && !abaGaleria.classList.contains('d-none')) {
+          carregarGaleriaEvidencias();
+        }
+        var abaHistorico = document.getElementById('aba-historico');
+        if (abaHistorico && !abaHistorico.classList.contains('d-none')) {
+          renderizarHistoricos();
+        }
+        var abaGestao = document.getElementById('aba-gestao');
+        if (abaGestao && !abaGestao.classList.contains('d-none')) {
+          renderizarTimelineAtividades();
+        }
       })
       .withFailureHandler(function(err) {
-        document.getElementById('loading-splash').classList.add('d-none');
-        document.getElementById('bloqueio-tela').classList.remove('d-none');
-        document.getElementById('bloqueio-mensagem').innerText = 'Erro ao conectar: ' + err.message;
+        var splash = document.getElementById('loading-splash');
+        if (splash) splash.classList.add('d-none');
+        var bloqueio = document.getElementById('bloqueio-tela');
+        if (bloqueio) bloqueio.classList.remove('d-none');
+        var msg = document.getElementById('bloqueio-mensagem');
+        if (msg) msg.innerText = 'Erro ao conectar: ' + err.message;
       })
       .obterDadosIniciais(m, a);
   }
@@ -63,14 +89,17 @@
     }
 
     var btn = document.getElementById('btn-salvar-lancamento');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...';
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Salvando...';
+    }
 
     var temaStr = '';
     if (natureza.toLowerCase().includes('reunião') || natureza.toLowerCase().includes('reuniao')) {
-      temaStr = temasReuniaoSelecionados.join(', ');
+      temaStr = (typeof temasReuniaoSelecionados !== 'undefined') ? temasReuniaoSelecionados.join(', ') : '';
     } else if (natureza.toLowerCase().includes('treinamento')) {
-      temaStr = document.getElementById('select-tema-treinamento').value;
+      var selTr = document.getElementById('select-tema-treinamento');
+      if (selTr) temaStr = selTr.value;
     }
 
     var payloadData = {
@@ -92,7 +121,7 @@
       valorEstacionamento: document.getElementById('input-estacionamento').value
     };
 
-    if (fileInput.files.length > 0) {
+    if (fileInput && fileInput.files.length > 0) {
       var file = fileInput.files[0];
       var reader = new FileReader();
       reader.onload = function(e) {
@@ -112,21 +141,26 @@
   function enviarBackendSalvar(payloadData, fileData, btn) {
     google.script.run
       .withSuccessHandler(function(res) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-coin me-1"></i> Salvar e Ganhar Moeda';
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-coin me-1"></i> Salvar e Ganhar Moeda';
+        }
 
         if (res.sucesso) {
           dispararConfetesFestao();
           alert('Sua atividade foi registrada com sucesso!');
-          document.getElementById('form-lancamento').reset();
+          var form = document.getElementById('form-lancamento');
+          if (form) form.reset();
           inicializarAplicacao();
         } else {
           alert('Erro ao salvar: ' + res.mensagem);
         }
       })
       .withFailureHandler(function(err) {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-coin me-1"></i> Salvar e Ganhar Moeda';
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-coin me-1"></i> Salvar e Ganhar Moeda';
+        }
         alert('Erro no servidor: ' + err.message);
       })
       .registrarAtividade(payloadData, fileData);
