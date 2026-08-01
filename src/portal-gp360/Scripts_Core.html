@@ -140,10 +140,10 @@
           
           if (natLower.includes('atendimento social')) {
             mostrarToast('Atividade salva no histórico! Abrindo formulário detalhado...', 'success');
-            abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', 'Atendimento Social');
+            window.open('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', '_blank');
           } else if (natLower.includes('apuraç') || natLower.includes('apurac') || natLower.includes('feedback') || natLower.includes('acompanhamento')) {
             mostrarToast('Atividade salva no histórico! Abrindo painel de apuração...', 'success');
-            abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback');
+            window.open('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', '_blank');
           } else {
             mostrarToast('Sua atividade foi registrada com sucesso!', 'success');
           }
