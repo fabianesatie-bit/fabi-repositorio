@@ -1,10 +1,19 @@
 {
-  "timeZone": "America/Sao_Paulo",
-  "dependencies": {},
-  "exceptionLogging": "STACKDRIVER",
-  "runtimeVersion": "V8",
-  "webapp": {
-    "executeAs": "USER_DEPLOYING",
-    "access": "DOMAIN"
-  }
+"name": "Portal GP 360º",
+"short_name": "GP 360º",
+"description": "Aplicativo Corporativo Oficial do Portal GP 360º",
+"start_url": "./",
+"scope": "./",
+"display": "standalone",
+"orientation": "portrait",
+"background_color": "#160048",
+"theme_color": "#160048",
+"icons": [
+{
+"src": "data:image/svg+xml;utf8,GP",
+"sizes": "512x512",
+"type": "image/svg+xml",
+"purpose": "any maskable"
+}
+]
 }
