@@ -4,9 +4,20 @@
  * Subpasta Monorepo: src/portal-gp360/
  */
 
-/**
- * Extrai o ID alfanumérico do Google Drive de uma URL ou ID direto
- */
+function normalizarFilialId(id) {
+  if (!id && id !== 0) return null;
+  var num = parseInt(String(id).replace(/\D/g, ''), 10);
+  if (isNaN(num)) return null;
+  if (num > 3000) num -= 3000;
+  return num;
+}
+
+function formatarFilialQuatroDigitos(id) {
+  var norm = normalizarFilialId(id);
+  if (norm === null) return '0000';
+  return ("0000" + norm).slice(-4);
+}
+
 function extrairIdDrive(linkOuId) {
   if (!linkOuId) return '';
   var str = String(linkOuId).trim();
@@ -17,9 +28,6 @@ function extrairIdDrive(linkOuId) {
   return match ? match[0] : str;
 }
 
-/**
- * Padroniza saída de datas para string dd/MM/yyyy
- */
 function formatarDataSegura(dataValor) {
   if (!dataValor) return '';
   try {
@@ -36,9 +44,6 @@ function formatarDataSegura(dataValor) {
   }
 }
 
-/**
- * Converte strings ou objetos de data em Timestamp para ordenação
- */
 function obterDataRawSegura(dataValor) {
   if (!dataValor) return 0;
   try {

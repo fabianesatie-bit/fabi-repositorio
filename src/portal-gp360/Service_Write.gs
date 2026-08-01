@@ -24,7 +24,7 @@ function registrarAtividade(dados, fileData) {
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var aba = ss.getSheetByName('DADOS_LANCAMENTOS');
 
-    var evidenciaUrl = '';
+    var evidenciaUrl = dados.evidenciaUrlDirect || '';
     if (fileData && fileData.base64) {
       var folder = DriveApp.getFolderById(EVIDENCIAS_FOLDER_ID);
       var bytes = Utilities.base64Decode(fileData.base64.split(',')[1]);
@@ -37,6 +37,14 @@ function registrarAtividade(dados, fileData) {
     var novoId = Utilities.getUuid();
     var dataHora = new Date();
 
+    // Cálculo de Custos
+    var km = parseFloat(dados.kmPercorrido) || 0;
+    var pedagio = parseFloat(dados.valorPedagio) || 0;
+    var alimentacao = parseFloat(dados.valorAlimentacao) || 0;
+    var hospedagem = parseFloat(dados.valorHospedagem) || 0;
+    var outros = parseFloat(dados.outrosCustos) || 0;
+    var custoTotal = (km * 1.10) + pedagio + alimentacao + hospedagem + outros; // Taxa KM Padrão
+
     aba.appendRow([
       novoId,
       dataHora,
@@ -47,12 +55,12 @@ function registrarAtividade(dados, fileData) {
       dados.tema || '',
       dados.observacao || '',
       evidenciaUrl,
-      dados.kmPercorrido || 0,
-      dados.valorPedagio || 0,
-      dados.valorAlimentacao || 0,
-      dados.valorHospedagem || 0,
-      dados.outrosCustos || 0,
-      dados.custoTotal || 0,
+      km,
+      pedagio,
+      alimentacao,
+      hospedagem,
+      outros,
+      custoTotal,
       controle.nome,
       controle.cargo,
       controle.regionais.join(', ')
@@ -61,7 +69,7 @@ function registrarAtividade(dados, fileData) {
     CacheService.getScriptCache().remove('IND_LOJA_' + dados.filial);
     registrarAuditoria('REGISTRO_ATIVIDADE', 'ID: ' + novoId + ' - Loja: ' + dados.filial);
 
-    return { sucesso: true, mensagem: 'Atividade registrada com sucesso!', id: novoId };
+    return { sucesso: true, mensagem: 'Atividade e reembolso registrados com sucesso!', id: novoId };
   } catch (err) {
     return { sucesso: false, mensagem: 'Erro na gravação: ' + err.toString() };
   } finally {
