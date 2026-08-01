@@ -4,6 +4,11 @@
  * Subpasta Monorepo: src/portal-gp360/
  */
 
+/**
+ * Extrai dia, mês e ano de objetos Date ou Strings sem problemas de fuso horário
+ * @param {Date|string} dataVal - Valor de data bruto
+ * @return {Object} Objeto contendo dia, mes e ano numéricos
+ */
 function extrairMesAnoData(dataVal) {
   if (!dataVal) return { dia: 0, mes: 0, ano: 0 };
   try {
@@ -29,7 +34,7 @@ function extrairMesAnoData(dataVal) {
       }
     }
 
-    // Formato YYYY-MM-DD
+    // Formato ISO YYYY-MM-DD
     if (str.indexOf('-') !== -1) {
       var partesIso = str.split('T')[0].split('-');
       if (partesIso.length === 3 && partesIso[0].length === 4) {
@@ -54,6 +59,12 @@ function extrairMesAnoData(dataVal) {
   return { dia: 0, mes: 0, ano: 0 };
 }
 
+/**
+ * Carrega todos os dados iniciais do Portal GP 360 e executa a conciliação automática com planilhas especialistas
+ * @param {number|string} filtroMes - Mês selecionado no topo do portal
+ * @param {number|string} filtroAno - Ano selecionado no topo do portal
+ * @return {Object} Payload completo de inicialização para a UI
+ */
 function obterDadosIniciais(filtroMes, filtroAno) {
   var controle = obterControleAcesso();
   if (!controle.temAcesso) {
@@ -109,9 +120,12 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     }
   }
 
-  function registrarChavesValidadas(mapa, prefixo, filial, email, dataStr) {
+  function registrarChavesValidadas(mapa, prefixo, filial, email, dataStr, regional) {
     if (filial) {
       mapa[prefixo + '_' + filial] = true;
+    }
+    if (regional) {
+      mapa[prefixo + '_REGIONAL_' + regional] = true;
     }
     if (email) {
       mapa[prefixo + '_EMAIL_' + email] = true;
@@ -145,11 +159,11 @@ function obterDadosIniciais(filtroMes, filtroAno) {
           var numSoc = normalizarFilialId(dSocReg[sr][2] || dSocReg[sr][1]);
           var fSoc = numSoc ? ("0000" + numSoc).slice(-4) : '';
           var dtSoc = formatarDataSegura(dSocReg[sr][0] || new Date());
-          registrarChavesValidadas(chavesValidadasSocial, 'SOCIAL', fSoc, null, dtSoc);
+          registrarChavesValidadas(chavesValidadasSocial, 'SOCIAL', fSoc, null, dtSoc, null);
         }
       }
 
-      // 2. Aba BASE_INTERNOS
+      // 2. Aba BASE_INTERNOS (Coluna B = Filial, Coluna C = Email)
       var abaSocInt = ssSoc.getSheetByName('BASE_INTERNOS');
       if (abaSocInt) {
         var dSocInt = abaSocInt.getDataRange().getValues();
@@ -158,7 +172,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
           var fSocInt = numSocInt ? ("0000" + numSocInt).slice(-4) : '';
           var dtSocInt = formatarDataSegura(dSocInt[si][0] || new Date());
           var emailCoordenador = String(dSocInt[si][2] || '').toLowerCase().trim();
-          registrarChavesValidadas(chavesValidadasSocial, 'SOCIAL', fSocInt, emailCoordenador, dtSocInt);
+          registrarChavesValidadas(chavesValidadasSocial, 'SOCIAL', fSocInt, emailCoordenador, dtSocInt, null);
         }
       }
     }
@@ -170,19 +184,25 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   try {
     var ssApur = SpreadsheetApp.openById(SPREADSHEET_APURACOES_ID);
     if (ssApur) {
-      // 1. Aba Historico_Envios
-      var abaApurHist = ssApur.getSheetByName('Historico_Envios');
+      // 1. Aba HISTORICO_APURACAO (Col C: Origem [2], Col D: Filial [3], Col F: Regional [5], Col M: Data Conclusao [12])
+      var abaApurHist = ssApur.getSheetByName('HISTORICO_APURACAO');
       if (abaApurHist) {
         var dApurHist = abaApurHist.getDataRange().getValues();
         for (var ah = 1; ah < dApurHist.length; ah++) {
-          var numApur = normalizarFilialId(dApurHist[ah][0]);
+          var origApur = String(dApurHist[ah][2] || '').trim().toUpperCase(); // Col C: Origem
+          var numApur = normalizarFilialId(dApurHist[ah][3]);                   // Col D: Filial
           var fApur = numApur ? ("0000" + numApur).slice(-4) : '';
-          var dtApur = formatarDataSegura(dApurHist[ah][1] || new Date());
-          registrarChavesValidadas(chavesValidadasApuracoes, 'APURACAO', fApur, null, dtApur);
+          var regApur = String(dApurHist[ah][5] || '').trim().toUpperCase();    // Col F: Regional
+          var dtApurConclusao = formatarDataSegura(dApurHist[ah][12] || dApurHist[ah][1] || new Date()); // Col M: Data Conclusao
+
+          registrarChavesValidadas(chavesValidadasApuracoes, 'APURACAO', fApur, null, dtApurConclusao, regApur);
+          if (origApur) {
+            chavesValidadasApuracoes['ORIGEM_' + fApur] = origApur;
+          }
         }
       }
 
-      // 2. Aba Intervencoes_Feedback (Coluna B: Filial, Coluna G: Data - Index 6)
+      // 2. Aba Intervencoes_Feedback (Coluna B: Filial, Coluna G: Data)
       var abaApurFeed = ssApur.getSheetByName('Intervencoes_Feedback');
       if (abaApurFeed) {
         var dApurFeed = abaApurFeed.getDataRange().getValues();
@@ -191,11 +211,11 @@ function obterDadosIniciais(filtroMes, filtroAno) {
           var fFeed = numFeed ? ("0000" + numFeed).slice(-4) : '';
           var dtFeed = formatarDataSegura(dApurFeed[af][6] || dApurFeed[af][0] || new Date());
           var emailFeed = String(dApurFeed[af][7] || dApurFeed[af][8] || '').toLowerCase().trim();
-          registrarChavesValidadas(chavesValidadasApuracoes, 'APURACAO', fFeed, emailFeed, dtFeed);
+          registrarChavesValidadas(chavesValidadasApuracoes, 'APURACAO', fFeed, emailFeed, dtFeed, null);
         }
       }
 
-      // 3. Aba Historico_Desligamentos
+      // 3. Aba Historico_Desligamentos (Coluna A: Filial, Coluna B: Data)
       var abaApurDesl = ssApur.getSheetByName('Historico_Desligamentos');
       if (abaApurDesl) {
         var dApurDesl = abaApurDesl.getDataRange().getValues();
@@ -204,7 +224,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
           var fDesl = numDesl ? ("0000" + numDesl).slice(-4) : '';
           var dtDesl = formatarDataSegura(dApurDesl[ad][1] || new Date());
           var emailReg = String(dApurDesl[ad][2] || '').toLowerCase().trim();
-          registrarChavesValidadas(chavesValidadasApuracoes, 'APURACAO', fDesl, emailReg, dtDesl);
+          registrarChavesValidadas(chavesValidadasApuracoes, 'APURACAO', fDesl, emailReg, dtDesl, null);
         }
       }
     }
@@ -252,7 +272,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
                            motivoLower.includes('feedback') || 
                            motivoLower.includes('acompanhamento');
 
-      // REGRA TEMPORAL: Para meses passados, se Col AB estiver vazia, trata como VALIDADO.
+      // REGRA TEMPORAL: Para meses passados, se Col AB estiver vazia, trata como VALIDADO (Preserva Histórico).
       var ehMesAtual = (mReg === mesAlvo && aReg === anoAlvo);
       var statusFinal = statusSalvoCol28;
 
@@ -273,6 +293,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
         var encApur = !!chavesValidadasApuracoes['APURACAO_' + fIdLanc] ||
                       !!chavesValidadasApuracoes['APURACAO_' + fIdLanc + '_' + dtStr] ||
                       !!chavesValidadasApuracoes['APURACAO_' + fIdLanc + '_M' + mReg + '_A' + aReg] ||
+                      !!chavesValidadasApuracoes['APURACAO_REGIONAL_' + regLanc] ||
                       !!chavesValidadasApuracoes['APURACAO_EMAIL_' + emailAutor];
 
         if (encSoc || encApur) {
@@ -293,7 +314,12 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       var ptsItem = 0;
       if (!ehKmAvulso) {
         if (ehMesAtual && ehEspecialista) {
-          ptsItem = dicionarioPremios[motivoLancUpper] || parseFloat(row[9]) || 1;
+          var origEspecialista = chavesValidadasApuracoes['ORIGEM_' + fIdLanc] || '';
+          if (origEspecialista && dicionarioPremios[origEspecialista]) {
+            ptsItem = dicionarioPremios[origEspecialista];
+          } else {
+            ptsItem = dicionarioPremios[motivoLancUpper] || parseFloat(row[9]) || 1;
+          }
         } else {
           ptsItem = parseFloat(row[9]) || dicionarioPremios[motivoLancUpper] || 1;
         }
@@ -306,7 +332,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       // ACUMULA MOEDAS EXCLUSIVAMENTE PARA O MÊS VIGENTE SELEÇÃO
       if (estaValidadoEspecialista && ehMesAtual) {
         pontuacaoPorUsuario[emailAutor].mes += ptsItem;
-        pontuacaoPorUsuario[emailAutor].total += ptsItem; // Total Acumulado restrito ao mês vigente
+        pontuacaoPorUsuario[emailAutor].total += ptsItem;
       }
 
       if (emailAutor === controle.email.toLowerCase() && ehMesAtual) {
@@ -384,7 +410,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     temas: temas,
     dicionarioPremios: dicionarioPremios,
     gamificacao: {
-      moedasTotais: moedasMesUser, // Total acumulado restrito ao mês vigente
+      moedasTotais: moedasMesUser, // Total acumulado restrito exclusivamente ao mês selecionado
       moedasMes: moedasMesUser,
       metaEverest: META_EVEREST,
       percentualEverest: pctEverest,
