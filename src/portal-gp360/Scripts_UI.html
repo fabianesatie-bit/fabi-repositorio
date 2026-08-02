@@ -5,8 +5,60 @@
    * Subpasta Monorepo: src/portal-gp360/
    */
 
+  var dadosGlobais = {};
   var meuGraficoAtividades = null;
   var temasReuniaoSelecionados = [];
+
+  // Inicialização Automática assim que a página é aberta no navegador/celular
+  window.addEventListener('DOMContentLoaded', function() {
+    var mesSel = document.getElementById('seletor-mes');
+    var anoSel = document.getElementById('seletor-ano');
+    var agora = new Date();
+    
+    if (mesSel) mesSel.value = String(agora.getMonth() + 1);
+    if (anoSel) anoSel.value = String(agora.getFullYear());
+
+    carregarDadosIniciais();
+  });
+
+  function carregarDadosIniciais() {
+    var mes = document.getElementById('seletor-mes') ? document.getElementById('seletor-mes').value : (new Date().getMonth() + 1);
+    var ano = document.getElementById('seletor-ano') ? document.getElementById('seletor-ano').value : new Date().getFullYear();
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (!res || !res.temAcesso) {
+            mostrarToast(res ? res.motivo : 'Acesso não autorizado', 'danger');
+            return;
+          }
+          dadosGlobais = res;
+          renderizarInterfaceCompleta();
+
+          // Carregamento assíncrono secundário das listas de lojas e configurações
+          google.script.run
+            .withSuccessHandler(function(comp) {
+              if (comp) {
+                dadosGlobais.lojas = comp.lojas || [];
+                dadosGlobais.lojasCarteiraTotal = comp.lojasCarteiraTotal || 0;
+                dadosGlobais.indicadoresLojas = comp.indicadoresLojas || {};
+                dadosGlobais.naturezas = comp.naturezas || [];
+                dadosGlobais.temas = comp.temas || {};
+                povoarDropdownsFormulario();
+              }
+            })
+            .obterDadosComplementares();
+        })
+        .withFailureHandler(function(err) {
+          mostrarToast('Erro ao carregar dados do servidor: ' + (err.message || err), 'danger');
+        })
+        .obterDadosIniciais(mes, ano);
+    }
+  }
+
+  function alterarPeriodoGeral() {
+    carregarDadosIniciais();
+  }
 
   function obterDataRawSegura(dataValor) {
     if (!dataValor) return 0;
@@ -31,7 +83,7 @@
       inis = partes[0].charAt(0).toUpperCase();
       if (partes.length > 1) inis += partes[partes.length - 1].charAt(0).toUpperCase();
     }
-    return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%237C3AED'/><text x='50%' y='55%' font-size='30' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>" + inis + "</text></svg>";
+    return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%23F3E8FF'/><text x='50%' y='55%' font-size='30' font-weight='bold' fill='%236D28D9' text-anchor='middle' dominant-baseline='middle'>" + inis + "</text></svg>";
   }
 
   function mostrarToast(mensagem, tipo) {
@@ -207,7 +259,7 @@
         labels: labels,
         datasets: [{
           data: valores,
-          backgroundColor: ['#7C3AED', '#2563EB', '#10B981', '#F59E0B', '#F43F5E', '#06B6D4', '#8B5CF6']
+          backgroundColor: ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#F43F5E', '#06B6D4', '#C4B5FD']
         }]
       },
       options: {
@@ -385,10 +437,10 @@
       else if (index === 1) badgePos = '<span class="fw-bold text-secondary me-2 fs-5">2º</span>';
       else if (index === 2) badgePos = '<span class="fw-bold text-danger me-2 fs-5">3º</span>';
 
-      var faseTag = '<span class="badge" style="background: var(--pastel-purple-bg); color: var(--pastel-purple-text);">⛺ Fase 1</span>';
-      if (item.mes >= 100) faseTag = '<span class="badge style="background: var(--pastel-green-bg); color: var(--pastel-green-text);">🚩 Fase 4</span>';
-      else if (item.mes >= 75) faseTag = '<span class="badge style="background: var(--pastel-blue-bg); color: var(--pastel-blue-text);">🏔️ Fase 3</span>';
-      else if (item.mes >= 40) faseTag = '<span class="badge style="background: var(--pastel-peach-bg); color: var(--pastel-peach-text);">🧗 Fase 2</span>';
+      var faseTag = '<span class="badge" style="background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text);">⛺ Fase 1</span>';
+      if (item.mes >= 100) faseTag = '<span class="badge" style="background: var(--pastel-green-bg); color: var(--pastel-green-text);">🚩 Fase 4</span>';
+      else if (item.mes >= 75) faseTag = '<span class="badge" style="background: var(--pastel-blue-bg); color: var(--pastel-blue-text);">🏔️ Fase 3</span>';
+      else if (item.mes >= 40) faseTag = '<span class="badge" style="background: var(--pastel-peach-bg); color: var(--pastel-peach-text);">🧗 Fase 2</span>';
 
       var nomeExibicao = item.nome || item.email;
       var avatarSrc = (item.foto && item.foto.length > 20) ? item.foto : gerarAvatarSVG(nomeExibicao);
@@ -402,7 +454,7 @@
             '<div>' + faseTag + '</div>' +
           '</div>' +
         '</div>' +
-        '<div class="fw-bold fs-6 text-primary text-nowrap ms-2" style="color: var(--pastel-purple) !important;"><i class="bi bi-coin text-warning me-1"></i>' + item.mes + ' <small class="text-muted fs-7">moedas</small></div>' +
+        '<div class="fw-bold fs-6 text-primary text-nowrap ms-2" style="color: var(--pastel-lavender-text) !important;"><i class="bi bi-coin text-warning me-1"></i>' + item.mes + ' <small class="text-muted fs-7">moedas</small></div>' +
       '</li>';
     });
   }
@@ -420,7 +472,7 @@
 
     l.forEach(function(item) {
       var localStr = item.filial ? ('Local: ' + item.filial) : ('Local: AVULSO');
-      container.innerHTML += '<div class="bento-card p-2 border-start border-3 border-primary shadow-sm mb-2" style="border-left-color: var(--pastel-purple) !important;">' +
+      container.innerHTML += '<div class="bento-card p-2 border-start border-3 shadow-sm mb-2" style="border-left-color: var(--pastel-lavender) !important;">' +
         '<div class="d-flex justify-content-between align-items-start mb-1">' +
           '<small class="text-muted" style="font-size:0.75rem;">' + item.data + ' • ' + (item.autor || 'Usuário GP') + '</small>' +
         '</div>' +
