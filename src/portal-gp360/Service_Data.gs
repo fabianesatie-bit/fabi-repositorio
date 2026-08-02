@@ -417,15 +417,3 @@ function carregarTemasSeguras(ss) {
 
   return temas;
 }
-```
-
----
-
-### 📘 Instruções de Atualização no GitHub
-
-1. Acesse o arquivo no GitHub:
-   👉 **`https://github.com/fabianesatie-bit/fabi-repositorio/blob/main/src/portal-gp360/Service_Data.gs`**
-2. Clique no ícone de lápis (**Edit this file**), substitua 100% do conteúdo pelo código gerado acima e faça o **Commit** com a mensagem:
-   `perf(backend): aplica batch update na coluna 28 reduzindo tempo de abertura de 53s para 2s`
-3. No editor do Google Apps Script, abra a extensão do GitHub e clique no botão **`Pull`**.
-4. Recarregue a página do portal no navegador! O carregamento será instantâneo.
