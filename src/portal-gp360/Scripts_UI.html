@@ -31,7 +31,7 @@
       inis = partes[0].charAt(0).toUpperCase();
       if (partes.length > 1) inis += partes[partes.length - 1].charAt(0).toUpperCase();
     }
-    return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%230087FF'/><text x='50%' y='55%' font-size='30' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>" + inis + "</text></svg>";
+    return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%232563EB'/><text x='50%' y='55%' font-size='30' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>" + inis + "</text></svg>";
   }
 
   function mostrarToast(mensagem, tipo) {
@@ -181,12 +181,27 @@
     var kpiReembolso = document.getElementById('kpi-reembolso-mes');
     if (kpiReembolso) kpiReembolso.innerText = 'R$ ' + valReembolso.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
+    renderizarPainelBordoRapido();
     povoarDropdownsFormulario();
     atualizarCardsGamificacao();
     renderizarRankingTop5();
     renderizarGraficoAtividades();
     renderizarListaNaturezasAdmin();
     renderizarGestaoTemasAdmin();
+  }
+
+  function renderizarPainelBordoRapido() {
+    var pb = dadosGlobais.painelBordo || {};
+    var pbVendas = document.getElementById('pb-vendas');
+    if (pbVendas) pbVendas.innerText = pb.vendas || '0,00%';
+    var pbNps = document.getElementById('pb-nps');
+    if (pbNps) pbNps.innerText = pb.nps || '0,0';
+    var pbBh = document.getElementById('pb-bh');
+    if (pbBh) pbBh.innerText = pb.bh || '0,00 h';
+    var pbLixoPcd = document.getElementById('pb-lixo-pcd');
+    if (pbLixoPcd) pbLixoPcd.innerText = (pb.lixo || 0) + ' / ' + (pb.pcd || 0);
+    var pbTxDesl = document.getElementById('pb-tx-deslig');
+    if (pbTxDesl) pbTxDesl.innerText = pb.txDesligamento || '0,00%';
   }
 
   function renderizarGraficoAtividades() {
@@ -210,7 +225,7 @@
         labels: labels,
         datasets: [{
           data: valores,
-          backgroundColor: ['#0087FF', '#FF8A00', '#17F036', '#FF253A', '#8000FF', '#FBE53B', '#5EB5FF', '#FF14B3']
+          backgroundColor: ['#2563EB', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#3B82F6', '#64748B']
         }]
       },
       options: {
@@ -309,22 +324,6 @@
     if (displayTotal) displayTotal.innerText = 'Gasto Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
   }
 
-  function calcularDespesasAvulso() {
-    var rate = parseFloat(document.getElementById('avulso-rate').value) || 1.20;
-    var km = parseFloat(document.getElementById('avulso-km').value) || 0;
-    var custoKm = km * rate;
-
-    var ali = parseFloat(document.getElementById('avulso-alimentacao').value) || 0;
-    var hos = parseFloat(document.getElementById('avulso-hospedagem').value) || 0;
-    var aer = parseFloat(document.getElementById('avulso-aereo').value) || 0;
-    var ped = parseFloat(document.getElementById('avulso-pedagio').value) || 0;
-    var est = parseFloat(document.getElementById('avulso-estacionamento').value) || 0;
-
-    var total = custoKm + ali + hos + aer + ped + est;
-    var displayAvulso = document.getElementById('avulso-display-total');
-    if (displayAvulso) displayAvulso.innerText = 'Gasto Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-  }
-
   function alternarFormularioKMAvulso() {
     var box = document.getElementById('box-form-km-avulso');
     if (box) box.classList.toggle('d-none');
@@ -358,7 +357,6 @@
     lista.innerHTML = '';
     var r = (dadosGlobais.gamificacao && dadosGlobais.gamificacao.ranking) ? dadosGlobais.gamificacao.ranking : [];
 
-    // Filtra exclusivamente usuarios que possuem mais de 0 moedas no mes selecionado
     r = r.filter(function(item) {
       return (item.mes || 0) > 0;
     });
@@ -381,14 +379,16 @@
       else if (item.mes >= 75) faseTag = '<span class="badge bg-info text-white border me-2">🏔️ Fase 3: Cume Alcançado</span>';
       else if (item.mes >= 40) faseTag = '<span class="badge bg-warning text-dark border me-2">🧗 Fase 2: Subida da Montanha</span>';
 
-      var avatarSrc = (item.foto && item.foto.length > 20) ? item.foto : gerarAvatarSVG(item.email);
+      var nomeExibicao = item.nome || item.email;
+      var avatarSrc = (item.foto && item.foto.length > 20) ? item.foto : gerarAvatarSVG(nomeExibicao);
 
       lista.innerHTML += '<li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0 border-bottom">' +
         '<div class="d-flex align-items-center">' +
           badgePos +
-          '<img src="' + avatarSrc + '" class="rounded-circle me-3 border" style="width:42px; height:42px; object-fit:cover;" onerror="this.src=gerarAvatarSVG(\'' + item.email + '\');">' +
+          '<img src="' + avatarSrc + '" class="rounded-circle me-3 border shadow-sm" style="width:44px; height:44px; object-fit:cover;" onerror="this.src=gerarAvatarSVG(\'' + nomeExibicao + '\');">' +
           '<div>' +
-            '<div class="fw-bold text-dark mb-1">' + item.email + '</div>' +
+            '<div class="fw-bold text-dark mb-0 fs-6">' + nomeExibicao + '</div>' +
+            '<div class="text-muted small mb-1">' + item.email + '</div>' +
             '<div>' + faseTag + '</div>' +
           '</div>' +
         '</div>' +
@@ -423,7 +423,7 @@
 
       if (motLower.includes('atendimento social') || motLower.includes('apuraç') || motLower.includes('apurac') || motLower.includes('feedback') || motLower.includes('acompanhamento')) {
         if (item.statusValidacao === 'VALIDADO' || item.validadoEspecialista) {
-          statusBadge = '<span class="badge bg-success-subtle text-success border border-success me-2"><i class="bi bi-patch-check-fill me-1"></i> VALIDADO NA PLANILHA ESPECIALISTA</span>';
+          statusBadge = '<span class="badge bg-success-subtle text-success border border-success me-2"><i class="bi bi-patch-check-fill me-1"></i> VALIDADO NA BASE ESPECIALISTA</span>';
         } else {
           statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning text-dark me-2"><i class="bi bi-clock-history me-1"></i> PENDENTE REGISTRO EXTERNO</span>';
         }
@@ -446,7 +446,6 @@
     container.innerHTML = '';
     var l = (dadosGlobais.lancamentos || []).slice();
 
-    // Filtro Rígido: Exibir apenas lançamentos com custo total calculado maior que zero
     l = l.filter(function(item) {
       return (parseFloat(item.custoTotal) || 0) > 0;
     });
@@ -524,7 +523,7 @@
       'th { background-color: #f2f2f2; font-weight: bold; }' +
       '.total-col { font-weight: bold; }' +
       '</style></head><body>' +
-      '2 Relatório de Despesas de Viagem e KM</h2>' +
+      '<h2>Relatório de Despesas de Viagem e KM</h2>' +
       '<p>Usuário: <strong>' + u.toUpperCase() + '</strong></p>' +
       '<p>Período: <strong>' + periodoStr + '</strong></p>' +
       '<table><thead><tr>' +
@@ -622,13 +621,10 @@
 
   function dispararConfetesFestao() {
     if (typeof confetti !== 'function') return;
-    var coresMarca = ['#FBE53B', '#FF8A00', '#FF253A', '#FF14B3', '#8000FF', '#0087FF', '#5EB5FF', '#17F036'];
+    var coresMarca = ['#2563EB', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#3B82F6'];
     confetti({ particleCount: 80, angle: 60, spread: 70, origin: { x: 0, y: 0.7 }, colors: coresMarca });
     setTimeout(function() {
       confetti({ particleCount: 80, angle: 120, spread: 70, origin: { x: 1, y: 0.7 }, colors: coresMarca });
     }, 250);
-    setTimeout(function() {
-      confetti({ particleCount: 120, spread: 100, origin: { y: 0.3 }, colors: coresMarca, scalar: 1.2 });
-    }, 500);
   }
 </script>
