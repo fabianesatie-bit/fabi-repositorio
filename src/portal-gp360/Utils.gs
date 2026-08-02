@@ -5,15 +5,15 @@
  */
 
 /**
- * Normaliza o ID da filial eliminando duplicacoes para lojas com numero acima de 3000
+ * Normaliza o ID da filial mantendo o isolamento exato entre filiais e depósitos
  * @param {string|number} id - ID bruto da filial
  * @return {string} ID normalizado
  */
 function normalizarFilialId(id) {
   if (id === undefined || id === null || id === '') return '';
-  var num = parseInt(String(id).replace(/\D/g, ''), 10);
-  if (isNaN(num)) return String(id).trim();
-  if (num > 3000) num -= 3000;
+  var str = String(id).trim();
+  var num = parseInt(str.replace(/\D/g, ''), 10);
+  if (isNaN(num)) return str;
   return String(num);
 }
 
