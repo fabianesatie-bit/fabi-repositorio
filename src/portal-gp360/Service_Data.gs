@@ -5,40 +5,41 @@
  */
 
 /**
- * Converte com segurança valores numéricos vindos da planilha com suporte a vírgulas (PT-BR)
+ * Converte com segurança valores numéricos vindos da planilha com suporte a vírgulas e porcentagens
  * @param {any} val - Valor bruto vindo da célula
  * @return {number} Número convertido
  */
 function parseNumPtBr(val) {
   if (val === undefined || val === null || val === '') return 0;
   if (typeof val === 'number') return val;
-  var str = String(val).replace(/\./g, '').replace(',', '.').trim();
+  var str = String(val).replace(/%/g, '').replace(/\./g, '').replace(',', '.').trim();
   var num = parseFloat(str);
   return isNaN(num) ? 0 : num;
 }
 
 /**
- * Carrega a aba DADOS_USUARIOS e mapeia Nome Completo e Foto por e-mail
+ * Carrega e mapeia a aba DADOS_USUARIOS indexando por e-mail
  * @param {Spreadsheet} ss - Instância da planilha ativa
- * @return {Object} Mapa de usuários indexado pelo e-mail em minúsculas
+ * @return {Object} Mapa de usuários com nome e foto de perfil
  */
 function obterMapaUsuarios(ss) {
   var mapa = {};
-  var abaUsr = ss.getSheetByName('DADOS_USUARIOS');
-  if (!abaUsr) return mapa;
+  var abaUser = ss.getSheetByName('DADOS_USUARIOS');
+  if (!abaUser) return mapa;
 
-  var dados = abaUsr.getDataRange().getValues();
+  var dados = abaUser.getDataRange().getValues();
   for (var i = 1; i < dados.length; i++) {
     var email = String(dados[i][0] || '').toLowerCase().trim();
     if (!email) continue;
 
-    var nome = String(dados[i][1] || '').trim();
     var rawFoto = String(dados[i][6] || '').trim();
     var driveId = extrairIdDrive(rawFoto);
     var fotoUrl = driveId ? ('https://lh3.googleusercontent.com/d/' + driveId + '=w400') : '';
 
     mapa[email] = {
-      nome: nome || email,
+      nome: dados[i][1] || email,
+      cargo: dados[i][2] || 'Colaborador',
+      regional: dados[i][4] || '',
       foto: fotoUrl
     };
   }
@@ -46,8 +47,7 @@ function obterMapaUsuarios(ss) {
 }
 
 /**
- * Carrega a aba DADOS_INDICADORES e mapeia os 6 indicadores por Filial_ID
- * Utiliza parsing seguro PT-BR (vírgulas) e dupla indexação ("0078" e "78")
+ * Carrega a aba DADOS_INDICADORES e mapeia os 6 indicadores por Filial_ID com dupla indexação
  * @param {Spreadsheet} ss - Instância da planilha ativa
  * @return {Object} Mapa de indicadores indexado pelo Filial_ID
  */
@@ -70,11 +70,10 @@ function obterMapaIndicadoresLojas(ss) {
       bh: parseNumPtBr(dados[i][4]),             // Col E: BH (Banco de Horas)
       nps: parseNumPtBr(dados[i][5]),            // Col F: NPS
       txDesligamento: parseNumPtBr(dados[i][6]), // Col G: Tx Desl %
-      coletaLixo: Math.round(parseNumPtBr(dados[i][7])), // Col H: COLETA LIXO
-      pcd: Math.round(parseNumPtBr(dados[i][8]))         // Col I: PCD (Gap)
+      coletaLixo: Math.round(parseNumPtBr(dados[i][7])),   // Col H: COLETA LIXO
+      pcd: Math.round(parseNumPtBr(dados[i][8]))           // Col I: PCD (Gap)
     };
 
-    // Dupla indexacao para garantir busca imune a formatação
     mapa[fId] = item;
     mapa[rawNumStr] = item;
   }
