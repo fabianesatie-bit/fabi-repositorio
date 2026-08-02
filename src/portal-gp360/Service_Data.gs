@@ -5,86 +5,48 @@
  */
 
 /**
- * Extrai dia, mês e ano de objetos Date ou Strings sem problemas de fuso horário
- * @param {Date|string} dataVal - Valor de data bruto
- * @return {Object} Objeto contendo dia, mes e ano numéricos
+ * Converte com segurança valores numéricos vindos da planilha com suporte a vírgulas (PT-BR)
+ * @param {any} val - Valor bruto vindo da célula
+ * @return {number} Número convertido
  */
-function extrairMesAnoData(dataVal) {
-  if (!dataVal) return { dia: 0, mes: 0, ano: 0 };
-  try {
-    if (dataVal instanceof Date) {
-      return { 
-        dia: dataVal.getDate(), 
-        mes: dataVal.getMonth() + 1, 
-        ano: dataVal.getFullYear() 
-      };
-    }
-
-    var str = String(dataVal).trim();
-
-    // Formato DD/MM/YYYY ou DD/MM/YYYY HH:mm:ss
-    if (str.indexOf('/') !== -1) {
-      var partesBarra = str.split(' ')[0].split('/');
-      if (partesBarra.length === 3) {
-        return {
-          dia: parseInt(partesBarra[0], 10),
-          mes: parseInt(partesBarra[1], 10),
-          ano: parseInt(partesBarra[2], 10)
-        };
-      }
-    }
-
-    // Formato ISO YYYY-MM-DD
-    if (str.indexOf('-') !== -1) {
-      var partesIso = str.split('T')[0].split('-');
-      if (partesIso.length === 3 && partesIso[0].length === 4) {
-        return {
-          dia: parseInt(partesIso[2], 10),
-          mes: parseInt(partesIso[1], 10),
-          ano: parseInt(partesIso[0], 10)
-        };
-      }
-    }
-
-    var dObj = new Date(dataVal);
-    if (!isNaN(dObj.getTime())) {
-      return { 
-        dia: dObj.getDate(), 
-        mes: dObj.getMonth() + 1, 
-        ano: dObj.getFullYear() 
-      };
-    }
-  } catch (e) {}
-
-  return { dia: 0, mes: 0, ano: 0 };
+function parseNumPtBr(val) {
+  if (val === undefined || val === null || val === '') return 0;
+  if (typeof val === 'number') return val;
+  var str = String(val).replace(/\./g, '').replace(',', '.').trim();
+  var num = parseFloat(str);
+  return isNaN(num) ? 0 : num;
 }
 
 /**
- * Mapeia os dados cadastrais dos usuários (Nome da Coluna B e Foto do Drive da Coluna G)
+ * Carrega a aba DADOS_INDICADORES e mapeia os 6 indicadores por Filial_ID
  * @param {Spreadsheet} ss - Instância da planilha ativa
- * @return {Object} Dicionário indexado pelo e-mail em minúsculas
+ * @return {Object} Mapa de indicadores indexado pelo Filial_ID (formatado e numérico bruto)
  */
-function obterMapaUsuarios(ss) {
+function obterMapaIndicadoresLojas(ss) {
   var mapa = {};
-  var abaUsuarios = ss.getSheetByName('DADOS_USUARIOS');
-  if (!abaUsuarios) return mapa;
+  var abaInd = ss.getSheetByName('DADOS_INDICADORES');
+  if (!abaInd) return mapa;
 
-  var dados = abaUsuarios.getDataRange().getValues();
+  var dados = abaInd.getDataRange().getValues();
   for (var i = 1; i < dados.length; i++) {
-    var email = String(dados[i][0] || '').toLowerCase().trim();
-    if (!email) continue;
+    var rawId = dados[i][0];
+    var numFilial = normalizarFilialId(rawId);
+    if (!numFilial) continue;
 
-    var nome = String(dados[i][1] || '').trim();
-    var rawFoto = String(dados[i][6] || '').trim();
-    var fileId = extrairIdDrive(rawFoto);
-    var fotoUrl = fileId ? ('https://lh3.googleusercontent.com/d/' + fileId + '=w400') : '';
+    var fId = ("0000" + numFilial).slice(-4);
+    var rawNumStr = String(numFilial);
 
-    mapa[email] = {
-      nome: nome || email,
-      foto: fotoUrl,
-      cargo: String(dados[i][2] || ''),
-      regionais: String(dados[i][4] || '')
+    var item = {
+      vendas: parseNumPtBr(dados[i][3]),        // Col D: Vendas %
+      bh: parseNumPtBr(dados[i][4]),            // Col E: BH (Banco de Horas)
+      nps: parseNumPtBr(dados[i][5]),           // Col F: NPS
+      txDesligamento: parseNumPtBr(dados[i][6]),// Col G: Tx Desl %
+      coletaLixo: Math.round(parseNumPtBr(dados[i][7])),  // Col H: COLETA LIXO
+      pcd: Math.round(parseNumPtBr(dados[i][8]))          // Col I: PCD (Gap)
     };
+
+    mapa[fId] = item;
+    mapa[rawNumStr] = item;
   }
   return mapa;
 }
