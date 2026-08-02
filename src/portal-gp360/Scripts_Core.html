@@ -26,6 +26,7 @@
     var m = mElem ? mElem.value : '';
     var a = aElem ? aElem.value : '';
 
+    // ETAPA 1: Leitura ultrarrápida da Home
     google.script.run
       .withSuccessHandler(function(res) {
         var splash = document.getElementById('loading-splash');
@@ -42,7 +43,12 @@
         var appCont = document.getElementById('app-container');
         if (appCont) appCont.classList.remove('d-none');
         dadosGlobais = res;
+        
+        // Renderiza a Home Instantaneamente
         renderizarInterfaceCompleta();
+
+        // ETAPA 2: Hidratação silenciosa em segundo plano dos formulários e indicadores
+        carregarDadosComplementaresEmSegundoPlano();
       })
       .withFailureHandler(function(err) {
         var splash = document.getElementById('loading-splash');
@@ -53,6 +59,26 @@
         if (lockMsg) lockMsg.innerText = 'Erro ao conectar ao servidor: ' + err.message;
       })
       .obterDadosIniciais(m, a);
+  }
+
+  function carregarDadosComplementaresEmSegundoPlano() {
+    google.script.run
+      .withSuccessHandler(function(comp) {
+        if (!comp) return;
+        dadosGlobais.lojas = comp.lojas || [];
+        dadosGlobais.lojasCarteiraTotal = comp.lojasCarteiraTotal || 0;
+        dadosGlobais.indicadoresLojas = comp.indicadoresLojas || {};
+        dadosGlobais.naturezas = comp.naturezas || [];
+        dadosGlobais.temas = comp.temas || { reuniao: [], treinamento: [] };
+
+        var kpiLojas = document.getElementById('kpi-lojas-carteira');
+        if (kpiLojas) kpiLojas.innerText = dadosGlobais.lojasCarteiraTotal;
+
+        povoarDropdownsFormulario();
+        renderizarListaNaturezasAdmin();
+        renderizarGestaoTemasAdmin();
+      })
+      .obterDadosComplementares();
   }
 
   function salvarAtividade() {
