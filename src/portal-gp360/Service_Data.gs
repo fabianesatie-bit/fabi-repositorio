@@ -2,13 +2,13 @@
  * ECOSSISTEMA GP360 - PORTAL GP 360
  * Arquivo: Service_Data.gs
  * Subpasta Monorepo: src/portal-gp360/
- * Otimizado com CacheService de Alta Performance (Respostas em ~2s)
+ * Otimizado com CacheService de Alta Performance e Estrutura Slim (Respostas em ~1.5s)
  */
 
 /**
  * Converte com segurança valores numéricos vindos da planilha com suporte a vírgulas e porcentagens
  * @param {any} val - Valor bruto vindo da célula
- * @return {number} Número convertido
+ * @return {number} Número converted
  */
 function parseNumPtBr(val) {
   if (val === undefined || val === null || val === '') return 0;
@@ -19,22 +19,34 @@ function parseNumPtBr(val) {
 }
 
 /**
- * Carrega e mapeia a aba DADOS_USUARIOS indexando por e-mail com suporte a Cache
+ * Carrega e mapeia a aba DADOS_USUARIOS indexando por e-mail com suporte a Cache Slim
  * @param {Spreadsheet} ss - Instância da planilha ativa
  * @return {Object} Mapa de usuários com nome e foto de perfil
  */
 function obterMapaUsuarios(ss) {
   var cache = CacheService.getScriptCache();
-  var cachedUsers = cache.get('GP360_MAPA_USUARIOS');
+  var cachedUsers = cache.get('GP360_MAPA_USUARIOS_SLIM_V3');
   if (cachedUsers) {
     try {
-      return JSON.parse(cachedUsers);
+      var rawUsers = JSON.parse(cachedUsers);
+      var mapaResult = {};
+      Object.keys(rawUsers).forEach(function(email) {
+        var u = rawUsers[email];
+        mapaResult[email] = {
+          nome: u[0],
+          cargo: u[1],
+          regional: u[2],
+          foto: u[3]
+        };
+      });
+      return mapaResult;
     } catch (e) {
       Logger.log('Erro ao ler cache de usuários, recarregando...');
     }
   }
 
   var mapa = {};
+  var rawSlim = {};
   var abaUser = ss.getSheetByName('DADOS_USUARIOS');
   if (!abaUser) return mapa;
 
@@ -47,40 +59,65 @@ function obterMapaUsuarios(ss) {
     var driveId = extrairIdDrive(rawFoto);
     var fotoUrl = driveId ? ('https://lh3.googleusercontent.com/d/' + driveId + '=w400') : '';
 
+    var nome = dados[i][1] || email;
+    var cargo = dados[i][2] || 'Colaborador';
+    var regional = dados[i][4] || '';
+
     mapa[email] = {
-      nome: dados[i][1] || email,
-      cargo: dados[i][2] || 'Colaborador',
-      regional: dados[i][4] || '',
+      nome: nome,
+      cargo: cargo,
+      regional: regional,
       foto: fotoUrl
     };
+
+    rawSlim[email] = [nome, cargo, regional, fotoUrl];
   }
 
   try {
-    cache.put('GP360_MAPA_USUARIOS', JSON.stringify(mapa), 600); // 10 minutos
+    cache.put('GP360_MAPA_USUARIOS_SLIM_V3', JSON.stringify(rawSlim), 900); // 15 minutos
   } catch (errCache) {
-    Logger.log('Tamanho de cache de usuários excedeu limite.');
+    Logger.log('Aviso: Tamanho de cache de usuários excedeu limite.');
   }
 
   return mapa;
 }
 
 /**
- * Carrega a aba DADOS_INDICADORES e mapeia os 6 indicadores por Filial_ID com dupla indexação e Cache
+ * Carrega a aba DADOS_INDICADORES e mapeia os 6 indicadores por Filial_ID com suporte a Cache Slim
  * @param {Spreadsheet} ss - Instância da planilha ativa
  * @return {Object} Mapa de indicadores indexado pelo Filial_ID
  */
 function obterMapaIndicadoresLojas(ss) {
   var cache = CacheService.getScriptCache();
-  var cachedInd = cache.get('GP360_MAPA_INDICADORES');
+  var cachedInd = cache.get('GP360_MAPA_INDICADORES_SLIM_V3');
   if (cachedInd) {
     try {
-      return JSON.parse(cachedInd);
+      var rawMap = JSON.parse(cachedInd);
+      var mapaResult = {};
+      Object.keys(rawMap).forEach(function(fId) {
+        var arr = rawMap[fId];
+        var item = {
+          vendas: arr[0],
+          bh: arr[1],
+          nps: arr[2],
+          txDesligamento: arr[3],
+          coletaLixo: arr[4],
+          pcd: arr[5]
+        };
+        mapaResult[fId] = item;
+        var numOnly = String(parseInt(fId, 10));
+        if (numOnly && numOnly !== 'NaN') {
+          mapaResult[numOnly] = item;
+        }
+      });
+      return mapaResult;
     } catch (e) {
       Logger.log('Erro ao ler cache de indicadores, recarregando...');
     }
   }
 
   var mapa = {};
+  var rawSlim = {};
   var abaInd = ss.getSheetByName('DADOS_INDICADORES');
   if (!abaInd) return mapa;
 
@@ -93,23 +130,32 @@ function obterMapaIndicadoresLojas(ss) {
     var fId = ("0000" + numFilial).slice(-4);
     var rawNumStr = String(numFilial);
 
+    var vendas = parseNumPtBr(dados[i][3]);
+    var bh = parseNumPtBr(dados[i][4]);
+    var nps = parseNumPtBr(dados[i][5]);
+    var txDesl = parseNumPtBr(dados[i][6]);
+    var lixo = Math.round(parseNumPtBr(dados[i][7]));
+    var pcd = Math.round(parseNumPtBr(dados[i][8]));
+
     var item = {
-      vendas: parseNumPtBr(dados[i][3]),         // Col D: Vendas %
-      bh: parseNumPtBr(dados[i][4]),             // Col E: BH (Banco de Horas)
-      nps: parseNumPtBr(dados[i][5]),            // Col F: NPS
-      txDesligamento: parseNumPtBr(dados[i][6]), // Col G: Tx Desl %
-      coletaLixo: Math.round(parseNumPtBr(dados[i][7])),   // Col H: COLETA LIXO
-      pcd: Math.round(parseNumPtBr(dados[i][8]))           // Col I: PCD (Gap)
+      vendas: vendas,
+      bh: bh,
+      nps: nps,
+      txDesligamento: txDesl,
+      coletaLixo: lixo,
+      pcd: pcd
     };
 
     mapa[fId] = item;
     mapa[rawNumStr] = item;
+
+    rawSlim[fId] = [vendas, bh, nps, txDesl, lixo, pcd];
   }
 
   try {
-    cache.put('GP360_MAPA_INDICADORES', JSON.stringify(mapa), 600); // 10 minutos
+    cache.put('GP360_MAPA_INDICADORES_SLIM_V3', JSON.stringify(rawSlim), 900); // 15 minutos
   } catch (errCache) {
-    Logger.log('Tamanho de cache de indicadores excedeu limite.');
+    Logger.log('Aviso: Tamanho de cache de indicadores excedeu limite.');
   }
 
   return mapa;
@@ -258,7 +304,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
         statusFinal = (!ehMesAtual) ? 'VALIDADO' : (ehEspecialista ? 'PENDENTE' : 'VALIDADO');
       }
 
-      // Cálculo de validação dinâmico 100% em memória RAM (Sem travar o arquivo)
+      // Cálculo de validação dinâmico 100% em memória RAM (Sem travar nem escrever na planilha)
       if (statusFinal === 'PENDENTE' && ehMesAtual) {
         var encSoc = !!chavesValidadasEspecialista['SOCIAL_' + regLanc + '_' + mesAnoStrRef];
         var encApur = chavesValidadasEspecialista['APUR_' + regLanc + '_' + mesAnoStrRef];
