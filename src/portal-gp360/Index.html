@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="GP 360º">
   <meta name="theme-color" content="#1E1B4B">
 
-  <!-- Ícone Corporativo Oficial GP 360 (Vetor Neon Preservado 100% Intacto) -->
+  <!-- Ícone Corporativo Oficial GP 360 -->
   <link rel="icon" type="image/svg+xml" href="./icon.svg">
   <link rel="apple-touch-icon" sizes="180x180" href="./icon.svg">
 
@@ -23,7 +23,7 @@
 
   <style>
     :root {
-      /* PALETA CORPORATIVA SUAVIZADA (SOFT ELEVATED) */
+      /* PALETA CORPORATIVA SUAVIZADA (SOFT CORPORATE ELEVATED) */
       --brand-blue: #2563EB;
       --brand-blue-soft: #3B82F6;
       --brand-green: #10B981;
@@ -137,26 +137,22 @@
       box-shadow: 0 6px 20px rgba(0,0,0,0.06);
     }
 
-    /* CARD PAINEL DE BORDO RÁPIDO SUAVIZADO */
+    /* ESTILO DOS 6 CARDS SEPARADOS DO PAINEL DE BORDO DA FILIAL */
     .pb-card-item {
       background: #FFFFFF;
-      border-radius: 14px;
-      padding: 14px 16px;
+      border-radius: 12px;
+      padding: 12px 14px;
       border: 1px solid #E2E8F0;
-      border-bottom: 4px solid #CBD5E1;
       box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+      border-bottom: 3px solid #CBD5E1;
       text-align: center;
-      transition: all 0.2s ease;
-    }
-    .pb-card-item:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 14px rgba(0,0,0,0.05);
     }
     .pb-card-vendas { border-bottom-color: #10B981; }
     .pb-card-nps { border-bottom-color: #2563EB; }
     .pb-card-bh { border-bottom-color: #F59E0B; }
     .pb-card-lixo { border-bottom-color: #8B5CF6; }
-    .pb-card-deslig { border-bottom-color: #EC4899; }
+    .pb-card-pcd { border-bottom-color: #EC4899; }
+    .pb-card-txdesl { border-bottom-color: #EF4444; }
 
     .card-governanca {
       background: linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%);
@@ -339,7 +335,7 @@
             <select id="seletor-mes" class="form-select form-select-sm fw-semibold shadow-sm" onchange="window.alterarPeriodoGeral()">
               <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
               <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
-              <option value="7" selected>Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+              <option value="7">Julho</option><option value="8" selected>Agosto</option><option value="9">Setembro</option>
               <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
             </select>
             <select id="seletor-ano" class="form-select form-select-sm fw-semibold shadow-sm" onchange="window.alterarPeriodoGeral()">
@@ -351,43 +347,6 @@
         <!-- ABA HOME -->
         <div id="aba-home" class="view-aba">
           
-          <!-- WIDGET PAINEL DE BORDO RÁPIDO RESTAURADO -->
-          <div class="mb-4">
-            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-lightning-charge-fill me-1"></i>Painel de Bordo Rápido:</h6>
-            <div class="row g-2">
-              <div class="col-6 col-md-4 col-lg">
-                <div class="pb-card-item pb-card-vendas">
-                  <small class="text-muted fw-bold d-block mb-1">💰 Vendas</small>
-                  <h4 class="fw-bold mb-0 text-dark" id="pb-vendas">0,00%</h4>
-                </div>
-              </div>
-              <div class="col-6 col-md-4 col-lg">
-                <div class="pb-card-item pb-card-nps">
-                  <small class="text-muted fw-bold d-block mb-1">⭐ NPS Atual</small>
-                  <h4 class="fw-bold mb-0 text-dark" id="pb-nps">0,0</h4>
-                </div>
-              </div>
-              <div class="col-6 col-md-4 col-lg">
-                <div class="pb-card-item pb-card-bh">
-                  <small class="text-muted fw-bold d-block mb-1">⏰ B. Horas</small>
-                  <h4 class="fw-bold mb-0 text-dark" id="pb-bh">0,00 h</h4>
-                </div>
-              </div>
-              <div class="col-6 col-md-6 col-lg">
-                <div class="pb-card-item pb-card-lixo">
-                  <small class="text-muted fw-bold d-block mb-1">🗑️ Lixo / ♿ PCD</small>
-                  <h4 class="fw-bold mb-0 text-dark" id="pb-lixo-pcd">0 / 0</h4>
-                </div>
-              </div>
-              <div class="col-12 col-md-6 col-lg">
-                <div class="pb-card-item pb-card-deslig">
-                  <small class="text-muted fw-bold d-block mb-1">📉 Tx Deslig.</small>
-                  <h4 class="fw-bold mb-0 text-dark" id="pb-tx-deslig">0,00%</h4>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div class="card-governanca p-4 mb-4 d-flex justify-content-between align-items-center shadow-sm">
             <div>
               <h5 class="fw-bold text-success mb-2">
@@ -490,9 +449,67 @@
 
                 <div class="col-md-6" id="box-destino-filial">
                   <label class="form-label fw-semibold">Destino (Filial)</label>
-                  <select id="select-filial" class="form-select">
+                  <select id="select-filial" class="form-select" onchange="exibirIndicadoresFilialSelecionada()">
                     <option value="">Selecione a loja...</option>
                   </select>
+                </div>
+
+                <!-- WIDGET DINÂMICO: PAINEL DE BORDO DA FILIAL (6 CARDS SEPARADOS) -->
+                <div class="col-12 d-none" id="box-indicadores-filial">
+                  <div class="p-3 bg-light rounded-3 border">
+                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-speedometer2 me-2"></i>Painel de Bordo da Filial:</h6>
+                    
+                    <div class="row g-2">
+                      <!-- CARD 1: VENDAS % -->
+                      <div class="col-6 col-md-4 col-lg-2">
+                        <div class="pb-card-item pb-card-vendas">
+                          <small class="text-muted fw-semibold d-block">💰 Vendas %</small>
+                          <span class="fw-bold fs-5 text-dark" id="ind-val-vendas">0.00%</span>
+                        </div>
+                      </div>
+
+                      <!-- CARD 2: NPS -->
+                      <div class="col-6 col-md-4 col-lg-2">
+                        <div class="pb-card-item pb-card-nps">
+                          <small class="text-muted fw-semibold d-block">⭐ NPS</small>
+                          <span class="fw-bold fs-5 text-dark" id="ind-val-nps">0.0</span>
+                        </div>
+                      </div>
+
+                      <!-- CARD 3: BANCO DE HORAS -->
+                      <div class="col-6 col-md-4 col-lg-2">
+                        <div class="pb-card-item pb-card-bh">
+                          <small class="text-muted fw-semibold d-block">⏰ B. Horas</small>
+                          <span class="fw-bold fs-5 text-dark" id="ind-val-bh">0 h</span>
+                        </div>
+                      </div>
+
+                      <!-- CARD 4: COLETA LIXO -->
+                      <div class="col-6 col-md-4 col-lg-2">
+                        <div class="pb-card-item pb-card-lixo">
+                          <small class="text-muted fw-semibold d-block">🗑️ Coleta Lixo</small>
+                          <span class="fw-bold fs-5 text-dark" id="ind-val-lixo">0</span>
+                        </div>
+                      </div>
+
+                      <!-- CARD 5: PCD (GAP) -->
+                      <div class="col-6 col-md-4 col-lg-2">
+                        <div class="pb-card-item pb-card-pcd">
+                          <small class="text-muted fw-semibold d-block">♿ PCD (Gap)</small>
+                          <span class="fw-bold fs-5 text-dark" id="ind-val-pcd">0</span>
+                        </div>
+                      </div>
+
+                      <!-- CARD 6: TAXA DESLIGAMENTO % -->
+                      <div class="col-6 col-md-4 col-lg-2">
+                        <div class="pb-card-item pb-card-txdesl">
+                          <small class="text-muted fw-semibold d-block">📉 Tx Deslig.</small>
+                          <span class="fw-bold fs-5 text-dark" id="ind-val-txdesl">0.00%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
                 </div>
 
                 <div class="col-md-12">
