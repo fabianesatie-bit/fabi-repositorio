@@ -10,9 +10,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="GP 360º">
-  <meta name="theme-color" content="#3B00B9">
+  <meta name="theme-color" content="#8B5CF6">
 
-  <!-- Ícone Corporativo Oficial GP 360 -->
+  <!-- Ícone Corporativo Oficial GP 360 (Inalterado) -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' width='512' height='512'><defs><linearGradient id='bgGrad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%234203A9;stop-opacity:1'/><stop offset='100%' style='stop-color:%23160048;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad1' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%2317F036;stop-opacity:1'/><stop offset='20%' style='stop-color:%23FBE53B;stop-opacity:1'/><stop offset='40%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='70%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad2' x1='100%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='50%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient><filter id='glow' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='8' result='blur'/><feComposite in='SourceGraphic' in2='blur' operator='over'/></filter></defs><rect width='512' height='512' rx='110' fill='url(%23bgGrad)'/><g filter='url(%23glow)'><ellipse cx='256' cy='256' rx='195' ry='120' fill='none' stroke='url(%23ringGrad1)' stroke-width='14' transform='rotate(-28 256 256)'/><ellipse cx='256' cy='256' rx='185' ry='105' fill='none' stroke='url(%23ringGrad2)' stroke-width='8' transform='rotate(28 256 256)'/></g><text x='51%' y='54%' font-family='Arial, sans-serif' font-size='180' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='middle' letter-spacing='-6'>GP</text></svg>">
   
   <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' width='512' height='512'><defs><linearGradient id='bgGrad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%234203A9;stop-opacity:1'/><stop offset='100%' style='stop-color:%23160048;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad1' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%2317F036;stop-opacity:1'/><stop offset='20%' style='stop-color:%23FBE53B;stop-opacity:1'/><stop offset='40%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='70%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad2' x1='100%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='50%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient></defs><rect width='512' height='512' rx='110' fill='url(%23bgGrad)'/><ellipse cx='256' cy='256' rx='195' ry='120' fill='none' stroke='url(%23ringGrad1)' stroke-width='14' transform='rotate(-28 256 256)'/><ellipse cx='256' cy='256' rx='185' ry='105' fill='none' stroke='url(%23ringGrad2)' stroke-width='8' transform='rotate(28 256 256)'/><text x='51%' y='54%' font-family='Arial, sans-serif' font-size='180' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='middle' letter-spacing='-6'>GP</text></svg>">
@@ -24,207 +24,212 @@
 
   <style>
     :root {
-      --brand-yellow: #FBE53B;
-      --brand-orange: #FF8A00;
-      --brand-red: #FF253A;
-      --brand-pink: #FF14B3;
-      --brand-purple: #8000FF;
-      --brand-blue: #0087FF;
-      --brand-lightblue: #5EB5FF;
-      --brand-green: #17F036;
-      --bg-neutral: #F8FAFC;
+      /* Soft Lavender */
+      --pastel-lavender: #8B5CF6;
+      --pastel-lavender-bg: #F5F3FF;
+      --pastel-lavender-border: #DDD6FE;
+      --pastel-lavender-text: #5B21B6;
+
+      /* Soft Powder Blue */
+      --pastel-blue: #3B82F6;
+      --pastel-blue-bg: #EFF6FF;
+      --pastel-blue-border: #BFDBFE;
+      --pastel-blue-text: #1E40AF;
+
+      /* Soft Mint Green */
+      --pastel-green: #10B981;
+      --pastel-green-bg: #ECFDF5;
+      --pastel-green-border: #A7F3D0;
+      --pastel-green-text: #047857;
+
+      /* Soft Warm Apricot / Peach */
+      --pastel-peach: #F59E0B;
+      --pastel-peach-bg: #FFFBEB;
+      --pastel-peach-border: #FDE68A;
+      --pastel-peach-text: #B45309;
+
+      /* Soft Coral Rose */
+      --pastel-pink: #F43F5E;
+      --pastel-pink-bg: #FFF1F2;
+      --pastel-pink-border: #FECDD3;
+      --pastel-pink-text: #BE123C;
+
+      /* Neutral Base Soft Backgrounds */
+      --bg-neutral: #FAFBFD;
       --card-bg: #FFFFFF;
-      --text-dark: #0F172A;
+      --card-border: #EEF2F6;
+      --text-dark: #1E293B;
+      --text-muted: #64748B;
     }
 
     body {
       background-color: var(--bg-neutral);
       color: var(--text-dark);
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       -webkit-tap-highlight-color: transparent;
+      letter-spacing: -0.01em;
     }
 
+    /* Linha de topo ultrasuave */
     .top-accent-line {
-      height: 5px;
-      background: linear-gradient(90deg, var(--brand-yellow), var(--brand-orange), var(--brand-red), var(--brand-pink), var(--brand-purple), var(--brand-blue), var(--brand-lightblue), var(--brand-green));
+      height: 4px;
+      background: linear-gradient(90deg, #C4B5FD, #93C5FD, #6EE7B7, #FDE68A, #FECDD3);
       width: 100%;
     }
 
     .sidebar {
       min-height: 100vh;
       background: #FFFFFF;
-      border-right: 1px solid #E2E8F0;
-      box-shadow: 4px 0 24px rgba(0,0,0,0.03);
+      border-right: 1px solid var(--card-border);
+      box-shadow: 4px 0 20px rgba(148, 163, 184, 0.05);
     }
 
     .avatar-profile {
-      width: 84px;
-      height: 84px;
+      width: 82px;
+      height: 82px;
       border-radius: 50%;
       object-fit: cover;
-      border: 3px solid var(--brand-blue);
-      box-shadow: 0 4px 12px rgba(0,135,255,0.25);
+      border: 3px solid var(--pastel-lavender-border);
+      box-shadow: 0 8px 20px rgba(139, 92, 246, 0.15);
     }
 
     .regional-pills-container {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px;
+      gap: 5px;
       justify-content: center;
       max-width: 100%;
     }
     .regional-pill {
       font-size: 0.72rem;
       font-weight: 600;
-      background: #EFF6FF;
-      color: #1D4ED8;
-      border: 1px solid #BFDBFE;
+      background: var(--pastel-blue-bg);
+      color: var(--pastel-blue-text);
+      border: 1px solid var(--pastel-blue-border);
       border-radius: 20px;
-      padding: 2px 8px;
+      padding: 3px 10px;
       word-break: break-word;
     }
 
     .nav-btn-card {
-      color: #334155;
-      border-radius: 14px;
-      padding: 12px 14px;
+      color: #475569;
+      border-radius: 16px;
+      padding: 10px 14px;
       font-weight: 600;
+      font-size: 0.9rem;
       display: flex;
       align-items: center;
       gap: 12px;
       cursor: pointer;
-      transition: all 0.25s ease;
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      background: #FAFAFC;
+      border: 1px solid #F1F5F9;
       text-decoration: none;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       user-select: none;
-      -webkit-user-select: none;
     }
     .nav-btn-card:hover, .nav-btn-card:active {
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+      box-shadow: 0 8px 20px rgba(148, 163, 184, 0.1);
       background: #FFFFFF;
+      border-color: var(--pastel-lavender-border);
     }
     .nav-btn-card.active {
-      background: linear-gradient(135deg, #0087FF 0%, #0052CC 100%);
+      background: var(--pastel-lavender);
       color: #FFFFFF !important;
-      border-color: #0087FF;
-      box-shadow: 0 6px 18px rgba(0,135,255,0.35);
+      border-color: var(--pastel-lavender);
+      box-shadow: 0 8px 22px rgba(139, 92, 246, 0.28);
     }
     .nav-btn-card.active .nav-icon-badge {
-      background: rgba(255,255,255,0.2) !important;
+      background: rgba(255, 255, 255, 0.22) !important;
       color: #FFFFFF !important;
     }
 
     .nav-icon-badge {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.1rem;
+      font-size: 1rem;
       flex-shrink: 0;
     }
 
+    /* Cards Bento Style com Bordas Suaves */
     .bento-card {
       background: var(--card-bg);
-      border-radius: 18px;
-      padding: 22px;
-      box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05);
-      border: 1px solid #E2E8F0;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 30px -10px rgba(100, 116, 139, 0.06);
+      border: 1px solid var(--card-border);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
     }
     .bento-card:hover {
-      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+      box-shadow: 0 14px 35px -8px rgba(124, 58, 237, 0.08);
     }
 
-    /* ESTILO DOS 6 CARDS SEPARADOS DO PAINEL DE BORDO DA FILIAL */
     .pb-card-item {
       background: #FFFFFF;
-      border-radius: 12px;
-      padding: 12px 14px;
-      border: 1px solid #E2E8F0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+      border-radius: 16px;
+      padding: 12px;
+      border: 1px solid #F1F5F9;
+      box-shadow: 0 4px 12px rgba(148, 163, 184, 0.03);
       border-bottom: 3px solid #CBD5E1;
       text-align: center;
     }
-    .pb-card-vendas { border-bottom-color: #10B981; }
-    .pb-card-nps { border-bottom-color: #0087FF; }
-    .pb-card-bh { border-bottom-color: #FF8A00; }
-    .pb-card-lixo { border-bottom-color: #8000FF; }
-    .pb-card-pcd { border-bottom-color: #FF14B3; }
-    .pb-card-txdesl { border-bottom-color: #FF253A; }
+    .pb-card-vendas { border-bottom-color: var(--pastel-green); }
+    .pb-card-nps { border-bottom-color: var(--pastel-blue); }
+    .pb-card-bh { border-bottom-color: var(--pastel-peach); }
+    .pb-card-lixo { border-bottom-color: var(--pastel-lavender); }
+    .pb-card-pcd { border-bottom-color: var(--pastel-pink); }
+    .pb-card-txdesl { border-bottom-color: #F87171; }
 
     .card-governanca {
-      background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
-      border: 1px solid #A7F3D0;
-      border-radius: 20px;
+      background: var(--pastel-green-bg);
+      border: 1px solid var(--pastel-green-border);
+      border-radius: 22px;
     }
 
     .chip-tema {
       cursor: pointer;
       padding: 6px 14px;
       border-radius: 20px;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       font-weight: 600;
-      background: #F1F5F9;
-      color: #475569;
-      border: 1px solid #CBD5E1;
+      background: #F8FAFC;
+      color: #64748B;
+      border: 1px solid #E2E8F0;
       transition: all 0.2s ease;
       display: inline-block;
       margin: 3px;
     }
     .chip-tema.selected {
-      background: #0087FF;
+      background: var(--pastel-lavender);
       color: white;
-      border-color: #0087FF;
-      box-shadow: 0 4px 12px rgba(0,135,255,0.3);
+      border-color: var(--pastel-lavender);
+      box-shadow: 0 4px 14px rgba(139, 92, 246, 0.25);
     }
 
     .box-calculadora-despesas {
-      background: #FEF3C7;
-      border: 1px solid #FCD34D;
-      border-radius: 14px;
+      background: var(--pastel-peach-bg);
+      border: 1px solid var(--pastel-peach-border);
+      border-radius: 18px;
       padding: 16px;
     }
 
     .dropzone-paste {
-      border: 2px dashed #0087FF;
-      border-radius: 12px;
-      padding: 20px;
+      border: 2px dashed var(--pastel-blue-border);
+      border-radius: 16px;
+      padding: 18px;
       text-align: center;
-      background: #F0F9FF;
+      background: var(--pastel-blue-bg);
       cursor: pointer;
-      transition: all 0.25s ease;
+      transition: all 0.2s ease;
     }
     .dropzone-paste:hover, .dropzone-paste:focus {
-      background: #E0F2FE;
-      border-color: #0052CC;
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(0,135,255,0.25);
-    }
-
-    #bloqueio-tela {
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #0F172A; color: white; z-index: 9999;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-    }
-
-    .container-iframe-embutido {
-      background: #FFFFFF;
-      border: 1px solid #CBD5E1;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-      height: 750px;
-    }
-    .container-iframe-embutido iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
+      border-color: var(--pastel-blue);
+      background: #DBEAFE;
     }
 
     .toast-container-custom {
@@ -234,21 +239,41 @@
       z-index: 10000;
     }
     .toast-custom {
-      background: #0F172A;
-      color: #FFFFFF;
-      padding: 14px 20px;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      padding: 12px 20px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
       display: flex;
       align-items: center;
       gap: 12px;
       font-weight: 600;
-      min-width: 280px;
-      animation: slideInRight 0.3s ease;
+      min-width: 270px;
     }
-    @keyframes slideInRight {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
+
+    .container-iframe-embutido {
+      background: #FFFFFF;
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+      height: 720px;
+    }
+    .container-iframe-embutido iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Suavização de Inputs e Selects */
+    .form-control, .form-select {
+      border-radius: 12px;
+      border: 1px solid #E2E8F0;
+      padding: 8px 12px;
+      font-size: 0.88rem;
+      transition: all 0.2s ease;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--pastel-lavender);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
     }
   </style>
 </head>
@@ -256,30 +281,17 @@
 
   <div class="top-accent-line"></div>
 
-  <div id="bloqueio-tela" class="d-none">
-    <i class="bi bi-shield-lock-fill text-warning display-1 mb-3"></i>
-    <h2 class="fw-bold">Acesso Restrito ao Portal GP 360</h2>
-    <p id="bloqueio-mensagem" class="text-secondary text-center px-4" style="max-width: 500px;">
-      Verificando credenciais de acesso corporativo...
-    </p>
-  </div>
+  <div id="toast-container" class="toast-container-custom"></div>
 
-  <div id="loading-splash" class="d-flex flex-column align-items-center justify-content-center py-5 mt-5">
-    <div class="spinner-border text-primary mb-3" role="status" style="width: 3.5rem; height: 3.5rem;"></div>
-    <p class="fw-bold fs-5 text-secondary">Carregando Ecossistema GP360...</p>
-  </div>
-
-  <div class="toast-container-custom" id="toast-container"></div>
-
-  <div id="app-container" class="container-fluid d-none p-0">
+  <div id="app-container" class="container-fluid p-0">
     <div class="row g-0">
       
       <!-- SIDEBAR LEFT -->
       <div class="col-md-3 col-lg-2 sidebar p-3 text-center">
-        <div class="mb-3 mt-2">
-          <img id="user-avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%230087FF'/><text x='50%' y='55%' font-size='32' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>GP</text></svg>" class="avatar-profile mb-2" alt="Foto" onerror="this.src=gerarAvatarSVG('GP');">
+        <div class="mb-3 mt-1">
+          <img id="user-avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%238B5CF6'/><text x='50%' y='55%' font-size='32' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>GP</text></svg>" class="avatar-profile mb-2" alt="Foto" onerror="this.src=gerarAvatarSVG('GP');">
           <h6 class="fw-bold mb-0 text-dark" id="user-nome-display">Carregando...</h6>
-          <small class="badge bg-light text-primary border mt-1" id="user-cargo-display">Coordenador</small>
+          <small class="badge mt-1 shadow-sm" style="background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text); border: 1px solid var(--pastel-lavender-border);" id="user-cargo-display">Coordenador</small>
           
           <div class="mt-2" id="box-regional-pills">
             <div class="regional-pills-container" id="user-regional-display">
@@ -288,58 +300,58 @@
           </div>
         </div>
 
-        <hr class="my-3 text-muted">
+        <hr class="my-2 text-muted opacity-25">
 
-        <!-- MENU BOTÕES - DIV NEUTRO COMPATÍVEL COM PWA MÓVEL -->
-        <nav class="nav flex-column gap-1 text-start">
+        <!-- MENU NAVEGAÇÃO -->
+        <nav class="nav flex-column text-start">
           <div class="nav-btn-card active" role="button" onclick="mudarAba('aba-home', this)">
-            <div class="nav-icon-badge bg-primary-subtle text-primary"><i class="bi bi-house-door-fill"></i></div>
+            <div class="nav-icon-badge" style="background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text);"><i class="bi bi-house-door-fill"></i></div>
             <span>Início</span>
           </div>
 
           <div class="nav-btn-card" role="button" onclick="mudarAba('aba-lancamento', this)">
-            <div class="nav-icon-badge bg-success-subtle text-success"><i class="bi bi-plus-circle-fill"></i></div>
+            <div class="nav-icon-badge" style="background: var(--pastel-green-bg); color: var(--pastel-green-text);"><i class="bi bi-plus-circle-fill"></i></div>
             <span>Lançar Atividade</span>
           </div>
 
           <div class="nav-btn-card" role="button" onclick="mudarAba('aba-gestao', this)">
-            <div class="nav-icon-badge bg-warning-subtle text-warning"><i class="bi bi-list-task"></i></div>
+            <div class="nav-icon-badge" style="background: var(--pastel-peach-bg); color: var(--pastel-peach-text);"><i class="bi bi-list-task"></i></div>
             <span>Gestão Atividades</span>
           </div>
 
           <div class="nav-btn-card" role="button" onclick="mudarAba('aba-galeria', this)">
-            <div class="nav-icon-badge bg-info-subtle text-info"><i class="bi bi-images"></i></div>
+            <div class="nav-icon-badge" style="background: var(--pastel-blue-bg); color: var(--pastel-blue-text);"><i class="bi bi-images"></i></div>
             <span>Galeria Evidências</span>
           </div>
 
           <div class="nav-btn-card" role="button" onclick="mudarAba('aba-historico', this)">
-            <div class="nav-icon-badge bg-danger-subtle text-danger"><i class="bi bi-receipt"></i></div>
+            <div class="nav-icon-badge" style="background: var(--pastel-pink-bg); color: var(--pastel-pink-text);"><i class="bi bi-receipt"></i></div>
             <span>Extrato e Despesas</span>
           </div>
 
           <div class="nav-btn-card" role="button" onclick="mudarAba('aba-consultas', this)">
-            <div class="nav-icon-badge" style="background:#F3E8FF; color:#8000FF;"><i class="bi bi-search"></i></div>
+            <div class="nav-icon-badge" style="background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text);"><i class="bi bi-search"></i></div>
             <span>Consultas Gerais</span>
           </div>
 
           <div class="nav-btn-card" role="button" onclick="mudarAba('aba-visao-gp', this)">
-            <div class="nav-icon-badge" style="background:#E0F2FE; color:#0284C7;"><i class="bi bi-pie-chart-fill"></i></div>
+            <div class="nav-icon-badge" style="background: var(--pastel-blue-bg); color: var(--pastel-blue-text);"><i class="bi bi-pie-chart-fill"></i></div>
             <span>Visão Geral GP</span>
           </div>
 
           <div class="nav-btn-card" role="button" onclick="mudarAba('aba-configuracoes', this)" id="menu-admin">
-            <div class="nav-icon-badge bg-secondary-subtle text-secondary"><i class="bi bi-gear-fill"></i></div>
+            <div class="nav-icon-badge" style="background: #F1F5F9; color: #64748B;"><i class="bi bi-gear-fill"></i></div>
             <span>Configurações</span>
           </div>
         </nav>
       </div>
 
       <!-- MAIN CONTENT -->
-      <div class="col-md-9 col-lg-10 p-4">
+      <div class="col-md-9 col-lg-10 p-3 p-md-4">
         
         <!-- HEADER TOP BAR -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <h4 class="fw-bold mb-0 text-dark"><i class="bi bi-stars text-warning me-2"></i>Portal GP 360</h4>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-stars me-2" style="color: var(--pastel-peach);"></i>Portal GP 360</h5>
           <div class="d-flex align-items-center gap-2">
             <select id="seletor-mes" class="form-select form-select-sm fw-semibold shadow-sm" onchange="window.alterarPeriodoGeral()">
               <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
@@ -353,9 +365,9 @@
           </div>
         </div>
 
-        <div id="banner-pwa-install" class="alert alert-primary border-primary shadow-sm rounded-4 d-flex align-items-center justify-content-between mb-4 p-3 d-none">
+        <div id="banner-pwa-install" class="alert border-0 shadow-sm rounded-4 d-flex align-items-center justify-content-between mb-3 p-3 d-none" style="background: var(--pastel-blue-bg);">
           <div class="d-flex align-items-center gap-3">
-            <div class="bg-primary text-white p-2 rounded-circle fs-4 d-flex align-items-center justify-content-center" style="width:48px; height:48px;">
+            <div class="p-2 rounded-circle fs-5 d-flex align-items-center justify-content-center" style="background: var(--pastel-blue); color: white; width:40px; height:40px;">
               <i class="bi bi-phone-vibrate-fill"></i>
             </div>
             <div>
@@ -366,91 +378,90 @@
           <button type="button" class="btn-close" onclick="document.getElementById('banner-pwa-install').classList.add('d-none');"></button>
         </div>
 
+        <!-- ABA HOME -->
         <div id="aba-home" class="view-aba">
-          
-          <div class="card-governanca p-4 mb-4 d-flex justify-content-between align-items-center shadow-sm">
+          <div class="card-governanca p-3 p-md-4 mb-3 d-flex justify-content-between align-items-center shadow-sm">
             <div>
-              <h5 class="fw-bold text-success mb-2">
-                <i class="bi bi-mountain me-2 fs-4"></i>Sua Escalada de Governança 
-                <span class="badge bg-success text-white ms-2 shadow-sm" id="badge-fase-nome">⛺ Fase 1: Acampamento Base</span>
-              </h5>
-              <p class="mb-0 text-secondary fs-6">Moedas do Mês Vigente: <strong class="text-dark fs-5" id="kpi-moedas-mes">0</strong> | Total Acumulado: <strong class="text-dark fs-5" id="kpi-moedas-totais">0</strong></p>
+              <h6 class="fw-bold mb-1" style="color: var(--pastel-green-text);">
+                <i class="bi bi-mountain me-2 fs-5"></i>Sua Escalada de Governança 
+                <span class="badge ms-2 shadow-sm" style="background: var(--pastel-green); color: white;" id="badge-fase-nome">⛺ Fase 1: Acampamento Base</span>
+              </h6>
+              <p class="mb-0 text-secondary small">Moedas do Mês Vigente: <strong class="text-dark fs-6" id="kpi-moedas-mes">0</strong> | Total Acumulado: <strong class="text-dark fs-6" id="kpi-moedas-totais">0</strong></p>
             </div>
-            <div class="bg-white p-3 rounded-circle border shadow d-flex align-items-center justify-content-center" style="width: 72px; height: 72px;">
-              <span id="icone-fase-visual" style="font-size: 2.2rem;">🥾</span>
+            <div class="bg-white p-2 rounded-circle border shadow-sm d-flex align-items-center justify-content-center" style="width: 58px; height: 58px;">
+              <span id="icone-fase-visual" style="font-size: 1.7rem;">🥾</span>
             </div>
           </div>
 
-          <div class="row g-3 mb-4">
+          <div class="row g-3 mb-3">
             <div class="col-md-4">
               <div class="bento-card d-flex align-items-center gap-3">
-                <div class="p-3 bg-primary-subtle text-primary rounded-4"><i class="bi bi-shop fs-2"></i></div>
+                <div class="p-3 rounded-4" style="background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text);"><i class="bi bi-shop fs-3"></i></div>
                 <div>
                   <small class="text-muted fw-semibold d-block">Lojas na Carteira</small>
-                  <h3 class="fw-bold mb-0 text-dark" id="kpi-lojas-carteira">0</h3>
+                  <h4 class="fw-bold mb-0 text-dark" id="kpi-lojas-carteira">0</h4>
                 </div>
               </div>
             </div>
 
             <div class="col-md-4">
               <div class="bento-card d-flex align-items-center gap-3">
-                <div class="p-3 bg-info-subtle text-info rounded-4"><i class="bi bi-geo-alt-fill fs-2"></i></div>
+                <div class="p-3 rounded-4" style="background: var(--pastel-blue-bg); color: var(--pastel-blue-text);"><i class="bi bi-geo-alt-fill fs-3"></i></div>
                 <div>
                   <small class="text-muted fw-semibold d-block">Visitas (In Loco)</small>
-                  <h3 class="fw-bold mb-0 text-dark" id="kpi-visitas-loco">0</h3>
+                  <h4 class="fw-bold mb-0 text-dark" id="kpi-visitas-loco">0</h4>
                 </div>
               </div>
             </div>
 
             <div class="col-md-4">
               <div class="bento-card d-flex align-items-center gap-3">
-                <div class="p-3 bg-warning-subtle text-warning rounded-4"><i class="bi bi-cash-stack fs-2"></i></div>
+                <div class="p-3 rounded-4" style="background: var(--pastel-peach-bg); color: var(--pastel-peach-text);"><i class="bi bi-cash-stack fs-3"></i></div>
                 <div>
                   <small class="text-muted fw-semibold d-block">Reembolso Estimado (Mês)</small>
-                  <h3 class="fw-bold mb-0 text-dark" id="kpi-reembolso-mes">R$ 0,00</h3>
+                  <h4 class="fw-bold mb-0 text-dark" id="kpi-reembolso-mes">R$ 0,00</h4>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="row g-3 mb-4">
+          <div class="row g-3 mb-3">
             <div class="col-md-6">
               <div class="bento-card h-100">
-                <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-trophy-fill text-warning me-2"></i>Top Engajamento (Top 5)</h6>
+                <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-trophy-fill me-2" style="color: var(--pastel-peach);"></i>Top Engajamento (Top 5)</h6>
                 <ul class="list-group list-group-flush" id="lista-ranking">
-                  <li class="list-group-item text-muted">Carregando pódio...</li>
+                  <li class="list-group-item text-muted border-0">Carregando pódio...</li>
                 </ul>
               </div>
             </div>
 
             <div class="col-md-6">
               <div class="bento-card h-100">
-                <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Distribuição de Atividades do Período</h6>
-                <div style="max-height: 230px;" class="d-flex justify-content-center">
+                <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-pie-chart-fill me-2" style="color: var(--pastel-lavender);"></i>Distribuição de Atividades do Período</h6>
+                <div style="max-height: 220px;" class="d-flex justify-content-center">
                   <canvas id="chart-atividades"></canvas>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
 
+        <!-- ABA LANÇAMENTO -->
         <div id="aba-lancamento" class="view-aba d-none">
           <div class="bento-card" style="max-width: 900px; margin: 0 auto;">
-            <h5 class="fw-bold mb-4 text-primary"><i class="bi bi-plus-square-fill me-2"></i> Nova Atividade</h5>
-            <p class="text-muted small mb-4">Preencha os detalhes do seu roteiro ou interação.</p>
+            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-plus-square-fill me-2" style="color: var(--pastel-lavender);"></i> Nova Atividade</h6>
             
             <form id="form-lancamento" onsubmit="event.preventDefault(); salvarAtividade();">
               <div class="row g-3">
                 
                 <div class="col-md-6">
-                  <label class="form-label fw-semibold">Data da Atividade/Viagem</label>
-                  <input type="date" id="input-data-atividade" class="form-control" required>
+                  <label class="form-label small fw-semibold">Data da Atividade/Viagem</label>
+                  <input type="date" id="input-data-atividade" class="form-control form-control-sm" required>
                 </div>
 
                 <div class="col-md-6">
-                  <label class="form-label fw-semibold">Este atendimento foi para:</label>
-                  <select id="select-escopo-atendimento" class="form-select" onchange="alternarEscopoAtendimento()" required>
+                  <label class="form-label small fw-semibold">Este atendimento foi para:</label>
+                  <select id="select-escopo-atendimento" class="form-select form-select-sm" onchange="alternarEscopoAtendimento()" required>
                     <option value="FILIAL" selected>Uma Filial Específica</option>
                     <option value="REGIONAL">Regional</option>
                     <option value="DIRETORIA">Diretoria</option>
@@ -458,8 +469,8 @@
                 </div>
 
                 <div class="col-md-6">
-                  <label class="form-label fw-semibold">Tipo de Roteiro:</label>
-                  <select id="select-tipo-roteiro" class="form-select" required>
+                  <label class="form-label small fw-semibold">Tipo de Roteiro:</label>
+                  <select id="select-tipo-roteiro" class="form-select form-select-sm" required>
                     <option value="Presencial (Visita in loco)" selected>Presencial (Visita in loco)</option>
                     <option value="Online">Online</option>
                     <option value="Presencial (evento/reuniões)">Presencial (evento/reuniões)</option>
@@ -468,63 +479,57 @@
                 </div>
 
                 <div class="col-md-6" id="box-destino-filial">
-                  <label class="form-label fw-semibold">Destino (Filial)</label>
-                  <select id="select-filial" class="form-select" onchange="exibirIndicadoresFilialSelecionada()">
+                  <label class="form-label small fw-semibold">Destino (Filial)</label>
+                  <select id="select-filial" class="form-select form-select-sm" onchange="exibirIndicadoresFilialSelecionada()">
                     <option value="">Selecione a loja...</option>
                   </select>
                 </div>
 
-                <!-- PAINEL DE BORDO DA FILIAL - 6 CARDS SEPARADOS INTEGRADOS -->
+                <!-- PAINEL DE BORDO DA FILIAL -->
                 <div class="col-12 d-none" id="box-indicadores-filial">
-                  <div class="p-3 bg-light rounded-3 border">
-                    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-speedometer2 me-2"></i>Painel de Bordo da Filial:</h6>
+                  <div class="p-3 bg-light rounded-4 border">
+                    <h6 class="fw-bold text-dark mb-2 small"><i class="bi bi-speedometer2 me-1" style="color: var(--pastel-blue);"></i>Painel de Bordo da Filial:</h6>
                     
                     <div class="row g-2">
-                      <!-- CARD 1: VENDAS % -->
                       <div class="col-6 col-md-4 col-lg-2">
                         <div class="pb-card-item pb-card-vendas">
                           <small class="text-muted fw-semibold d-block">💰 Vendas %</small>
-                          <span class="fw-bold fs-5 text-dark" id="ind-val-vendas">0,0%</span>
+                          <span class="fw-bold fs-6 text-dark" id="ind-val-vendas">0,0%</span>
                         </div>
                       </div>
 
-                      <!-- CARD 2: NPS -->
                       <div class="col-6 col-md-4 col-lg-2">
                         <div class="pb-card-item pb-card-nps">
                           <small class="text-muted fw-semibold d-block">⭐ NPS</small>
-                          <span class="fw-bold fs-5 text-dark" id="ind-val-nps">0,0</span>
+                          <span class="fw-bold fs-6 text-dark" id="ind-val-nps">0,0</span>
                         </div>
                       </div>
 
-                      <!-- CARD 3: BANCO DE HORAS -->
                       <div class="col-6 col-md-4 col-lg-2">
                         <div class="pb-card-item pb-card-bh">
                           <small class="text-muted fw-semibold d-block">⏰ B. Horas</small>
-                          <span class="fw-bold fs-5 text-dark" id="ind-val-bh">0,0 h</span>
+                          <span class="fw-bold fs-6 text-dark" id="ind-val-bh">0,0 h</span>
                         </div>
                       </div>
 
-                      <!-- CARD 4: COLETA LIXO -->
                       <div class="col-6 col-md-4 col-lg-2">
                         <div class="pb-card-item pb-card-lixo">
                           <small class="text-muted fw-semibold d-block">🗑️ Coleta Lixo</small>
-                          <span class="fw-bold fs-5 text-dark" id="ind-val-lixo">0 coletas</span>
+                          <span class="fw-bold fs-6 text-dark" id="ind-val-lixo">0 coletas</span>
                         </div>
                       </div>
 
-                      <!-- CARD 5: PCD (GAP) -->
                       <div class="col-6 col-md-4 col-lg-2">
                         <div class="pb-card-item pb-card-pcd">
                           <small class="text-muted fw-semibold d-block">♿ PCD (Gap)</small>
-                          <span class="fw-bold fs-5 text-dark" id="ind-val-pcd">0 vaga(s)</span>
+                          <span class="fw-bold fs-6 text-dark" id="ind-val-pcd">0 vaga(s)</span>
                         </div>
                       </div>
 
-                      <!-- CARD 6: TAXA DESLIGAMENTO % -->
                       <div class="col-6 col-md-4 col-lg-2">
                         <div class="pb-card-item pb-card-txdesl">
                           <small class="text-muted fw-semibold d-block">📉 Tx Deslig.</small>
-                          <span class="fw-bold fs-5 text-dark" id="ind-val-txdesl">0,0%</span>
+                          <span class="fw-bold fs-6 text-dark" id="ind-val-txdesl">0,0%</span>
                         </div>
                       </div>
                     </div>
@@ -532,53 +537,52 @@
                 </div>
 
                 <div class="col-md-12">
-                  <label class="form-label fw-semibold">Qual a natureza deste atendimento?</label>
-                  <select id="select-natureza" class="form-select" required onchange="verificarCamposDinamicos()">
+                  <label class="form-label small fw-semibold">Qual a natureza deste atendimento?</label>
+                  <select id="select-natureza" class="form-select form-select-sm" required onchange="verificarCamposDinamicos()">
                     <option value="">Selecione a natureza...</option>
                   </select>
                 </div>
 
                 <div class="col-12 d-none" id="box-temas-reuniao">
-                  <div class="p-3 bg-light rounded-3 border">
-                    <label class="form-label fw-bold text-primary mb-2"><i class="bi bi-tags-fill me-1"></i> Temas da Reunião (Múltipla Escolha):</label>
+                  <div class="p-3 bg-light rounded-4 border">
+                    <label class="form-label fw-bold text-dark mb-2 small"><i class="bi bi-tags-fill me-1" style="color: var(--pastel-lavender);"></i> Temas da Reunião (Múltipla Escolha):</label>
                     <div id="chips-container-reuniao" class="d-flex flex-wrap"></div>
                   </div>
                 </div>
 
                 <div class="col-12 d-none" id="box-tema-treinamento">
-                  <div class="p-3 bg-light rounded-3 border">
-                    <label class="form-label fw-bold text-primary mb-2"><i class="bi bi-easel-fill me-1"></i> Tema do Treinamento:</label>
-                    <select id="select-tema-treinamento" class="form-select">
+                  <div class="p-3 bg-light rounded-4 border">
+                    <label class="form-label fw-bold text-dark mb-2 small"><i class="bi bi-easel-fill me-1" style="color: var(--pastel-green);"></i> Tema do Treinamento:</label>
+                    <select id="select-tema-treinamento" class="form-select form-select-sm">
                       <option value="">Selecione o tema...</option>
                     </select>
                   </div>
                 </div>
 
                 <div class="col-md-6">
-                  <label class="form-label fw-semibold">Pessoas Impactadas</label>
-                  <input type="number" id="input-pessoas-impactadas" class="form-control" placeholder="Ex: 15">
+                  <label class="form-label small fw-semibold">Pessoas Impactadas</label>
+                  <input type="number" id="input-pessoas-impactadas" class="form-control form-control-sm" placeholder="Ex: 15">
                 </div>
 
                 <div class="col-md-6">
-                  <label class="form-label fw-semibold">Tempo Gasto (Horas)</label>
-                  <input type="number" step="0.1" id="input-tempo-gasto" class="form-control" placeholder="Ex: 2 ou 1.5">
-                  <small class="text-danger small d-block mt-1">* O tempo gasto deve incluir preparação de materiais e execução.</small>
+                  <label class="form-label small fw-semibold">Tempo Gasto (Horas)</label>
+                  <input type="number" step="0.1" id="input-tempo-gasto" class="form-control form-control-sm" placeholder="Ex: 2 ou 1.5">
                 </div>
 
                 <div class="col-12">
                   <div class="box-calculadora-despesas">
-                    <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-car-front-fill me-2"></i>Deslocamento e Despesas da Visita</h6>
+                    <h6 class="fw-bold mb-2 text-dark small"><i class="bi bi-car-front-fill me-1"></i>Deslocamento e Despesas da Visita</h6>
                     <div class="row g-2 mb-2">
                       <div class="col-md-4">
-                        <label class="small fw-semibold text-secondary">Valor do KM (R$)</label>
+                        <label class="small text-secondary">Valor KM (R$)</label>
                         <input type="number" step="0.01" id="input-rate-km" class="form-control form-control-sm" value="1.20" oninput="calcularDespesas()">
                       </div>
                       <div class="col-md-4">
-                        <label class="small fw-semibold text-secondary">Qtd de KM</label>
+                        <label class="small text-secondary">Qtd KM</label>
                         <input type="number" id="input-km" class="form-control form-control-sm" placeholder="0" oninput="calcularDespesas()">
                       </div>
                       <div class="col-md-4">
-                        <label class="small fw-semibold text-secondary">Custo KM (R$)</label>
+                        <label class="small text-secondary">Custo KM (R$)</label>
                         <input type="text" id="display-custo-km" class="form-control form-control-sm bg-light" value="0.00" readonly>
                       </div>
                     </div>
@@ -594,34 +598,34 @@
                       <div class="col-md-6"><label class="small text-secondary">Estacion. (R$)</label><input type="number" step="0.01" id="input-estacionamento" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
                     </div>
 
-                    <div class="mt-3 text-end fw-bold text-dark fs-5" id="display-gasto-total">Gasto Total: R$ 0,00</div>
+                    <div class="mt-2 text-end fw-bold text-dark fs-6" id="display-gasto-total">Gasto Total: R$ 0,00</div>
                   </div>
                 </div>
 
                 <div class="col-12">
-                  <label class="form-label fw-semibold"><i class="bi bi-paperclip"></i> Evidência da Atividade (Seleção de Opção Única)</label>
-                  <div class="p-3 bg-light rounded-3 border">
-                    <small class="d-block text-muted mb-2">Opção 1: Enviar Arquivo (PC/Celular)</small>
-                    <input type="file" id="input-evidencia-file" class="form-control form-control-sm mb-3" accept="image/*" onchange="limparOutrasEvidencias('file')">
+                  <label class="form-label small fw-semibold"><i class="bi bi-paperclip"></i> Evidência da Atividade</label>
+                  <div class="p-3 bg-light rounded-4 border">
+                    <small class="d-block text-muted mb-1">Opção 1: Enviar Arquivo (PC/Celular)</small>
+                    <input type="file" id="input-evidencia-file" class="form-control form-control-sm mb-2" accept="image/*" onchange="limparOutrasEvidencias('file')">
 
-                    <small class="d-block text-muted mb-1">Opção 2: Colar Imagem da Área de Transferência (Clique & Ctrl+V)</small>
-                    <div class="dropzone-paste mb-3" id="dropzone-ctrlv" tabIndex="0" onclick="ativarDropzoneClipboard(this)">
-                      <i class="bi bi-clipboard-plus fs-3 text-primary"></i>
-                      <p class="mb-0 small text-dark fw-bold" id="txt-dropzone">Clique aqui e aperte Ctrl+V para colar a imagem</p>
+                    <small class="d-block text-muted mb-1">Opção 2: Colar Imagem (Ctrl+V)</small>
+                    <div class="dropzone-paste mb-2" id="dropzone-ctrlv" tabIndex="0" onclick="ativarDropzoneClipboard(this)">
+                      <i class="bi bi-clipboard-plus fs-4" style="color: var(--pastel-blue);"></i>
+                      <p class="mb-0 small text-dark fw-bold" id="txt-dropzone">Clique aqui e aperte Ctrl+V</p>
                     </div>
 
-                    <small class="d-block text-muted mb-1">Opção 3: Link do Google Drive (Público)</small>
-                    <input type="url" id="input-evidencia-url" class="form-control form-control-sm" placeholder="Cole o link da imagem/pdf aqui" oninput="limparOutrasEvidencias('url')">
+                    <small class="d-block text-muted mb-1">Opção 3: Link do Google Drive</small>
+                    <input type="url" id="input-evidencia-url" class="form-control form-control-sm" placeholder="Cole o link da imagem aqui" oninput="limparOutrasEvidencias('url')">
                   </div>
                 </div>
 
                 <div class="col-md-12">
-                  <label class="form-label fw-semibold">Observações</label>
-                  <textarea id="input-observacao" class="form-control" rows="3" placeholder="Descreva as ações realizadas..."></textarea>
+                  <label class="form-label small fw-semibold">Observações</label>
+                  <textarea id="input-observacao" class="form-control form-control-sm" rows="2" placeholder="Descreva as ações realizadas..."></textarea>
                 </div>
 
-                <div class="col-12 mt-4 text-end">
-                  <button type="submit" class="btn btn-primary px-4 fw-bold py-3 w-100 fs-5 shadow" id="btn-salvar-lancamento">
+                <div class="col-12 mt-3 text-end">
+                  <button type="submit" class="btn text-white px-4 fw-bold py-2 w-100 fs-6 shadow-sm rounded-4" style="background: var(--pastel-lavender);" id="btn-salvar-lancamento">
                     <i class="bi bi-coin me-1"></i> Salvar e Ganhar Moeda
                   </button>
                 </div>
@@ -630,80 +634,42 @@
           </div>
         </div>
 
+        <!-- ABA CONSULTAS -->
         <div id="aba-consultas" class="view-aba d-none">
-          <div class="bento-card mb-4">
-            <h5 class="fw-bold mb-2 text-dark"><i class="bi bi-search text-primary me-2"></i>Consultas Gerais</h5>
-            <p class="text-muted small mb-4">Acesse rapidamente outros painéis e recursos corporativos sem sair da página.</p>
+          <div class="bento-card mb-3">
+            <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-search me-2" style="color: var(--pastel-lavender);"></i>Consultas Gerais</h6>
+            <p class="text-muted small mb-3">Acesse rapidamente outros painéis e recursos corporativos sem sair do portal.</p>
             
             <div class="row g-3">
-              <!-- CARD 1: PERFIL DO GERENTE -->
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-person-badge text-primary display-6 mb-2"></i>
-                  <h6 class="fw-bold text-dark">Perfil do Gerente de Loja</h6>
-                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzqQNOM7dAJb4o2Q9Wp5OPcNEcRrh8J1N74-L_NSagvRF1XdfRrOvRk1yFpIoI8ePZt/exec', 'Perfil do Gerente')" class="btn btn-primary btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
+                  <i class="bi bi-person-badge display-6 mb-2" style="color: var(--pastel-blue);"></i>
+                  <h6 class="fw-bold text-dark">Perfil do Gerente</h6>
+                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzqQNOM7dAJb4o2Q9Wp5OPcNEcRrh8J1N74-L_NSagvRF1XdfRrOvRk1yFpIoI8ePZt/exec', 'Perfil do Gerente')" class="btn btn-sm text-white w-100 fw-bold mt-2 rounded-3" style="background: var(--pastel-blue);">Acessar Painel</button>
                 </div>
               </div>
 
-              <!-- CARD 2: ATENDIMENTO SOCIAL -->
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-heart-pulse text-danger display-6 mb-2"></i>
+                  <i class="bi bi-heart-pulse display-6 mb-2" style="color: var(--pastel-pink);"></i>
                   <h6 class="fw-bold text-dark">Atendimento Social</h6>
-                  <button type="button" onclick="window.open('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', '_blank')" class="btn btn-danger btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
+                  <button type="button" onclick="window.open('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', '_blank')" class="btn btn-sm text-white w-100 fw-bold mt-2 rounded-3" style="background: var(--pastel-pink);">Acessar Painel</button>
                 </div>
               </div>
 
-              <!-- CARD 3: APURAÇÕES / FEEDBACK -->
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-shield-check text-warning display-6 mb-2"></i>
+                  <i class="bi bi-shield-check display-6 mb-2" style="color: var(--pastel-peach);"></i>
                   <h6 class="fw-bold text-dark">Apurações / Feedback</h6>
-                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback')" class="btn btn-warning text-dark btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
-                </div>
-              </div>
-
-              <!-- CARD 4: AGENTE INTEGRADOR -->
-              <div class="col-md-6 col-lg-4">
-                <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-people text-success display-6 mb-2"></i>
-                  <h6 class="fw-bold text-dark">Agente Integrador</h6>
-                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbySeCo0Pao_eydyF9ZZfetcSf6Rc-kgmdCiXjJkhf4O1r0jnQI6yRCWG_tGkIgwBzXY2A/exec', 'Agente Integrador')" class="btn btn-success btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
-                </div>
-              </div>
-
-              <!-- CARD 5: BANCO DE HORAS -->
-              <div class="col-md-6 col-lg-4">
-                <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-clock-history display-6 mb-2" style="color:#8000FF;"></i>
-                  <h6 class="fw-bold text-dark">Banco de Horas</h6>
-                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzWpN0-LZa_Lvd6VugBL5k3tWbHa5jdwKhJyD4UCH4Ml00BeNzved493zspKCgZAmz5Vg/exec', 'Banco de Horas')" class="btn btn-outline-primary btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
-                </div>
-              </div>
-
-              <!-- CARD 6: BASE ROL -->
-              <div class="col-md-6 col-lg-4">
-                <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-database text-info display-6 mb-2"></i>
-                  <h6 class="fw-bold text-dark">Base Rol</h6>
-                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbx8faffOLaa2D34yPcmyCTh1k4twGCvH-8GoUaKqOMejk9n6CBJbYA0khBu4Yd2WCai/exec', 'Base Rol')" class="btn btn-info text-white btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
-                </div>
-              </div>
-
-              <!-- CARD 7: LIXO ELETRÔNICO -->
-              <div class="col-md-6 col-lg-4">
-                <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-recycle text-success display-6 mb-2"></i>
-                  <h6 class="fw-bold text-dark">Lixo Eletrônico</h6>
-                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbybafdaQteFy4FuWwPxIQLGJDGWUsac8jo_agut6PlF42-1ta3mW8uyyjdbtLYGsgWn/exec', 'Lixo Eletrônico')" class="btn btn-outline-success btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
+                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback')" class="btn btn-sm text-dark w-100 fw-bold mt-2 rounded-3" style="background: var(--pastel-peach-bg); border: 1px solid var(--pastel-peach-border);">Acessar Painel</button>
                 </div>
               </div>
             </div>
 
-            <div id="container-embutido-painel" class="mt-4 d-none">
-              <div class="d-flex justify-content-between align-items-center bg-light p-3 border rounded-top">
-                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-window-stack me-2 text-primary"></i><span id="titulo-painel-embutido">Painel Corporativo</span></h6>
-                <button type="button" class="btn btn-sm btn-secondary fw-bold" onclick="fecharPainelEmbutido()"><i class="bi bi-x-lg me-1"></i> Fechar Painel</button>
+            <div id="container-embutido-painel" class="mt-3 d-none">
+              <div class="d-flex justify-content-between align-items-center bg-light p-2 border rounded-top">
+                <h6 class="fw-bold mb-0 text-dark small"><i class="bi bi-window-stack me-2 text-primary"></i><span id="titulo-painel-embutido">Painel Corporativo</span></h6>
+                <button type="button" class="btn btn-sm btn-secondary fw-bold rounded-3" onclick="fecharPainelEmbutido()"><i class="bi bi-x-lg me-1"></i> Fechar</button>
               </div>
               <div class="container-iframe-embutido">
                 <iframe id="iframe-painel-embutido-src" src="about:blank"></iframe>
@@ -712,126 +678,60 @@
           </div>
         </div>
 
+        <!-- ABA HISTÓRICO -->
         <div id="aba-historico" class="view-aba d-none">
           <div class="bento-card">
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <h5 class="fw-bold mb-0 text-dark">Extrato de Reembolso e Despesas</h5>
+              <h6 class="fw-bold mb-0 text-dark">Extrato de Reembolso e Despesas</h6>
               <div class="d-flex gap-2">
-                <button type="button" onclick="alternarFormularioKMAvulso()" class="btn btn-warning text-white fw-bold shadow-sm"><i class="bi bi-car-front-fill me-1"></i> + KM Avulso</button>
-                <button type="button" onclick="imprimirRelatorioKM()" class="btn btn-light border fw-bold shadow-sm"><i class="bi bi-printer me-1"></i> Imprimir Extrato</button>
+                <button type="button" onclick="alternarFormularioKMAvulso()" class="btn btn-sm fw-bold shadow-sm rounded-3" style="background: var(--pastel-peach-bg); border: 1px solid var(--pastel-peach-border); color: var(--pastel-peach-text);"><i class="bi bi-car-front-fill me-1"></i> + KM Avulso</button>
+                <button type="button" onclick="imprimirRelatorioKM()" class="btn btn-sm btn-light border fw-bold shadow-sm rounded-3"><i class="bi bi-printer me-1"></i> Imprimir</button>
               </div>
             </div>
 
-            <div id="box-form-km-avulso" class="p-3 bg-warning-subtle border border-warning rounded-3 mb-4 d-none">
-              <h6 class="fw-bold text-dark mb-3"><i class="bi bi-car-front-fill me-2"></i>Lançamento de KM Avulso (Sede/Eventos)</h6>
-              <form id="form-km-avulso" onsubmit="event.preventDefault(); salvarKMAvulso();">
-                <div class="row g-2 mb-2">
-                  <div class="col-md-4">
-                    <label class="small fw-semibold text-secondary">Data da Viagem:</label>
-                    <input type="date" id="avulso-data" class="form-control form-control-sm" required>
-                  </div>
-                  <div class="col-md-8">
-                    <label class="small fw-semibold text-secondary">Destino (Livre):</label>
-                    <input type="text" id="avulso-destino" class="form-control form-control-sm" placeholder="Ex: Reunião na Sede Franca" required>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="small fw-semibold text-secondary">Valor KM:</label>
-                    <input type="number" step="0.01" id="avulso-rate" class="form-control form-control-sm" value="1.20" oninput="calcularDespesasAvulso()">
-                  </div>
-                  <div class="col-md-6">
-                    <label class="small fw-semibold text-secondary">Qtd (KM):</label>
-                    <input type="number" id="avulso-km" class="form-control form-control-sm" placeholder="0" oninput="calcularDespesasAvulso()" required>
-                  </div>
-                </div>
-
-                <hr class="my-2 border-warning">
-
-                <h6 class="fw-bold mb-2 text-dark small"><i class="bi bi-receipt me-1"></i>Outros Gastos (Opcional)</h6>
-                <div class="row g-2">
-                  <div class="col-md-4"><label class="small text-secondary">Alimentação (R$)</label><input type="number" step="0.01" id="avulso-alimentacao" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
-                  <div class="col-md-4"><label class="small text-secondary">Hospedagem (R$)</label><input type="number" step="0.01" id="avulso-hospedagem" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
-                  <div class="col-md-4"><label class="small text-secondary">Aéreo (R$)</label><input type="number" step="0.01" id="avulso-aereo" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
-                  <div class="col-md-6"><label class="small text-secondary">Pedágio (R$)</label><input type="number" step="0.01" id="avulso-pedagio" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
-                  <div class="col-md-6"><label class="small text-secondary">Estacion. (R$)</label><input type="number" step="0.01" id="avulso-estacionamento" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
-                </div>
-
-                <div class="d-flex justify-content-between align-items-center mt-3">
-                  <div class="fw-bold text-dark fs-5" id="avulso-display-total">Gasto Total: R$ 0,00</div>
-                  <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-secondary btn-sm fw-bold px-3" onclick="alternarFormularioKMAvulso()">Cancelar</button>
-                    <button type="submit" class="btn btn-warning btn-sm fw-bold px-3 text-dark">Salvar KM Avulso</button>
-                  </div>
-                </div>
-              </form>
-            </div>
-
-            <div class="p-3 bg-light rounded-3 border mb-4">
-              <div class="row g-2 align-items-end">
-                <div class="col-md-5">
-                  <label class="small text-muted fw-semibold">Data Início:</label>
-                  <input type="date" id="filtro-extrato-inicio" class="form-control form-control-sm" onchange="renderizarHistoricos()">
-                </div>
-                <div class="col-md-5">
-                  <label class="small text-muted fw-semibold">Data Fim:</label>
-                  <input type="date" id="filtro-extrato-fim" class="form-control form-control-sm" onchange="renderizarHistoricos()">
-                </div>
-                <div class="col-md-2">
-                  <button type="button" class="btn btn-secondary btn-sm w-100 fw-bold" onclick="document.getElementById('filtro-extrato-inicio').value=''; document.getElementById('filtro-extrato-fim').value=''; renderizarHistoricos();"><i class="bi bi-arrow-counterclockwise me-1"></i> Limpar</button>
-                </div>
-              </div>
-            </div>
-
-            <div id="tabela-extrato-container" class="d-flex flex-column gap-3">
-              <div class="text-muted p-3">Carregando extrato de lançamentos...</div>
+            <div id="tabela-extrato-container" class="d-flex flex-column gap-2">
+              <div class="text-muted p-2 small">Carregando extrato de lançamentos...</div>
             </div>
           </div>
         </div>
 
+        <!-- ABA CONFIGURAÇÕES -->
         <div id="aba-configuracoes" class="view-aba d-none">
           <div class="bento-card">
-            <h5 class="fw-bold mb-1 text-dark">Configurações do Sistema</h5>
-            <p class="text-muted small mb-4">Gerencie as naturezas extras de atividade e o dicionário de prêmios da gamificação.</p>
+            <h6 class="fw-bold mb-1 text-dark">Configurações do Sistema</h6>
+            <p class="text-muted small mb-3">Gerencie as naturezas extras de atividade e os temas operacionais.</p>
 
-            <div class="p-4 bg-light rounded-3 border mb-4">
-              <h6 class="fw-bold text-dark mb-3"><i class="bi bi-tag-fill text-primary me-2"></i>Naturezas Extras Customizadas</h6>
-              <div class="input-group mb-3" style="max-width: 600px;">
-                <input type="text" id="input-nova-natureza" class="form-control" placeholder="Nova natureza (Ex: Integração RH)">
-                <button type="button" class="btn btn-primary fw-bold" onclick="addNatureza()"><i class="bi bi-plus-lg me-1"></i> Adicionar</button>
-              </div>
-
-              <div id="container-lista-naturezas" class="d-flex flex-column gap-2 mt-3">
-                <div class="text-muted small">Carregando naturezas...</div>
-              </div>
+            <div id="container-lista-naturezas" class="d-flex flex-column gap-2 mt-2">
+              <div class="text-muted small">Carregando naturezas...</div>
             </div>
-
-            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-sliders me-2"></i>Gestão de Temas Admin</h6>
-            <div id="container-lista-temas"></div>
           </div>
         </div>
 
+        <!-- ABA GESTÃO -->
         <div id="aba-gestao" class="view-aba d-none">
           <div class="bento-card">
-            <h5 class="fw-bold mb-2 text-dark"><i class="bi bi-list-task text-primary me-2"></i>Gestão de Atividades</h5>
-            <p class="text-muted small mb-4">Linha do tempo operacional e controle de envios (Visitas, Online e Portais Externos).</p>
-            <div id="timeline-atividades" class="d-flex flex-column gap-2"></div>
+            <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-list-task me-2" style="color: var(--pastel-lavender);"></i>Gestão de Atividades</h6>
+            <div id="timeline-atividades" class="d-flex flex-column gap-2 mt-2"></div>
           </div>
         </div>
 
+        <!-- ABA GALERIA -->
         <div id="aba-galeria" class="view-aba d-none">
           <div class="bento-card">
-            <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-images text-info me-2"></i>Galeria de Evidências Fotográficas</h5>
-            <div class="row g-3" id="grid-galeria">
-              <div class="col-12 text-muted">Acesse a galeria para visualizar as evidências registradas no mês.</div>
+            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-images me-2" style="color: var(--pastel-blue);"></i>Galeria de Evidências Fotográficas</h6>
+            <div class="row g-2" id="grid-galeria">
+              <div class="col-12 text-muted small">Acesse a galeria para visualizar as evidências do mês.</div>
             </div>
           </div>
         </div>
 
+        <!-- ABA VISÃO GP -->
         <div id="aba-visao-gp" class="view-aba d-none">
           <div class="bento-card">
-            <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Visão Geral GP</h5>
-            <p class="text-muted small mb-3">Acesse a visão unificada e consolidados do ecossistema em uma nova aba.</p>
-            <a href="https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw2uNji5U57BZnGUerQ899Syqwjb_JwMV2nQug_yAQqgGH-nlw-i-y-fdzpuoMOi6uEkA/exec" target="_blank" class="btn btn-primary fw-bold px-4 py-2 shadow-sm">
-              <i class="bi bi-box-arrow-up-right me-2"></i> Abrir Visão Geral GP em Nova Guia
+            <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-pie-chart-fill me-2" style="color: var(--pastel-lavender);"></i>Visão Geral GP</h6>
+            <p class="text-muted small mb-3">Acesse a visão unificada e consolidados do ecossistema.</p>
+            <a href="https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw2uNji5U57BZnGUerQ899Syqwjb_JwMV2nQug_yAQqgGH-nlw-i-y-fdzpuoMOi6uEkA/exec" target="_blank" class="btn text-white fw-bold px-3 py-2 shadow-sm btn-sm rounded-3" style="background: var(--pastel-lavender);">
+              <i class="bi bi-box-arrow-up-right me-2"></i> Abrir Visão Geral GP
             </a>
           </div>
         </div>
@@ -843,7 +743,6 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // Detector automático de navegação fora do modo Standalone para exibir banner orientativo
     window.addEventListener('DOMContentLoaded', function() {
       var isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
       var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -854,7 +753,6 @@
     });
   </script>
 
-  <?!= include('Scripts_Core'); ?>
   <?!= include('Scripts_UI'); ?>
 </body>
 </html>
