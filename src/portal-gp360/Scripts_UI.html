@@ -181,27 +181,12 @@
     var kpiReembolso = document.getElementById('kpi-reembolso-mes');
     if (kpiReembolso) kpiReembolso.innerText = 'R$ ' + valReembolso.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
-    renderizarPainelBordoRapido();
     povoarDropdownsFormulario();
     atualizarCardsGamificacao();
     renderizarRankingTop5();
     renderizarGraficoAtividades();
     renderizarListaNaturezasAdmin();
     renderizarGestaoTemasAdmin();
-  }
-
-  function renderizarPainelBordoRapido() {
-    var pb = dadosGlobais.painelBordo || {};
-    var pbVendas = document.getElementById('pb-vendas');
-    if (pbVendas) pbVendas.innerText = pb.vendas || '0,00%';
-    var pbNps = document.getElementById('pb-nps');
-    if (pbNps) pbNps.innerText = pb.nps || '0,0';
-    var pbBh = document.getElementById('pb-bh');
-    if (pbBh) pbBh.innerText = pb.bh || '0,00 h';
-    var pbLixoPcd = document.getElementById('pb-lixo-pcd');
-    if (pbLixoPcd) pbLixoPcd.innerText = (pb.lixo || 0) + ' / ' + (pb.pcd || 0);
-    var pbTxDesl = document.getElementById('pb-tx-deslig');
-    if (pbTxDesl) pbTxDesl.innerText = pb.txDesligamento || '0,00%';
   }
 
   function renderizarGraficoAtividades() {
@@ -225,7 +210,7 @@
         labels: labels,
         datasets: [{
           data: valores,
-          backgroundColor: ['#2563EB', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#3B82F6', '#64748B']
+          backgroundColor: ['#2563EB', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#EC4899', '#3B82F6', '#06B6D4']
         }]
       },
       options: {
@@ -285,10 +270,41 @@
   function alternarEscopoAtendimento() {
     var escopo = document.getElementById('select-escopo-atendimento').value;
     var boxFilial = document.getElementById('box-destino-filial');
+    var boxInd = document.getElementById('box-indicadores-filial');
+    
     if (boxFilial) {
-      if (escopo === 'FILIAL') boxFilial.classList.remove('d-none');
-      else boxFilial.classList.add('d-none');
+      if (escopo === 'FILIAL') {
+        boxFilial.classList.remove('d-none');
+        exibirIndicadoresFilialSelecionada();
+      } else {
+        boxFilial.classList.add('d-none');
+        if (boxInd) boxInd.classList.add('d-none');
+      }
     }
+  }
+
+  function exibirIndicadoresFilialSelecionada() {
+    var selFilial = document.getElementById('select-filial');
+    var boxInd = document.getElementById('box-indicadores-filial');
+    if (!selFilial || !boxInd) return;
+
+    var fId = selFilial.value;
+    if (!fId) {
+      boxInd.classList.add('d-none');
+      return;
+    }
+
+    var mapa = dadosGlobais.indicadoresLojas || {};
+    var ind = mapa[fId] || { vendas: 0, bh: 0, nps: 0, txDesligamento: 0, coletaLixo: 0, pcd: 0 };
+
+    document.getElementById('ind-val-vendas').innerText = ind.vendas.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + '%';
+    document.getElementById('ind-val-nps').innerText = ind.nps.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    document.getElementById('ind-val-bh').innerText = ind.bh.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + ' h';
+    document.getElementById('ind-val-lixo').innerText = ind.coletaLixo + ' coletas';
+    document.getElementById('ind-val-pcd').innerText = ind.pcd + ' vaga(s)';
+    document.getElementById('ind-val-txdesl').innerText = ind.txDesligamento.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + '%';
+
+    boxInd.classList.remove('d-none');
   }
 
   function verificarCamposDinamicos() {
@@ -322,6 +338,22 @@
     var total = custoKm + ali + hos + aer + ped + est;
     var displayTotal = document.getElementById('display-gasto-total');
     if (displayTotal) displayTotal.innerText = 'Gasto Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+  }
+
+  function calcularDespesasAvulso() {
+    var rate = parseFloat(document.getElementById('avulso-rate').value) || 1.20;
+    var km = parseFloat(document.getElementById('avulso-km').value) || 0;
+    var custoKm = km * rate;
+
+    var ali = parseFloat(document.getElementById('avulso-alimentacao').value) || 0;
+    var hos = parseFloat(document.getElementById('avulso-hospedagem').value) || 0;
+    var aer = parseFloat(document.getElementById('avulso-aereo').value) || 0;
+    var ped = parseFloat(document.getElementById('avulso-pedagio').value) || 0;
+    var est = parseFloat(document.getElementById('avulso-estacionamento').value) || 0;
+
+    var total = custoKm + ali + hos + aer + ped + est;
+    var displayAvulso = document.getElementById('avulso-display-total');
+    if (displayAvulso) displayAvulso.innerText = 'Gasto Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
   }
 
   function alternarFormularioKMAvulso() {
@@ -388,7 +420,7 @@
           '<img src="' + avatarSrc + '" class="rounded-circle me-3 border shadow-sm" style="width:44px; height:44px; object-fit:cover;" onerror="this.src=gerarAvatarSVG(\'' + nomeExibicao + '\');">' +
           '<div>' +
             '<div class="fw-bold text-dark mb-0 fs-6">' + nomeExibicao + '</div>' +
-            '<div class="text-muted small mb-1">' + item.email + '</div>' +
+            '<small class="text-muted d-block mb-1" style="font-size: 0.78rem;">' + item.email + '</small>' +
             '<div>' + faseTag + '</div>' +
           '</div>' +
         '</div>' +
@@ -423,7 +455,7 @@
 
       if (motLower.includes('atendimento social') || motLower.includes('apuraç') || motLower.includes('apurac') || motLower.includes('feedback') || motLower.includes('acompanhamento')) {
         if (item.statusValidacao === 'VALIDADO' || item.validadoEspecialista) {
-          statusBadge = '<span class="badge bg-success-subtle text-success border border-success me-2"><i class="bi bi-patch-check-fill me-1"></i> VALIDADO NA BASE ESPECIALISTA</span>';
+          statusBadge = '<span class="badge bg-success-subtle text-success border border-success me-2"><i class="bi bi-patch-check-fill me-1"></i> VALIDADO NA PLANILHA ESPECIALISTA</span>';
         } else {
           statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning text-dark me-2"><i class="bi bi-clock-history me-1"></i> PENDENTE REGISTRO EXTERNO</span>';
         }
@@ -582,12 +614,6 @@
     container.innerHTML = html;
   }
 
-  function limparFiltroDatas() {
-    document.getElementById('filtro-extrato-inicio').value = '';
-    document.getElementById('filtro-extrato-fim').value = '';
-    renderizarHistoricos();
-  }
-
   function carregarGaleriaEvidencias() {
     var grid = document.getElementById('grid-galeria');
     if (!grid) return;
@@ -621,10 +647,13 @@
 
   function dispararConfetesFestao() {
     if (typeof confetti !== 'function') return;
-    var coresMarca = ['#2563EB', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#3B82F6'];
+    var coresMarca = ['#2563EB', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#EC4899', '#3B82F6', '#06B6D4'];
     confetti({ particleCount: 80, angle: 60, spread: 70, origin: { x: 0, y: 0.7 }, colors: coresMarca });
     setTimeout(function() {
       confetti({ particleCount: 80, angle: 120, spread: 70, origin: { x: 1, y: 0.7 }, colors: coresMarca });
     }, 250);
+    setTimeout(function() {
+      confetti({ particleCount: 120, spread: 100, origin: { y: 0.3 }, colors: coresMarca, scalar: 1.2 });
+    }, 500);
   }
 </script>
