@@ -10,11 +10,12 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="GP 360º">
-  <meta name="theme-color" content="#1E1B4B">
+  <meta name="theme-color" content="#3B00B9">
 
   <!-- Ícone Corporativo Oficial GP 360 -->
-  <link rel="icon" type="image/svg+xml" href="./icon.svg">
-  <link rel="apple-touch-icon" sizes="180x180" href="./icon.svg">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' width='512' height='512'><defs><linearGradient id='bgGrad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%234203A9;stop-opacity:1'/><stop offset='100%' style='stop-color:%23160048;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad1' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%2317F036;stop-opacity:1'/><stop offset='20%' style='stop-color:%23FBE53B;stop-opacity:1'/><stop offset='40%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='70%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad2' x1='100%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='50%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient><filter id='glow' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='8' result='blur'/><feComposite in='SourceGraphic' in2='blur' operator='over'/></filter></defs><rect width='512' height='512' rx='110' fill='url(%23bgGrad)'/><g filter='url(%23glow)'><ellipse cx='256' cy='256' rx='195' ry='120' fill='none' stroke='url(%23ringGrad1)' stroke-width='14' transform='rotate(-28 256 256)'/><ellipse cx='256' cy='256' rx='185' ry='105' fill='none' stroke='url(%23ringGrad2)' stroke-width='8' transform='rotate(28 256 256)'/></g><text x='51%' y='54%' font-family='Arial, sans-serif' font-size='180' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='middle' letter-spacing='-6'>GP</text></svg>">
+  
+  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' width='512' height='512'><defs><linearGradient id='bgGrad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%234203A9;stop-opacity:1'/><stop offset='100%' style='stop-color:%23160048;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad1' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%2317F036;stop-opacity:1'/><stop offset='20%' style='stop-color:%23FBE53B;stop-opacity:1'/><stop offset='40%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='70%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad2' x1='100%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='50%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient></defs><rect width='512' height='512' rx='110' fill='url(%23bgGrad)'/><ellipse cx='256' cy='256' rx='195' ry='120' fill='none' stroke='url(%23ringGrad1)' stroke-width='14' transform='rotate(-28 256 256)'/><ellipse cx='256' cy='256' rx='185' ry='105' fill='none' stroke='url(%23ringGrad2)' stroke-width='8' transform='rotate(28 256 256)'/><text x='51%' y='54%' font-family='Arial, sans-serif' font-size='180' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='middle' letter-spacing='-6'>GP</text></svg>">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
@@ -23,29 +24,29 @@
 
   <style>
     :root {
-      /* PALETA CORPORATIVA SUAVIZADA (SOFT CORPORATE ELEVATED) */
-      --brand-blue: #2563EB;
-      --brand-blue-soft: #3B82F6;
-      --brand-green: #10B981;
-      --brand-amber: #F59E0B;
-      --brand-pink: #EC4899;
-      --brand-purple: #8B5CF6;
+      --brand-yellow: #FBE53B;
+      --brand-orange: #FF8A00;
+      --brand-red: #FF253A;
+      --brand-pink: #FF14B3;
+      --brand-purple: #8000FF;
+      --brand-blue: #0087FF;
+      --brand-lightblue: #5EB5FF;
+      --brand-green: #17F036;
       --bg-neutral: #F8FAFC;
       --card-bg: #FFFFFF;
-      --text-dark: #1E293B;
+      --text-dark: #0F172A;
     }
 
     body {
       background-color: var(--bg-neutral);
       color: var(--text-dark);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
       -webkit-tap-highlight-color: transparent;
-      user-select: none;
     }
 
     .top-accent-line {
-      height: 4px;
-      background: linear-gradient(90deg, #3B82F6, #10B981, #F59E0B, #EC4899, #8B5CF6);
+      height: 5px;
+      background: linear-gradient(90deg, var(--brand-yellow), var(--brand-orange), var(--brand-red), var(--brand-pink), var(--brand-purple), var(--brand-blue), var(--brand-lightblue), var(--brand-green));
       width: 100%;
     }
 
@@ -53,16 +54,16 @@
       min-height: 100vh;
       background: #FFFFFF;
       border-right: 1px solid #E2E8F0;
-      box-shadow: 2px 0 12px rgba(0,0,0,0.02);
+      box-shadow: 4px 0 24px rgba(0,0,0,0.03);
     }
 
     .avatar-profile {
-      width: 80px;
-      height: 80px;
+      width: 84px;
+      height: 84px;
       border-radius: 50%;
       object-fit: cover;
-      border: 3px solid var(--brand-blue-soft);
-      box-shadow: 0 4px 12px rgba(37,99,235,0.15);
+      border: 3px solid var(--brand-blue);
+      box-shadow: 0 4px 12px rgba(0,135,255,0.25);
     }
 
     .regional-pills-container {
@@ -80,34 +81,34 @@
       border: 1px solid #BFDBFE;
       border-radius: 20px;
       padding: 2px 8px;
+      word-break: break-word;
     }
 
     .nav-btn-card {
-      color: #475569;
-      border-radius: 12px;
-      padding: 10px 14px;
+      color: #334155;
+      border-radius: 14px;
+      padding: 12px 14px;
       font-weight: 600;
       display: flex;
       align-items: center;
       gap: 12px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s ease;
       background: #F8FAFC;
-      border: 1px solid #F1F5F9;
+      border: 1px solid #E2E8F0;
       text-decoration: none;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .nav-btn-card:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.06);
       background: #FFFFFF;
-      color: #1E293B;
     }
     .nav-btn-card.active {
-      background: #2563EB;
+      background: linear-gradient(135deg, #0087FF 0%, #0052CC 100%);
       color: #FFFFFF !important;
-      border-color: #2563EB;
-      box-shadow: 0 4px 14px rgba(37,99,235,0.25);
+      border-color: #0087FF;
+      box-shadow: 0 6px 18px rgba(0,135,255,0.35);
     }
     .nav-btn-card.active .nav-icon-badge {
       background: rgba(255,255,255,0.2) !important;
@@ -115,26 +116,26 @@
     }
 
     .nav-icon-badge {
-      width: 34px;
-      height: 34px;
-      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1rem;
+      font-size: 1.1rem;
       flex-shrink: 0;
     }
 
     .bento-card {
       background: var(--card-bg);
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05);
       border: 1px solid #E2E8F0;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .bento-card:hover {
-      box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
     }
 
     /* ESTILO DOS 6 CARDS SEPARADOS DO PAINEL DE BORDO DA FILIAL */
@@ -148,16 +149,16 @@
       text-align: center;
     }
     .pb-card-vendas { border-bottom-color: #10B981; }
-    .pb-card-nps { border-bottom-color: #2563EB; }
-    .pb-card-bh { border-bottom-color: #F59E0B; }
-    .pb-card-lixo { border-bottom-color: #8B5CF6; }
-    .pb-card-pcd { border-bottom-color: #EC4899; }
-    .pb-card-txdesl { border-bottom-color: #EF4444; }
+    .pb-card-nps { border-bottom-color: #0087FF; }
+    .pb-card-bh { border-bottom-color: #FF8A00; }
+    .pb-card-lixo { border-bottom-color: #8000FF; }
+    .pb-card-pcd { border-bottom-color: #FF14B3; }
+    .pb-card-txdesl { border-bottom-color: #FF253A; }
 
     .card-governanca {
-      background: linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%);
+      background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
       border: 1px solid #A7F3D0;
-      border-radius: 16px;
+      border-radius: 20px;
     }
 
     .chip-tema {
@@ -174,38 +175,39 @@
       margin: 3px;
     }
     .chip-tema.selected {
-      background: #2563EB;
+      background: #0087FF;
       color: white;
-      border-color: #2563EB;
-      box-shadow: 0 2px 8px rgba(37,99,235,0.25);
+      border-color: #0087FF;
+      box-shadow: 0 4px 12px rgba(0,135,255,0.3);
     }
 
     .box-calculadora-despesas {
       background: #FEF3C7;
       border: 1px solid #FCD34D;
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 16px;
     }
 
     .dropzone-paste {
-      border: 2px dashed #3B82F6;
+      border: 2px dashed #0087FF;
       border-radius: 12px;
       padding: 20px;
       text-align: center;
-      background: #EFF6FF;
+      background: #F0F9FF;
       cursor: pointer;
       transition: all 0.25s ease;
     }
     .dropzone-paste:hover, .dropzone-paste:focus {
-      background: #DBEAFE;
-      border-color: #2563EB;
+      background: #E0F2FE;
+      border-color: #0052CC;
       outline: none;
+      box-shadow: 0 0 0 3px rgba(0,135,255,0.25);
     }
 
     #bloqueio-tela {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #1E1B4B; color: white; z-index: 9999;
+      background: #0F172A; color: white; z-index: 9999;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
 
@@ -214,7 +216,7 @@
       border: 1px solid #CBD5E1;
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
       height: 750px;
     }
     .container-iframe-embutido iframe {
@@ -230,16 +232,21 @@
       z-index: 10000;
     }
     .toast-custom {
-      background: #1E293B;
+      background: #0F172A;
       color: #FFFFFF;
-      padding: 12px 18px;
-      border-radius: 10px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      padding: 14px 20px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
       display: flex;
       align-items: center;
       gap: 12px;
       font-weight: 600;
-      min-width: 260px;
+      min-width: 280px;
+      animation: slideInRight 0.3s ease;
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
     }
   </style>
 </head>
@@ -256,8 +263,8 @@
   </div>
 
   <div id="loading-splash" class="d-flex flex-column align-items-center justify-content-center py-5 mt-5">
-    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
-    <p class="fw-bold fs-6 text-secondary">Carregando Ecossistema GP360...</p>
+    <div class="spinner-border text-primary mb-3" role="status" style="width: 3.5rem; height: 3.5rem;"></div>
+    <p class="fw-bold fs-5 text-secondary">Carregando Ecossistema GP360...</p>
   </div>
 
   <div class="toast-container-custom" id="toast-container"></div>
@@ -268,7 +275,7 @@
       <!-- SIDEBAR LEFT -->
       <div class="col-md-3 col-lg-2 sidebar p-3 text-center">
         <div class="mb-3 mt-2">
-          <img id="user-avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%232563EB'/><text x='50%' y='55%' font-size='32' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>GP</text></svg>" class="avatar-profile mb-2" alt="Foto" onerror="this.src=gerarAvatarSVG('GP');">
+          <img id="user-avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%230087FF'/><text x='50%' y='55%' font-size='32' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='middle'>GP</text></svg>" class="avatar-profile mb-2" alt="Foto" onerror="this.src=gerarAvatarSVG('GP');">
           <h6 class="fw-bold mb-0 text-dark" id="user-nome-display">Carregando...</h6>
           <small class="badge bg-light text-primary border mt-1" id="user-cargo-display">Coordenador</small>
           
@@ -309,7 +316,7 @@
           </a>
 
           <a class="nav-btn-card" onclick="mudarAba('aba-consultas', this)">
-            <div class="nav-icon-badge" style="background:#F3E8FF; color:#8B5CF6;"><i class="bi bi-search"></i></div>
+            <div class="nav-icon-badge" style="background:#F3E8FF; color:#8000FF;"><i class="bi bi-search"></i></div>
             <span>Consultas Gerais</span>
           </a>
 
@@ -344,7 +351,19 @@
           </div>
         </div>
 
-        <!-- ABA HOME -->
+        <div id="banner-pwa-install" class="alert alert-primary border-primary shadow-sm rounded-4 d-flex align-items-center justify-content-between mb-4 p-3 d-none">
+          <div class="d-flex align-items-center gap-3">
+            <div class="bg-primary text-white p-2 rounded-circle fs-4 d-flex align-items-center justify-content-center" style="width:48px; height:48px;">
+              <i class="bi bi-phone-vibrate-fill"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold mb-0 text-dark">Instale o App GP 360º no seu Celular!</h6>
+              <small class="text-secondary">Abra sem barra de endereços: Clique no menu do navegador e selecione <strong>"Adicionar à Tela Inicial"</strong>.</small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" onclick="document.getElementById('banner-pwa-install').classList.add('d-none');"></button>
+        </div>
+
         <div id="aba-home" class="view-aba">
           
           <div class="card-governanca p-4 mb-4 d-flex justify-content-between align-items-center shadow-sm">
@@ -355,8 +374,8 @@
               </h5>
               <p class="mb-0 text-secondary fs-6">Moedas do Mês Vigente: <strong class="text-dark fs-5" id="kpi-moedas-mes">0</strong> | Total Acumulado: <strong class="text-dark fs-5" id="kpi-moedas-totais">0</strong></p>
             </div>
-            <div class="bg-white p-3 rounded-circle border shadow-sm d-flex align-items-center justify-content-center" style="width: 68px; height: 68px;">
-              <span id="icone-fase-visual" style="font-size: 2rem;">🥾</span>
+            <div class="bg-white p-3 rounded-circle border shadow d-flex align-items-center justify-content-center" style="width: 72px; height: 72px;">
+              <span id="icone-fase-visual" style="font-size: 2.2rem;">🥾</span>
             </div>
           </div>
 
@@ -414,7 +433,6 @@
 
         </div>
 
-        <!-- ABA LANÇAMENTO -->
         <div id="aba-lancamento" class="view-aba d-none">
           <div class="bento-card" style="max-width: 900px; margin: 0 auto;">
             <h5 class="fw-bold mb-4 text-primary"><i class="bi bi-plus-square-fill me-2"></i> Nova Atividade</h5>
@@ -454,7 +472,7 @@
                   </select>
                 </div>
 
-                <!-- WIDGET DINÂMICO: PAINEL DE BORDO DA FILIAL (6 CARDS SEPARADOS) -->
+                <!-- PAINEL DE BORDO DA FILIAL - 6 CARDS SEPARADOS INTEGRADOS -->
                 <div class="col-12 d-none" id="box-indicadores-filial">
                   <div class="p-3 bg-light rounded-3 border">
                     <h6 class="fw-bold text-primary mb-3"><i class="bi bi-speedometer2 me-2"></i>Painel de Bordo da Filial:</h6>
@@ -464,7 +482,7 @@
                       <div class="col-6 col-md-4 col-lg-2">
                         <div class="pb-card-item pb-card-vendas">
                           <small class="text-muted fw-semibold d-block">💰 Vendas %</small>
-                          <span class="fw-bold fs-5 text-dark" id="ind-val-vendas">0.00%</span>
+                          <span class="fw-bold fs-5 text-dark" id="ind-val-vendas">0,0%</span>
                         </div>
                       </div>
 
@@ -472,7 +490,7 @@
                       <div class="col-6 col-md-4 col-lg-2">
                         <div class="pb-card-item pb-card-nps">
                           <small class="text-muted fw-semibold d-block">⭐ NPS</small>
-                          <span class="fw-bold fs-5 text-dark" id="ind-val-nps">0.0</span>
+                          <span class="fw-bold fs-5 text-dark" id="ind-val-nps">0,0</span>
                         </div>
                       </div>
 
@@ -480,7 +498,7 @@
                       <div class="col-6 col-md-4 col-lg-2">
                         <div class="pb-card-item pb-card-bh">
                           <small class="text-muted fw-semibold d-block">⏰ B. Horas</small>
-                          <span class="fw-bold fs-5 text-dark" id="ind-val-bh">0 h</span>
+                          <span class="fw-bold fs-5 text-dark" id="ind-val-bh">0,0 h</span>
                         </div>
                       </div>
 
@@ -488,7 +506,7 @@
                       <div class="col-6 col-md-4 col-lg-2">
                         <div class="pb-card-item pb-card-lixo">
                           <small class="text-muted fw-semibold d-block">🗑️ Coleta Lixo</small>
-                          <span class="fw-bold fs-5 text-dark" id="ind-val-lixo">0</span>
+                          <span class="fw-bold fs-5 text-dark" id="ind-val-lixo">0 coletas</span>
                         </div>
                       </div>
 
@@ -496,7 +514,7 @@
                       <div class="col-6 col-md-4 col-lg-2">
                         <div class="pb-card-item pb-card-pcd">
                           <small class="text-muted fw-semibold d-block">♿ PCD (Gap)</small>
-                          <span class="fw-bold fs-5 text-dark" id="ind-val-pcd">0</span>
+                          <span class="fw-bold fs-5 text-dark" id="ind-val-pcd">0 vaga(s)</span>
                         </div>
                       </div>
 
@@ -504,11 +522,10 @@
                       <div class="col-6 col-md-4 col-lg-2">
                         <div class="pb-card-item pb-card-txdesl">
                           <small class="text-muted fw-semibold d-block">📉 Tx Deslig.</small>
-                          <span class="fw-bold fs-5 text-dark" id="ind-val-txdesl">0.00%</span>
+                          <span class="fw-bold fs-5 text-dark" id="ind-val-txdesl">0,0%</span>
                         </div>
                       </div>
                     </div>
-
                   </div>
                 </div>
 
@@ -543,6 +560,7 @@
                 <div class="col-md-6">
                   <label class="form-label fw-semibold">Tempo Gasto (Horas)</label>
                   <input type="number" step="0.1" id="input-tempo-gasto" class="form-control" placeholder="Ex: 2 ou 1.5">
+                  <small class="text-danger small d-block mt-1">* O tempo gasto deve incluir preparação de materiais e execução.</small>
                 </div>
 
                 <div class="col-12">
@@ -579,12 +597,12 @@
                 </div>
 
                 <div class="col-12">
-                  <label class="form-label fw-semibold"><i class="bi bi-paperclip"></i> Evidência da Atividade</label>
+                  <label class="form-label fw-semibold"><i class="bi bi-paperclip"></i> Evidência da Atividade (Seleção de Opção Única)</label>
                   <div class="p-3 bg-light rounded-3 border">
                     <small class="d-block text-muted mb-2">Opção 1: Enviar Arquivo (PC/Celular)</small>
                     <input type="file" id="input-evidencia-file" class="form-control form-control-sm mb-3" accept="image/*" onchange="limparOutrasEvidencias('file')">
 
-                    <small class="d-block text-muted mb-1">Opção 2: Colar Imagem da Área de Transferência</small>
+                    <small class="d-block text-muted mb-1">Opção 2: Colar Imagem da Área de Transferência (Clique & Ctrl+V)</small>
                     <div class="dropzone-paste mb-3" id="dropzone-ctrlv" tabIndex="0" onclick="ativarDropzoneClipboard(this)">
                       <i class="bi bi-clipboard-plus fs-3 text-primary"></i>
                       <p class="mb-0 small text-dark fw-bold" id="txt-dropzone">Clique aqui e aperte Ctrl+V para colar a imagem</p>
@@ -601,7 +619,7 @@
                 </div>
 
                 <div class="col-12 mt-4 text-end">
-                  <button type="submit" class="btn btn-primary px-4 fw-bold py-3 w-100 fs-5 shadow-sm" id="btn-salvar-lancamento">
+                  <button type="submit" class="btn btn-primary px-4 fw-bold py-3 w-100 fs-5 shadow" id="btn-salvar-lancamento">
                     <i class="bi bi-coin me-1"></i> Salvar e Ganhar Moeda
                   </button>
                 </div>
@@ -610,21 +628,22 @@
           </div>
         </div>
 
-        <!-- ABA CONSULTAS -->
         <div id="aba-consultas" class="view-aba d-none">
           <div class="bento-card mb-4">
             <h5 class="fw-bold mb-2 text-dark"><i class="bi bi-search text-primary me-2"></i>Consultas Gerais</h5>
-            <p class="text-muted small mb-4">Acesse rapidamente outros painéis corporativos sem sair do portal.</p>
+            <p class="text-muted small mb-4">Acesse rapidamente outros painéis e recursos corporativos sem sair da página.</p>
             
             <div class="row g-3">
+              <!-- CARD 1: PERFIL DO GERENTE -->
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-person-badge text-primary display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Perfil do Gerente de Loja</h6>
-                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzqQNOM7dAJb4o2Q9Wp5OPcNEcRrh8J1N74-L_NSagvRF1XdfRrOvRk1yFpIoI8ePZt/exec', 'Perfil do Gerente')" class="btn btn-primary btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
+                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzqQNOM7dAJb4o2Q9Wp5OPcNEcRrh8J1N74-L_NSagvRF1XdfRrOvRk1yFpIoI8ePZt/exec', 'Perfil do Gerente')" class="btn btn-primary btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
 
+              <!-- CARD 2: ATENDIMENTO SOCIAL -->
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-heart-pulse text-danger display-6 mb-2"></i>
@@ -633,11 +652,48 @@
                 </div>
               </div>
 
+              <!-- CARD 3: APURAÇÕES / FEEDBACK -->
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-shield-check text-warning display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Apurações / Feedback</h6>
-                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback')" class="btn btn-warning text-dark btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
+                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback')" class="btn btn-warning text-dark btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
+                </div>
+              </div>
+
+              <!-- CARD 4: AGENTE INTEGRADOR -->
+              <div class="col-md-6 col-lg-4">
+                <div class="bento-card border p-3 text-center bg-light">
+                  <i class="bi bi-people text-success display-6 mb-2"></i>
+                  <h6 class="fw-bold text-dark">Agente Integrador</h6>
+                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbySeCo0Pao_eydyF9ZZfetcSf6Rc-kgmdCiXjJkhf4O1r0jnQI6yRCWG_tGkIgwBzXY2A/exec', 'Agente Integrador')" class="btn btn-success btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
+                </div>
+              </div>
+
+              <!-- CARD 5: BANCO DE HORAS -->
+              <div class="col-md-6 col-lg-4">
+                <div class="bento-card border p-3 text-center bg-light">
+                  <i class="bi bi-clock-history display-6 mb-2" style="color:#8000FF;"></i>
+                  <h6 class="fw-bold text-dark">Banco de Horas</h6>
+                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzWpN0-LZa_Lvd6VugBL5k3tWbHa5jdwKhJyD4UCH4Ml00BeNzved493zspKCgZAmz5Vg/exec', 'Banco de Horas')" class="btn btn-outline-primary btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
+                </div>
+              </div>
+
+              <!-- CARD 6: BASE ROL -->
+              <div class="col-md-6 col-lg-4">
+                <div class="bento-card border p-3 text-center bg-light">
+                  <i class="bi bi-database text-info display-6 mb-2"></i>
+                  <h6 class="fw-bold text-dark">Base Rol</h6>
+                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbx8faffOLaa2D34yPcmyCTh1k4twGCvH-8GoUaKqOMejk9n6CBJbYA0khBu4Yd2WCai/exec', 'Base Rol')" class="btn btn-info text-white btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
+                </div>
+              </div>
+
+              <!-- CARD 7: LIXO ELETRÔNICO -->
+              <div class="col-md-6 col-lg-4">
+                <div class="bento-card border p-3 text-center bg-light">
+                  <i class="bi bi-recycle text-success display-6 mb-2"></i>
+                  <h6 class="fw-bold text-dark">Lixo Eletrônico</h6>
+                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbybafdaQteFy4FuWwPxIQLGJDGWUsac8jo_agut6PlF42-1ta3mW8uyyjdbtLYGsgWn/exec', 'Lixo Eletrônico')" class="btn btn-outline-success btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
             </div>
@@ -654,7 +710,6 @@
           </div>
         </div>
 
-        <!-- ABA HISTÓRICO -->
         <div id="aba-historico" class="view-aba d-none">
           <div class="bento-card">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -664,30 +719,136 @@
                 <button onclick="imprimirRelatorioKM()" class="btn btn-light border fw-bold shadow-sm"><i class="bi bi-printer me-1"></i> Imprimir Extrato</button>
               </div>
             </div>
+
+            <div id="box-form-km-avulso" class="p-3 bg-warning-subtle border border-warning rounded-3 mb-4 d-none">
+              <h6 class="fw-bold text-dark mb-3"><i class="bi bi-car-front-fill me-2"></i>Lançamento de KM Avulso (Sede/Eventos)</h6>
+              <form id="form-km-avulso" onsubmit="event.preventDefault(); salvarKMAvulso();">
+                <div class="row g-2 mb-2">
+                  <div class="col-md-4">
+                    <label class="small fw-semibold text-secondary">Data da Viagem:</label>
+                    <input type="date" id="avulso-data" class="form-control form-control-sm" required>
+                  </div>
+                  <div class="col-md-8">
+                    <label class="small fw-semibold text-secondary">Destino (Livre):</label>
+                    <input type="text" id="avulso-destino" class="form-control form-control-sm" placeholder="Ex: Reunião na Sede Franca" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="small fw-semibold text-secondary">Valor KM:</label>
+                    <input type="number" step="0.01" id="avulso-rate" class="form-control form-control-sm" value="1.20" oninput="calcularDespesasAvulso()">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="small fw-semibold text-secondary">Qtd (KM):</label>
+                    <input type="number" id="avulso-km" class="form-control form-control-sm" placeholder="0" oninput="calcularDespesasAvulso()" required>
+                  </div>
+                </div>
+
+                <hr class="my-2 border-warning">
+
+                <h6 class="fw-bold mb-2 text-dark small"><i class="bi bi-receipt me-1"></i>Outros Gastos (Opcional)</h6>
+                <div class="row g-2">
+                  <div class="col-md-4"><label class="small text-secondary">Alimentação (R$)</label><input type="number" step="0.01" id="avulso-alimentacao" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
+                  <div class="col-md-4"><label class="small text-secondary">Hospedagem (R$)</label><input type="number" step="0.01" id="avulso-hospedagem" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
+                  <div class="col-md-4"><label class="small text-secondary">Aéreo (R$)</label><input type="number" step="0.01" id="avulso-aereo" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
+                  <div class="col-md-6"><label class="small text-secondary">Pedágio (R$)</label><input type="number" step="0.01" id="avulso-pedagio" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
+                  <div class="col-md-6"><label class="small text-secondary">Estacion. (R$)</label><input type="number" step="0.01" id="avulso-estacionamento" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesasAvulso()"></div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                  <div class="fw-bold text-dark fs-5" id="avulso-display-total">Gasto Total: R$ 0,00</div>
+                  <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-secondary btn-sm fw-bold px-3" onclick="alternarFormularioKMAvulso()">Cancelar</button>
+                    <button type="submit" class="btn btn-warning btn-sm fw-bold px-3 text-dark">Salvar KM Avulso</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <div class="p-3 bg-light rounded-3 border mb-4">
+              <div class="row g-2 align-items-end">
+                <div class="col-md-5">
+                  <label class="small text-muted fw-semibold">Data Início:</label>
+                  <input type="date" id="filtro-extrato-inicio" class="form-control form-control-sm" onchange="renderizarHistoricos()">
+                </div>
+                <div class="col-md-5">
+                  <label class="small text-muted fw-semibold">Data Fim:</label>
+                  <input type="date" id="filtro-extrato-fim" class="form-control form-control-sm" onchange="renderizarHistoricos()">
+                </div>
+                <div class="col-md-2">
+                  <button class="btn btn-secondary btn-sm w-100 fw-bold" onclick="document.getElementById('filtro-extrato-inicio').value=''; document.getElementById('filtro-extrato-fim').value=''; renderizarHistoricos();"><i class="bi bi-arrow-counterclockwise me-1"></i> Limpar</button>
+                </div>
+              </div>
+            </div>
+
             <div id="tabela-extrato-container" class="d-flex flex-column gap-3">
               <div class="text-muted p-3">Carregando extrato de lançamentos...</div>
             </div>
           </div>
         </div>
 
-        <!-- ABA GESTÃO ATIVIDADES -->
+        <div id="aba-configuracoes" class="view-aba d-none">
+          <div class="bento-card">
+            <h5 class="fw-bold mb-1 text-dark">Configurações do Sistema</h5>
+            <p class="text-muted small mb-4">Gerencie as naturezas extras de atividade e o dicionário de prêmios da gamificação.</p>
+
+            <div class="p-4 bg-light rounded-3 border mb-4">
+              <h6 class="fw-bold text-dark mb-3"><i class="bi bi-tag-fill text-primary me-2"></i>Naturezas Extras Customizadas</h6>
+              <div class="input-group mb-3" style="max-width: 600px;">
+                <input type="text" id="input-nova-natureza" class="form-control" placeholder="Nova natureza (Ex: Integração RH)">
+                <button class="btn btn-primary fw-bold" onclick="addNatureza()"><i class="bi bi-plus-lg me-1"></i> Adicionar</button>
+              </div>
+
+              <div id="container-lista-naturezas" class="d-flex flex-column gap-2 mt-3">
+                <div class="text-muted small">Carregando naturezas...</div>
+              </div>
+            </div>
+
+            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-sliders me-2"></i>Gestão de Temas Admin</h6>
+            <div id="container-lista-temas"></div>
+          </div>
+        </div>
+
         <div id="aba-gestao" class="view-aba d-none">
           <div class="bento-card">
             <h5 class="fw-bold mb-2 text-dark"><i class="bi bi-list-task text-primary me-2"></i>Gestão de Atividades</h5>
-            <p class="text-muted small mb-4">Linha do tempo operacional e controle de envios.</p>
+            <p class="text-muted small mb-4">Linha do tempo operacional e controle de envios (Visitas, Online e Portais Externos).</p>
             <div id="timeline-atividades" class="d-flex flex-column gap-2"></div>
           </div>
         </div>
 
-        <div id="aba-galeria" class="view-aba d-none"><div class="row g-3" id="grid-galeria"></div></div>
-        <div id="aba-visao-gp" class="view-aba d-none"><div class="bento-card"><h5 class="fw-bold mb-3">Visão Geral GP</h5><a href="https://script.google.com" target="_blank" class="btn btn-primary fw-bold"><i class="bi bi-box-arrow-up-right me-1"></i> Abrir em Nova Guia</a></div></div>
-        <div id="aba-configuracoes" class="view-aba d-none"><div class="bento-card"><h5 class="fw-bold mb-3">Configurações</h5></div></div>
+        <div id="aba-galeria" class="view-aba d-none">
+          <div class="bento-card">
+            <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-images text-info me-2"></i>Galeria de Evidências Fotográficas</h5>
+            <div class="row g-3" id="grid-galeria">
+              <div class="col-12 text-muted">Acesse a galeria para visualizar as evidências registradas no mês.</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="aba-visao-gp" class="view-aba d-none">
+          <div class="bento-card">
+            <h5 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-primary me-2"></i>Visão Geral GP</h5>
+            <p class="text-muted small">Acesse a visão unificada e consolidados do ecossistema.</p>
+            <a href="https://script.google.com" target="_blank" class="btn btn-primary fw-bold"><i class="bi bi-box-arrow-up-right me-1"></i> Abrir em Nova Guia</a>
+          </div>
+        </div>
 
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Detector automático de navegação fora do modo Standalone para exibir banner orientativo
+    window.addEventListener('DOMContentLoaded', function() {
+      var isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+      var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile && !isStandalone) {
+        var banner = document.getElementById('banner-pwa-install');
+        if (banner) banner.classList.remove('d-none');
+      }
+    });
+  </script>
 
   <?!= include('Scripts_Core'); ?>
   <?!= include('Scripts_UI'); ?>
