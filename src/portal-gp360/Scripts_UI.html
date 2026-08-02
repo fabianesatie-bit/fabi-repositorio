@@ -181,12 +181,9 @@
     var kpiReembolso = document.getElementById('kpi-reembolso-mes');
     if (kpiReembolso) kpiReembolso.innerText = 'R$ ' + valReembolso.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
-    povoarDropdownsFormulario();
     atualizarCardsGamificacao();
     renderizarRankingTop5();
     renderizarGraficoAtividades();
-    renderizarListaNaturezasAdmin();
-    renderizarGestaoTemasAdmin();
   }
 
   function renderizarGraficoAtividades() {
@@ -404,30 +401,30 @@
     }
 
     r.forEach(function(item, index) {
-      var badgePos = '<span class="fw-bold me-3 fs-5 text-secondary" style="width:24px; display:inline-block;">#' + (index + 1) + '</span>';
-      if (index === 0) badgePos = '<span class="fw-bold text-warning me-3 fs-4">1º</span>';
-      else if (index === 1) badgePos = '<span class="fw-bold text-secondary me-3 fs-4">2º</span>';
-      else if (index === 2) badgePos = '<span class="fw-bold text-danger me-3 fs-4">3º</span>';
+      var badgePos = '<span class="fw-bold me-2 fs-5 text-secondary" style="width:20px; display:inline-block;">#' + (index + 1) + '</span>';
+      if (index === 0) badgePos = '<span class="fw-bold text-warning me-2 fs-4">1º</span>';
+      else if (index === 1) badgePos = '<span class="fw-bold text-secondary me-2 fs-4">2º</span>';
+      else if (index === 2) badgePos = '<span class="fw-bold text-danger me-2 fs-4">3º</span>';
 
-      var faseTag = '<span class="badge bg-light text-primary border me-2">⛺ Fase 1: Acampamento Base</span>';
-      if (item.mes >= 100) faseTag = '<span class="badge bg-success text-white border me-2">🚩 ⚡ Fase 4: Bandeira no Everest!</span>';
-      else if (item.mes >= 75) faseTag = '<span class="badge bg-info text-white border me-2">🏔️ Fase 3: Cume Alcançado</span>';
-      else if (item.mes >= 40) faseTag = '<span class="badge bg-warning text-dark border me-2">🧗 Fase 2: Subida da Montanha</span>';
+      var faseTag = '<span class="badge bg-light text-primary border mt-1">⛺ Fase 1: Acampamento Base</span>';
+      if (item.mes >= 100) faseTag = '<span class="badge bg-success text-white border mt-1">🚩 ⚡ Fase 4: Everest!</span>';
+      else if (item.mes >= 75) faseTag = '<span class="badge bg-info text-white border mt-1">🏔️ Fase 3: Cume</span>';
+      else if (item.mes >= 40) faseTag = '<span class="badge bg-warning text-dark border mt-1">🧗 Fase 2: Subida</span>';
 
       var nomeExibicao = item.nome || item.email;
       var avatarSrc = (item.foto && item.foto.length > 20) ? item.foto : gerarAvatarSVG(nomeExibicao);
 
+      // LAYOUT OTIMIZADO PARA CELULAR (SEM EXIBIÇÃO DE E-MAIL DUPLICADO)
       lista.innerHTML += '<li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0 border-bottom">' +
-        '<div class="d-flex align-items-center">' +
+        '<div class="d-flex align-items-center" style="min-width: 0;">' +
           badgePos +
-          '<img src="' + avatarSrc + '" class="rounded-circle me-3 border shadow-sm" style="width:44px; height:44px; object-fit:cover;" onerror="this.src=gerarAvatarSVG(\'' + nomeExibicao + '\');">' +
-          '<div>' +
-            '<div class="fw-bold text-dark mb-0 fs-6">' + nomeExibicao + '</div>' +
-            '<small class="text-muted d-block mb-1" style="font-size: 0.78rem;">' + item.email + '</small>' +
+          '<img src="' + avatarSrc + '" class="rounded-circle me-2 border shadow-sm flex-shrink-0" style="width:42px; height:44px; object-fit:cover;" onerror="this.src=gerarAvatarSVG(\'' + nomeExibicao + '\');">' +
+          '<div style="min-width: 0;">' +
+            '<div class="fw-bold text-dark mb-0 text-truncate fs-6" style="max-width: 160px;" title="' + nomeExibicao + '">' + nomeExibicao + '</div>' +
             '<div>' + faseTag + '</div>' +
           '</div>' +
         '</div>' +
-        '<div class="fw-bold fs-5 text-primary"><i class="bi bi-coin text-warning me-1"></i>' + item.mes + ' <small class="fs-6 text-muted">moedas</small></div>' +
+        '<div class="fw-bold fs-6 text-primary text-nowrap ms-2"><i class="bi bi-coin text-warning me-1"></i>' + item.mes + ' <small class="text-muted fs-7">moedas</small></div>' +
       '</li>';
     });
   }
