@@ -134,7 +134,7 @@ function obterMapaUsuarios(ss) {
   }
 
   try {
-    cache.put('GP360_MAPA_USUARIOS_SLIM_V4', JSON.stringify(rawSlim), 900); // 15 minutos
+    cache.put('GP360_MAPA_USUARIOS_SLIM_V4', JSON.stringify(rawSlim), 900);
   } catch (errCache) {
     Logger.log('Aviso: Tamanho de cache de usuários excedeu limite.');
   }
@@ -221,7 +221,7 @@ function obterMapaIndicadoresLojas(ss) {
 
 /**
  * ETAPA 1 (CARREGAMENTO INICIAL INSTANTÂNEO E LEVE):
- * Filtra estritamente pelo ano selecionado para evitar estouro de cota e travamento no celular
+ * Filtra estritamente pelo ano selecionado e realiza cruzamento de apurações e social
  */
 function obterDadosIniciais(filtroMes, filtroAno) {
   var controle = obterControleAcesso();
@@ -305,7 +305,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       var mReg = infoDt.mes;
       var aReg = infoDt.ano;
 
-      // FILTRO DE SEGURANÇA MÓVEL: Processa estritamente o ano selecionado
+      // FILTRO MÓVEL DE SEGURANÇA: Processa estritamente o ano selecionado
       if (aReg !== anoAlvo) continue;
 
       var dtStr = ("0" + infoDt.dia).slice(-2) + '/' + ("0" + infoDt.mes).slice(-2) + '/' + infoDt.ano;
@@ -428,7 +428,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   var faseNome = "⛺ Fase 1: Acampamento Base";
   if (pctEverest >= 100) faseNome = "🚩 ⚡ Fase 4: Bandeira no Everest!";
   else if (pctEverest >= 75) faseNome = "🏔️ Fase 3: Cume Alcançado";
-  else if (pctEverest >= 40) faseNome = "🧗 Fase 2: Subida da Montanha";
+  else if (pctEverest >= 50) faseNome = "🧗 Fase 2: Subida da Montanha";
 
   return {
     temAcesso: true,
@@ -454,7 +454,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
 
 /**
  * ETAPA 2 (CARREGAMENTO ASSÍNCRONO EM SEGUNDO PLANO):
- * Traz as listas pesadas de lojas, indicadores e configurações após a página já estar aberta
+ * Traz as listas pesadas de lojas, indicadores e configurações
  */
 function obterDadosComplementares() {
   var controle = obterControleAcesso();
