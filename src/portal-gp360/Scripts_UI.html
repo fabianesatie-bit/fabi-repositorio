@@ -472,12 +472,23 @@
 
     l.forEach(function(item) {
       var localStr = item.filial ? ('Local: ' + item.filial) : ('Local: AVULSO');
+      var motLower = String(item.motivo || '').toLowerCase();
+      var statusBadge = '';
+
+      if (motLower.includes('atendimento social') || motLower.includes('apuraç') || motLower.includes('apurac') || motLower.includes('feedback') || motLower.includes('acompanhamento')) {
+        if (item.statusValidacao === 'VALIDADO' || item.validadoEspecialista) {
+          statusBadge = '<span class="badge ms-1" style="background: var(--pastel-green-bg); color: var(--pastel-green-text); border: 1px solid var(--pastel-green-border);"><i class="bi bi-patch-check-fill me-1"></i> VALIDADO NA PLANILHA ESPECIALISTA</span>';
+        } else {
+          statusBadge = '<span class="badge ms-1" style="background: var(--pastel-peach-bg); color: var(--pastel-peach-text); border: 1px solid var(--pastel-peach-border);"><i class="bi bi-clock-history me-1"></i> PENDENTE REGISTRO EXTERNO</span>';
+        }
+      }
+
       container.innerHTML += '<div class="bento-card p-2 border-start border-3 shadow-sm mb-2" style="border-left-color: var(--pastel-lavender) !important;">' +
         '<div class="d-flex justify-content-between align-items-start mb-1">' +
           '<small class="text-muted" style="font-size:0.75rem;">' + item.data + ' • ' + (item.autor || 'Usuário GP') + '</small>' +
         '</div>' +
         '<h6 class="fw-bold text-dark mb-1 small">' + localStr + '</h6>' +
-        '<div class="small text-secondary">' + item.motivo + (item.observacao ? ' - ' + item.observacao : '') + '</div>' +
+        '<div class="small text-secondary">' + statusBadge + ' Motivo: ' + item.motivo + (item.observacao ? ' - ' + item.observacao : '') + '</div>' +
       '</div>';
     });
   }

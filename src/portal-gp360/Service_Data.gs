@@ -2,11 +2,11 @@
  * ECOSSISTEMA GP360 - PORTAL GP 360
  * Arquivo: Service_Data.gs
  * Subpasta Monorepo: src/portal-gp360/
- * Otimizado com Filtro de Ano e Carregamento Leve para Celular (Prevenção de Timeout e Erro "Ah Não")
+ * Otimizado para abertura sub-3s com validação precisa de Apurações/Social
  */
 
 /**
- * Função Utilitária de Normalização de Filiais (Série > 3000)
+ * Normalização de Filiais (Série > 3000)
  */
 function normalizarFilialId(val) {
   if (!val && val !== 0) return "";
@@ -26,7 +26,7 @@ function extrairIdDrive(url) {
 }
 
 /**
- * Normaliza e extrai dia, mês e ano de uma célula de data
+ * Normaliza e extrai dia, mês e ano com alta velocidade (evita new Date redundante)
  */
 function extrairMesAnoData(val) {
   var d = new Date();
@@ -70,7 +70,7 @@ function obterControleAcesso() {
 }
 
 /**
- * Converte com segurança valores numéricos vindos da planilha com suporte a vírgulas e porcentagens
+ * Converte com segurança valores numéricos vindos da planilha
  */
 function parseNumPtBr(val) {
   if (val === undefined || val === null || val === '') return 0;
@@ -81,27 +81,22 @@ function parseNumPtBr(val) {
 }
 
 /**
- * Carrega e mapeia a aba DADOS_USUARIOS indexando por e-mail com suporte a Cache Slim
+ * Carrega e mapeia a aba DADOS_USUARIOS
  */
 function obterMapaUsuarios(ss) {
   var cache = CacheService.getScriptCache();
-  var cachedUsers = cache.get('GP360_MAPA_USUARIOS_SLIM_V4');
+  var cachedUsers = cache.get('GP360_MAPA_USUARIOS_SLIM_V5');
   if (cachedUsers) {
     try {
       var rawUsers = JSON.parse(cachedUsers);
       var mapaResult = {};
       Object.keys(rawUsers).forEach(function(email) {
         var u = rawUsers[email];
-        mapaResult[email] = {
-          nome: u[0],
-          cargo: u[1],
-          regional: u[2],
-          foto: u[3]
-        };
+        mapaResult[email] = { nome: u[0], cargo: u[1], regional: u[2], foto: u[3] };
       });
       return mapaResult;
     } catch (e) {
-      Logger.log('Erro ao ler cache de usuários, recarregando...');
+      Logger.log('Recarregando mapa de usuarios...');
     }
   }
 
@@ -123,54 +118,34 @@ function obterMapaUsuarios(ss) {
     var cargo = dados[i][2] || 'Colaborador';
     var regional = dados[i][4] || '';
 
-    mapa[email] = {
-      nome: nome,
-      cargo: cargo,
-      regional: regional,
-      foto: fotoUrl
-    };
-
+    mapa[email] = { nome: nome, cargo: cargo, regional: regional, foto: fotoUrl };
     rawSlim[email] = [nome, cargo, regional, fotoUrl];
   }
 
-  try {
-    cache.put('GP360_MAPA_USUARIOS_SLIM_V4', JSON.stringify(rawSlim), 900);
-  } catch (errCache) {
-    Logger.log('Aviso: Tamanho de cache de usuários excedeu limite.');
-  }
-
+  try { cache.put('GP360_MAPA_USUARIOS_SLIM_V5', JSON.stringify(rawSlim), 900); } catch (e) {}
   return mapa;
 }
 
 /**
- * Carrega a aba DADOS_INDICADORES e mapeia os 6 indicadores por Filial_ID com suporte a Cache Slim
+ * Carrega a aba DADOS_INDICADORES
  */
 function obterMapaIndicadoresLojas(ss) {
   var cache = CacheService.getScriptCache();
-  var cachedInd = cache.get('GP360_MAPA_INDICADORES_SLIM_V4');
+  var cachedInd = cache.get('GP360_MAPA_INDICADORES_SLIM_V5');
   if (cachedInd) {
     try {
       var rawMap = JSON.parse(cachedInd);
       var mapaResult = {};
       Object.keys(rawMap).forEach(function(fId) {
         var arr = rawMap[fId];
-        var item = {
-          vendas: arr[0],
-          bh: arr[1],
-          nps: arr[2],
-          txDesligamento: arr[3],
-          coletaLixo: arr[4],
-          pcd: arr[5]
-        };
+        var item = { vendas: arr[0], bh: arr[1], nps: arr[2], txDesligamento: arr[3], coletaLixo: arr[4], pcd: arr[5] };
         mapaResult[fId] = item;
         var numOnly = String(parseInt(fId, 10));
-        if (numOnly && numOnly !== 'NaN') {
-          mapaResult[numOnly] = item;
-        }
+        if (numOnly && numOnly !== 'NaN') mapaResult[numOnly] = item;
       });
       return mapaResult;
     } catch (e) {
-      Logger.log('Erro ao ler cache de indicadores, recarregando...');
+      Logger.log('Recarregando mapa de indicadores...');
     }
   }
 
@@ -188,40 +163,26 @@ function obterMapaIndicadoresLojas(ss) {
     var fId = ("0000" + numFilial).slice(-4);
     var rawNumStr = String(numFilial);
 
-    var vendas = parseNumPtBr(dados[i][3]);
-    var bh = parseNumPtBr(dados[i][4]);
-    var nps = parseNumPtBr(dados[i][5]);
-    var txDesl = parseNumPtBr(dados[i][6]);
-    var lixo = Math.round(parseNumPtBr(dados[i][7]));
-    var pcd = Math.round(parseNumPtBr(dados[i][8]));
-
     var item = {
-      vendas: vendas,
-      bh: bh,
-      nps: nps,
-      txDesligamento: txDesl,
-      coletaLixo: lixo,
-      pcd: pcd
+      vendas: parseNumPtBr(dados[i][3]),
+      bh: parseNumPtBr(dados[i][4]),
+      nps: parseNumPtBr(dados[i][5]),
+      txDesligamento: parseNumPtBr(dados[i][6]),
+      coletaLixo: Math.round(parseNumPtBr(dados[i][7])),
+      pcd: Math.round(parseNumPtBr(dados[i][8]))
     };
 
     mapa[fId] = item;
     mapa[rawNumStr] = item;
-
-    rawSlim[fId] = [vendas, bh, nps, txDesl, lixo, pcd];
+    rawSlim[fId] = [item.vendas, item.bh, item.nps, item.txDesligamento, item.coletaLixo, item.pcd];
   }
 
-  try {
-    cache.put('GP360_MAPA_INDICADORES_SLIM_V4', JSON.stringify(rawSlim), 900);
-  } catch (errCache) {
-    Logger.log('Aviso: Tamanho de cache de indicadores excedeu limite.');
-  }
-
+  try { cache.put('GP360_MAPA_INDICADORES_SLIM_V5', JSON.stringify(rawSlim), 900); } catch (e) {}
   return mapa;
 }
 
 /**
- * ETAPA 1 (CARREGAMENTO INICIAL INSTANTÂNEO E LEVE):
- * Filtra estritamente pelo ano selecionado e realiza cruzamento de apurações e social
+ * ETAPA 1: Retorna payload leve para renderização inicial imediata
  */
 function obterDadosIniciais(filtroMes, filtroAno) {
   var controle = obterControleAcesso();
@@ -257,10 +218,12 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   if (abaSocCons) {
     var dSoc = abaSocCons.getDataRange().getValues();
     for (var s = 1; s < dSoc.length; s++) {
-      var regSoc = String(dSoc[s][0] || '').trim().toUpperCase();
+      var rawRegSoc = dSoc[s][0];
+      var numFilSoc = normalizarFilialId(rawRegSoc);
+      var regSocPad = numFilSoc ? ("0000" + numFilSoc).slice(-4) : String(rawRegSoc || '').trim().toUpperCase();
       var mesSocStr = String(dSoc[s][1] || '').trim();
-      if (regSoc && mesSocStr) {
-        chavesValidadasEspecialista['SOCIAL_' + regSoc + '_' + mesSocStr] = true;
+      if (regSocPad && mesSocStr) {
+        chavesValidadasEspecialista['SOCIAL_' + regSocPad + '_' + mesSocStr] = true;
       }
     }
   }
@@ -270,12 +233,14 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   if (abaApurCons) {
     var dApur = abaApurCons.getDataRange().getValues();
     for (var a = 1; a < dApur.length; a++) {
-      var regApur = String(dApur[a][0] || '').trim().toUpperCase();
+      var rawRegApur = dApur[a][0];
+      var numFilApur = normalizarFilialId(rawRegApur);
+      var regApurPad = numFilApur ? ("0000" + numFilApur).slice(-4) : String(rawRegApur || '').trim().toUpperCase();
       var mesApurStr = String(dApur[a][1] || '').trim();
       var classifApur = String(dApur[a][2] || '').trim().toUpperCase();
 
-      if (regApur && mesApurStr) {
-        chavesValidadasEspecialista['APUR_' + regApur + '_' + mesApurStr] = classifApur || 'VALIDADO';
+      if (regApurPad && mesApurStr) {
+        chavesValidadasEspecialista['APUR_' + regApurPad + '_' + mesApurStr] = classifApur || 'VALIDADO';
       }
     }
   }
@@ -305,7 +270,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       var mReg = infoDt.mes;
       var aReg = infoDt.ano;
 
-      // FILTRO MÓVEL DE SEGURANÇA: Processa estritamente o ano selecionado
+      // Filtro de Segurança por Ano
       if (aReg !== anoAlvo) continue;
 
       var dtStr = ("0" + infoDt.dia).slice(-2) + '/' + ("0" + infoDt.mes).slice(-2) + '/' + infoDt.ano;
@@ -327,17 +292,15 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       var ehMesAtual = (mReg === mesAlvo);
       var statusFinal = statusSalvoCol28;
 
-      if (!statusFinal) {
-        statusFinal = (!ehMesAtual) ? 'VALIDADO' : (ehEspecialista ? 'PENDENTE' : 'VALIDADO');
+      var encSoc = !!chavesValidadasEspecialista['SOCIAL_' + fIdLanc + '_' + mesAnoStrRef];
+      var encApur = chavesValidadasEspecialista['APUR_' + fIdLanc + '_' + mesAnoStrRef];
+
+      if (ehEspecialista && (encSoc || encApur)) {
+        statusFinal = 'VALIDADO';
       }
 
-      if (statusFinal === 'PENDENTE' && ehMesAtual) {
-        var encSoc = !!chavesValidadasEspecialista['SOCIAL_' + fIdLanc + '_' + mesAnoStrRef];
-        var encApur = chavesValidadasEspecialista['APUR_' + fIdLanc + '_' + mesAnoStrRef];
-
-        if (encSoc || encApur) {
-          statusFinal = 'VALIDADO';
-        }
+      if (!statusFinal) {
+        statusFinal = (!ehMesAtual) ? 'VALIDADO' : (ehEspecialista ? 'PENDENTE' : 'VALIDADO');
       }
 
       var estaValidadoEspecialista = (statusFinal === 'VALIDADO');
@@ -428,7 +391,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   var faseNome = "⛺ Fase 1: Acampamento Base";
   if (pctEverest >= 100) faseNome = "🚩 ⚡ Fase 4: Bandeira no Everest!";
   else if (pctEverest >= 75) faseNome = "🏔️ Fase 3: Cume Alcançado";
-  else if (pctEverest >= 50) faseNome = "🧗 Fase 2: Subida da Montanha";
+  else if (pctEverest >= 40) faseNome = "🧗 Fase 2: Subida da Montanha";
 
   return {
     temAcesso: true,
@@ -453,8 +416,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
 }
 
 /**
- * ETAPA 2 (CARREGAMENTO ASSÍNCRONO EM SEGUNDO PLANO):
- * Traz as listas pesadas de lojas, indicadores e configurações
+ * ETAPA 2: Carregamento assíncrono secundário
  */
 function obterDadosComplementares() {
   var controle = obterControleAcesso();
@@ -518,10 +480,7 @@ function carregarNaturezasSeguras(ss) {
     naturezas = ['Apurações e Feedback', 'Atendimento Social', 'Checklist de Loja', 'Reunião Regional', 'Roteiro Regional', 'Treinamento', 'Visita Presencial'];
   }
 
-  naturezas.sort(function(a, b) {
-    return a.localeCompare(b, 'pt-BR');
-  });
-
+  naturezas.sort(function(a, b) { return a.localeCompare(b, 'pt-BR'); });
   return naturezas;
 }
 
