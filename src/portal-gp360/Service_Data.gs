@@ -81,7 +81,7 @@ function obterMapaIndicadoresLojas(ss) {
 }
 
 /**
- * Carrega todos os dados iniciais do Portal GP 360 com validação rápida e Gravação em Lote (Batch Update)
+ * Carrega todos os dados iniciais do Portal GP 360 com velocidade ultra-rápida (leitura 100% em memória)
  * @param {number|string} filtroMes - Mês selecionado no topo do portal
  * @param {number|string} filtroAno - Ano selecionado no topo do portal
  * @return {Object} Payload completo de inicialização para a UI
@@ -187,13 +187,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   if (abaLanc) {
     var dLanc = abaLanc.getDataRange().getValues();
     var totalRows = dLanc.length;
-    var houveAlteracaoStatus = false;
-
-    // Matriz de acumulação da coluna 28 (Status_Validacao_Especialista) para gravação em lote no final
-    var statusColMatrix = [];
-    for (var r = 1; r < totalRows; r++) {
-      statusColMatrix.push([dLanc[r][27] || '']);
-    }
 
     for (var k = 1; k < totalRows; k++) {
       var row = dLanc[k];
@@ -230,14 +223,13 @@ function obterDadosIniciais(filtroMes, filtroAno) {
         statusFinal = (!ehMesAtual) ? 'VALIDADO' : (ehEspecialista ? 'PENDENTE' : 'VALIDADO');
       }
 
+      // Cálculo de validação dinâmico 100% em memória RAM (Sem travar o arquivo)
       if (statusFinal === 'PENDENTE' && ehMesAtual) {
         var encSoc = !!chavesValidadasEspecialista['SOCIAL_' + regLanc + '_' + mesAnoStrRef];
         var encApur = chavesValidadasEspecialista['APUR_' + regLanc + '_' + mesAnoStrRef];
 
         if (encSoc || encApur) {
           statusFinal = 'VALIDADO';
-          statusColMatrix[k - 1][0] = 'VALIDADO';
-          houveAlteracaoStatus = true;
         }
       }
 
@@ -313,15 +305,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
             autor: row[2]
           });
         }
-      }
-    }
-
-    // Gravação em lote única (Batch Update) para a coluna 28 caso ocorra alteração em algum status
-    if (houveAlteracaoStatus && statusColMatrix.length > 0) {
-      try {
-        abaLanc.getRange(2, 28, statusColMatrix.length, 1).setValues(statusColMatrix);
-      } catch (eBatch) {
-        Logger.log('Erro na gravação em lote do status: ' + eBatch.toString());
       }
     }
   }
