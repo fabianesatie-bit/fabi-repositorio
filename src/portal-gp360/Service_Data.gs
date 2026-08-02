@@ -60,7 +60,67 @@ function extrairMesAnoData(dataVal) {
 }
 
 /**
- * Carrega todos os dados iniciais do Portal GP 360 e executa a conciliação ultra-rápida usando abas consolidadas
+ * Mapeia os dados cadastrais dos usuários (Nome da Coluna B e Foto do Drive da Coluna G)
+ * @param {Spreadsheet} ss - Instância da planilha ativa
+ * @return {Object} Dicionário indexado pelo e-mail em minúsculas
+ */
+function obterMapaUsuarios(ss) {
+  var mapa = {};
+  var abaUsuarios = ss.getSheetByName('DADOS_USUARIOS');
+  if (!abaUsuarios) return mapa;
+
+  var dados = abaUsuarios.getDataRange().getValues();
+  for (var i = 1; i < dados.length; i++) {
+    var email = String(dados[i][0] || '').toLowerCase().trim();
+    if (!email) continue;
+
+    var nome = String(dados[i][1] || '').trim();
+    var rawFoto = String(dados[i][6] || '').trim();
+    var fileId = extrairIdDrive(rawFoto);
+    var fotoUrl = fileId ? ('https://lh3.googleusercontent.com/d/' + fileId + '=w400') : '';
+
+    mapa[email] = {
+      nome: nome || email,
+      foto: fotoUrl,
+      cargo: String(dados[i][2] || ''),
+      regionais: String(dados[i][4] || '')
+    };
+  }
+  return mapa;
+}
+
+/**
+ * Carrega a aba DADOS_INDICADORES e mapeia os 6 indicadores por Filial_ID
+ * @param {Spreadsheet} ss - Instância da planilha ativa
+ * @return {Object} Mapa de indicadores indexado pelo Filial_ID
+ */
+function obterMapaIndicadoresLojas(ss) {
+  var mapa = {};
+  var abaInd = ss.getSheetByName('DADOS_INDICADORES');
+  if (!abaInd) return mapa;
+
+  var dados = abaInd.getDataRange().getValues();
+  for (var i = 1; i < dados.length; i++) {
+    var rawId = dados[i][0];
+    var numFilial = normalizarFilialId(rawId);
+    if (!numFilial) continue;
+
+    var fId = ("0000" + numFilial).slice(-4);
+
+    mapa[fId] = {
+      vendas: parseFloat(dados[i][3]) || 0,        // Col D: Vendas %
+      bh: parseFloat(dados[i][4]) || 0,            // Col E: BH (Banco de Horas)
+      nps: parseFloat(dados[i][5]) || 0,           // Col F: NPS
+      txDesligamento: parseFloat(dados[i][6]) || 0,// Col G: Tx Desl %
+      coletaLixo: parseInt(dados[i][7], 10) || 0,  // Col H: COLETA LIXO
+      pcd: parseInt(dados[i][8], 10) || 0          // Col I: PCD (Gap)
+    };
+  }
+  return mapa;
+}
+
+/**
+ * Carrega todos os dados iniciais do Portal GP 360 com validação rápida via abas consolidadas
  * @param {number|string} filtroMes - Mês selecionado no topo do portal
  * @param {number|string} filtroAno - Ano selecionado no topo do portal
  * @return {Object} Payload completo de inicialização para a UI
@@ -75,72 +135,24 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   var agora = new Date();
   var mesAlvo = (filtroMes !== undefined && filtroMes !== null && filtroMes !== '') ? parseInt(filtroMes, 10) : agora.getMonth() + 1;
   var anoAlvo = (filtroAno !== undefined && filtroAno !== null && filtroAno !== '') ? parseInt(filtroAno, 10) : agora.getFullYear();
-  var mesAnoStr = ("0" + mesAlvo).slice(-2) + '/' + anoAlvo;
 
-  // 1. Dicionário de Usuários (Nome da Coluna B e Foto do Drive da Coluna G)
-  var mapaUsuarios = {};
-  var abaUsers = ss.getSheetByName('DADOS_USUARIOS');
-  if (abaUsers) {
-    var dUsers = abaUsers.getDataRange().getValues();
-    for (var u = 1; u < dUsers.length; u++) {
-      var emailU = String(dUsers[u][0] || '').toLowerCase().trim();
-      if (!emailU) continue;
-      
-      var nomeU = String(dUsers[u][1] || '').trim(); // Coluna B: Nome
-      var rawFoto = String(dUsers[u][6] || '').trim(); // Coluna G: Foto ID
-      var driveId = extrairIdDrive(rawFoto);
-      var fotoUrl = driveId ? ('https://lh3.googleusercontent.com/d/' + driveId + '=w400') : '';
+  var mapaUsuarios = obterMapaUsuarios(ss);
+  var mapaIndicadores = obterMapaIndicadoresLojas(ss);
 
-      mapaUsuarios[emailU] = {
-        nome: nomeU || emailU,
-        fotoUrl: fotoUrl,
-        regionalStr: String(dUsers[u][4] || '').toUpperCase()
-      };
+  var dicionarioPremios = {};
+  var abaPremios = ss.getSheetByName('DICIONARIO_PREMIOS');
+  if (abaPremios) {
+    var dadosP = abaPremios.getDataRange().getValues();
+    for (var i = 1; i < dadosP.length; i++) {
+      var natKey = String(dadosP[i][0]).trim().toUpperCase();
+      var pts = parseFloat(dadosP[i][1]) || 0;
+      dicionarioPremios[natKey] = pts;
     }
   }
 
-  // 2. Leitura da Aba DADOS_INDICADORES (Painel de Bordo Rápido)
-  var painelBordo = {
-    vendas: '0,00%',
-    nps: '0,0',
-    bh: '0,00 h',
-    txDesligamento: '0,00%',
-    lixo: 0,
-    pcd: 0
-  };
+  if (!dicionarioPremios['INTERNA']) dicionarioPremios['INTERNA'] = 4;
+  if (!dicionarioPremios['CANAL']) dicionarioPremios['CANAL'] = 2;
 
-  var abaInd = ss.getSheetByName('DADOS_INDICADORES');
-  if (abaInd) {
-    var dInd = abaInd.getDataRange().getValues();
-    var somaVendas = 0, somaBH = 0, somaNPS = 0, somaTxDesl = 0, somaLixo = 0, somaPCD = 0;
-    var qtdInd = 0;
-
-    for (var i = 1; i < dInd.length; i++) {
-      var regInd = String(dInd[i][1] || '').trim().toUpperCase(); // Coluna B: Regional
-      
-      // Filtrar por escopo de regional do colaborador (ou todas se for Admin)
-      if (controle.isSuperAdmin || controle.regionais.length === 0 || controle.regionais.includes(regInd)) {
-        somaVendas += parseFloat(String(dInd[i][3]).replace(',', '.')) || 0; // Col D: Vendas
-        somaBH += parseFloat(String(dInd[i][4]).replace(',', '.')) || 0;     // Col E: BH
-        somaNPS += parseFloat(String(dInd[i][5]).replace(',', '.')) || 0;    // Col F: NPS
-        somaTxDesl += parseFloat(String(dInd[i][6]).replace(',', '.')) || 0; // Col G: Tx Desl
-        somaLixo += parseInt(dInd[i][7], 10) || 0;                          // Col H: COLETA LIXO
-        somaPCD += parseInt(dInd[i][8], 10) || 0;                           // Col I: PCD
-        qtdInd++;
-      }
-    }
-
-    if (qtdInd > 0) {
-      painelBordo.vendas = (somaVendas / qtdInd).toFixed(2).replace('.', ',') + '%';
-      painelBordo.nps = (somaNPS / qtdInd).toFixed(1).replace('.', ',');
-      painelBordo.bh = (somaBH / qtdInd).toFixed(2).replace('.', ',') + ' h';
-      painelBordo.txDesligamento = (somaTxDesl / qtdInd).toFixed(2).replace('.', ',') + '%';
-      painelBordo.lixo = somaLixo;
-      painelBordo.pcd = somaPCD;
-    }
-  }
-
-  // 3. Mapeamento das Lojas e Regionais
   var lojas = [];
   var mapaLojaRegional = {};
   var filiaisUnicasContadas = {};
@@ -171,49 +183,44 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     }
   }
 
-  // 4. Conciliação com Abas DADOS_SOCIAL e DADOS_APUR (Validação de Moedas Rápida)
-  var regionaisComSocialValidadas = {};
-  var abaSocial = ss.getSheetByName('DADOS_SOCIAL');
-  if (abaSocial) {
-    var dSoc = abaSocial.getDataRange().getValues();
+  var chavesValidadasEspecialista = {};
+
+  // 1. Validação via DADOS_SOCIAL
+  var abaSocCons = ss.getSheetByName('DADOS_SOCIAL');
+  if (abaSocCons) {
+    var dSoc = abaSocCons.getDataRange().getValues();
     for (var s = 1; s < dSoc.length; s++) {
-      var rSoc = String(dSoc[s][0] || '').trim().toUpperCase();
-      var mSoc = String(dSoc[s][1] || '').trim();
-      var qtdSoc = parseInt(dSoc[s][3], 10) || 0;
-      if (mSoc === mesAnoStr && qtdSoc > 0) {
-        regionaisComSocialValidadas[rSoc] = true;
+      var regSoc = String(dSoc[s][0] || '').trim().toUpperCase();
+      var mesSocStr = String(dSoc[s][1] || '').trim(); // Formato MM/AAAA
+      if (regSoc && mesSocStr) {
+        chavesValidadasEspecialista['SOCIAL_' + regSoc + '_' + mesSocStr] = true;
       }
     }
   }
 
-  var regionaisComApurValidadas = {};
-  var abaApur = ss.getSheetByName('DADOS_APUR');
-  if (abaApur) {
-    var dApur = abaApur.getDataRange().getValues();
+  // 2. Validação via DADOS_APUR
+  var abaApurCons = ss.getSheetByName('DADOS_APUR');
+  if (abaApurCons) {
+    var dApur = abaApurCons.getDataRange().getValues();
     for (var a = 1; a < dApur.length; a++) {
-      var rApur = String(dApur[a][0] || '').trim().toUpperCase();
-      var mApur = String(dApur[a][1] || '').trim();
-      var clasApur = String(dApur[a][2] || '').trim().toUpperCase();
-      var qtdApur = parseInt(dApur[a][3], 10) || 0;
+      var regApur = String(dApur[a][0] || '').trim().toUpperCase();
+      var mesApurStr = String(dApur[a][1] || '').trim(); // Formato MM/AAAA
+      var classifApur = String(dApur[a][2] || '').trim().toUpperCase();
 
-      if (mApur === mesAnoStr && qtdApur > 0) {
-        var ptsApur = 1;
-        if (clasApur === 'INTERNA') ptsApur = 4;
-        else if (clasApur === 'CANAL') ptsApur = 2;
-
-        if (!regionaisComApurValidadas[rApur]) regionaisComApurValidadas[rApur] = 0;
-        regionaisComApurValidadas[rApur] += ptsApur;
+      if (regApur && mesApurStr) {
+        chavesValidadasEspecialista['APUR_' + regApur + '_' + mesApurStr] = classifApur || 'VALIDADO';
       }
     }
   }
 
-  // 5. Processamento das Atividades e Cálculo de Moedas do Mês
   var lancamentos = [];
   var moedasMesUser = 0;
   var reembolsoEstimadoMes = 0;
   var filiaisVisitadasSet = {};
   var pontuacaoPorUsuario = {};
   var distribuicaoAtividadesMap = {};
+
+  var mesAnoStrRef = ("0" + mesAlvo).slice(-2) + '/' + anoAlvo;
 
   var abaLanc = ss.getSheetByName('DADOS_LANCAMENTOS');
   if (abaLanc) {
@@ -229,15 +236,15 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       var fIdLanc = numFilialLanc ? ("0000" + numFilialLanc).slice(-4) : String(rawFilialLanc || '');
       var regLanc = mapaLojaRegional[fIdLanc] || '';
       var motivoLanc = String(row[4] || '').trim();
+      var motivoLancUpper = motivoLanc.toUpperCase();
       var custoTotalItem = parseFloat(row[8]) || parseFloat(row[21]) || 0;
 
-      var dataBrutaColM = row[12] || row[1];
-      var infoDt = extrairMesAnoData(dataBrutaColM);
+      var dataBrutaColunaM = row[12] || row[1];
+      var infoDt = extrairMesAnoData(dataBrutaColunaM);
       var mReg = infoDt.mes;
       var aReg = infoDt.ano;
       var dtStr = ("0" + infoDt.dia).slice(-2) + '/' + ("0" + infoDt.mes).slice(-2) + '/' + infoDt.ano;
 
-      var ehMesAtual = (mReg === mesAlvo && aReg === anoAlvo);
       var statusSalvoCol28 = String(row[27] || '').trim().toUpperCase();
       var motivoLower = motivoLanc.toLowerCase();
       var ehEspecialista = motivoLower.includes('atendimento social') || 
@@ -246,61 +253,62 @@ function obterDadosIniciais(filtroMes, filtroAno) {
                            motivoLower.includes('feedback') || 
                            motivoLower.includes('acompanhamento');
 
+      var ehMesAtual = (mReg === mesAlvo && aReg === anoAlvo);
       var statusFinal = statusSalvoCol28;
+
       if (!statusFinal) {
-        if (!ehMesAtual) {
-          statusFinal = 'VALIDADO';
-        } else {
-          statusFinal = ehEspecialista ? 'PENDENTE' : 'VALIDADO';
-        }
+        statusFinal = (!ehMesAtual) ? 'VALIDADO' : (ehEspecialista ? 'PENDENTE' : 'VALIDADO');
       }
 
       if (statusFinal === 'PENDENTE' && ehMesAtual) {
-        var temSocial = !!regionaisComSocialValidadas[regLanc];
-        var temApur = !!regionaisComApurValidadas[regLanc];
+        var encSoc = !!chavesValidadasEspecialista['SOCIAL_' + regLanc + '_' + mesAnoStrRef];
+        var encApur = chavesValidadasEspecialista['APUR_' + regLanc + '_' + mesAnoStrRef];
 
-        if (temSocial || temApur) {
+        if (encSoc || encApur) {
           statusFinal = 'VALIDADO';
-          try {
-            abaLanc.getRange(k + 1, 28).setValue('VALIDADO');
-          } catch (eUpd) {}
+          try { abaLanc.getRange(k + 1, 28).setValue('VALIDADO'); } catch (eUpd) {}
         }
       }
 
       var estaValidadoEspecialista = (statusFinal === 'VALIDADO');
+
       var ehKmAvulso = motivoLower.includes('km avulso') || 
                        motivoLower.includes('deslocamento avulso') || 
                        String(fIdLanc).toUpperCase().includes('AVULSO');
 
       var ptsItem = 0;
       if (!ehKmAvulso) {
-        if (motivoLower.includes('apuraç') || motivoLower.includes('apurac')) {
-          ptsItem = regionaisComApurValidadas[regLanc] || parseFloat(row[9]) || 1;
+        if (ehEspecialista) {
+          var classifApurEspec = chavesValidadasEspecialista['APUR_' + regLanc + '_' + mesAnoStrRef] || '';
+          if (classifApurEspec === 'INTERNA') ptsItem = 4;
+          else if (classifApurEspec === 'CANAL') ptsItem = 2;
+          else ptsItem = dicionarioPremios[motivoLancUpper] || parseFloat(row[9]) || 1;
         } else {
-          ptsItem = parseFloat(row[9]) || 1;
+          ptsItem = parseFloat(row[9]) || dicionarioPremios[motivoLancUpper] || 1;
         }
       }
 
+      var usrInfo = mapaUsuarios[emailAutor] || { nome: emailAutor, foto: '' };
+
       if (!pontuacaoPorUsuario[emailAutor]) {
-        var uInfo = mapaUsuarios[emailAutor] || { nome: emailAutor, fotoUrl: '' };
-        pontuacaoPorUsuario[emailAutor] = {
-          mes: 0,
-          email: emailAutor,
-          nome: uInfo.nome,
-          foto: uInfo.fotoUrl
+        pontuacaoPorUsuario[emailAutor] = { 
+          mes: 0, 
+          total: 0, 
+          email: emailAutor, 
+          nome: usrInfo.nome, 
+          foto: usrInfo.foto 
         };
       }
 
       if (estaValidadoEspecialista && ehMesAtual) {
         pontuacaoPorUsuario[emailAutor].mes += ptsItem;
+        pontuacaoPorUsuario[emailAutor].total += ptsItem;
       }
 
       if (emailAutor === controle.email.toLowerCase() && ehMesAtual) {
         if (estaValidadoEspecialista) {
           moedasMesUser += ptsItem;
-          if (fIdLanc && !ehKmAvulso) {
-            filiaisVisitadasSet[fIdLanc] = true;
-          }
+          if (fIdLanc && !ehKmAvulso) filiaisVisitadasSet[fIdLanc] = true;
         }
 
         reembolsoEstimadoMes += custoTotalItem;
@@ -338,7 +346,6 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     }
   }
 
-  // 6. Ranking Top 5 com Nome e Foto Real
   var rankingArray = [];
   Object.keys(pontuacaoPorUsuario).forEach(function(em) {
     if (pontuacaoPorUsuario[em].mes > 0) {
@@ -366,10 +373,11 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     visitasInLocoMes: Object.keys(filiaisVisitadasSet).length,
     reembolsoEstimadoMes: reembolsoEstimadoMes,
     distribuicaoAtividades: distribuicaoAtividadesMap,
+    indicadoresLojas: mapaIndicadores,
     lancamentos: lancamentos,
     naturezas: naturezas,
     temas: temas,
-    painelBordo: painelBordo,
+    dicionarioPremios: dicionarioPremios,
     gamificacao: {
       moedasTotais: moedasMesUser,
       moedasMes: moedasMesUser,
