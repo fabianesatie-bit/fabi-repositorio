@@ -98,8 +98,10 @@
       border: 1px solid #E2E8F0;
       text-decoration: none;
       margin-bottom: 8px;
+      user-select: none;
+      -webkit-user-select: none;
     }
-    .nav-btn-card:hover {
+    .nav-btn-card:hover, .nav-btn-card:active {
       transform: translateY(-2px);
       box-shadow: 0 6px 16px rgba(0,0,0,0.06);
       background: #FFFFFF;
@@ -288,47 +290,47 @@
 
         <hr class="my-3 text-muted">
 
-        <!-- MENU BOTÕES -->
+        <!-- MENU BOTÕES - DIV NEUTRO COMPATÍVEL COM PWA MÓVEL -->
         <nav class="nav flex-column gap-1 text-start">
-          <a class="nav-btn-card active" onclick="mudarAba('aba-home', this)">
+          <div class="nav-btn-card active" role="button" onclick="mudarAba('aba-home', this)">
             <div class="nav-icon-badge bg-primary-subtle text-primary"><i class="bi bi-house-door-fill"></i></div>
             <span>Início</span>
-          </a>
+          </div>
 
-          <a class="nav-btn-card" onclick="mudarAba('aba-lancamento', this)">
+          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-lancamento', this)">
             <div class="nav-icon-badge bg-success-subtle text-success"><i class="bi bi-plus-circle-fill"></i></div>
             <span>Lançar Atividade</span>
-          </a>
+          </div>
 
-          <a class="nav-btn-card" onclick="mudarAba('aba-gestao', this)">
+          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-gestao', this)">
             <div class="nav-icon-badge bg-warning-subtle text-warning"><i class="bi bi-list-task"></i></div>
             <span>Gestão Atividades</span>
-          </a>
+          </div>
 
-          <a class="nav-btn-card" onclick="mudarAba('aba-galeria', this)">
+          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-galeria', this)">
             <div class="nav-icon-badge bg-info-subtle text-info"><i class="bi bi-images"></i></div>
             <span>Galeria Evidências</span>
-          </a>
+          </div>
 
-          <a class="nav-btn-card" onclick="mudarAba('aba-historico', this)">
+          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-historico', this)">
             <div class="nav-icon-badge bg-danger-subtle text-danger"><i class="bi bi-receipt"></i></div>
             <span>Extrato e Despesas</span>
-          </a>
+          </div>
 
-          <a class="nav-btn-card" onclick="mudarAba('aba-consultas', this)">
+          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-consultas', this)">
             <div class="nav-icon-badge" style="background:#F3E8FF; color:#8000FF;"><i class="bi bi-search"></i></div>
             <span>Consultas Gerais</span>
-          </a>
+          </div>
 
-          <a class="nav-btn-card" onclick="mudarAba('aba-visao-gp', this)">
+          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-visao-gp', this)">
             <div class="nav-icon-badge" style="background:#E0F2FE; color:#0284C7;"><i class="bi bi-pie-chart-fill"></i></div>
             <span>Visão Geral GP</span>
-          </a>
+          </div>
 
-          <a class="nav-btn-card" onclick="mudarAba('aba-configuracoes', this)" id="menu-admin">
+          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-configuracoes', this)" id="menu-admin">
             <div class="nav-icon-badge bg-secondary-subtle text-secondary"><i class="bi bi-gear-fill"></i></div>
             <span>Configurações</span>
-          </a>
+          </div>
         </nav>
       </div>
 
@@ -639,7 +641,7 @@
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-person-badge text-primary display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Perfil do Gerente de Loja</h6>
-                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzqQNOM7dAJb4o2Q9Wp5OPcNEcRrh8J1N74-L_NSagvRF1XdfRrOvRk1yFpIoI8ePZt/exec', 'Perfil do Gerente')" class="btn btn-primary btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
+                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzqQNOM7dAJb4o2Q9Wp5OPcNEcRrh8J1N74-L_NSagvRF1XdfRrOvRk1yFpIoI8ePZt/exec', 'Perfil do Gerente')" class="btn btn-primary btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
 
@@ -648,7 +650,7 @@
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-heart-pulse text-danger display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Atendimento Social</h6>
-                  <button onclick="window.open('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', '_blank')" class="btn btn-danger btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
+                  <button type="button" onclick="window.open('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', '_blank')" class="btn btn-danger btn-sm w-100 fw-bold mt-2">Acessar Painel</button>
                 </div>
               </div>
 
@@ -657,7 +659,7 @@
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-shield-check text-warning display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Apurações / Feedback</h6>
-                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback')" class="btn btn-warning text-dark btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
+                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback')" class="btn btn-warning text-dark btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
 
@@ -666,7 +668,7 @@
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-people text-success display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Agente Integrador</h6>
-                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbySeCo0Pao_eydyF9ZZfetcSf6Rc-kgmdCiXjJkhf4O1r0jnQI6yRCWG_tGkIgwBzXY2A/exec', 'Agente Integrador')" class="btn btn-success btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
+                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbySeCo0Pao_eydyF9ZZfetcSf6Rc-kgmdCiXjJkhf4O1r0jnQI6yRCWG_tGkIgwBzXY2A/exec', 'Agente Integrador')" class="btn btn-success btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
 
@@ -675,7 +677,7 @@
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-clock-history display-6 mb-2" style="color:#8000FF;"></i>
                   <h6 class="fw-bold text-dark">Banco de Horas</h6>
-                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzWpN0-LZa_Lvd6VugBL5k3tWbHa5jdwKhJyD4UCH4Ml00BeNzved493zspKCgZAmz5Vg/exec', 'Banco de Horas')" class="btn btn-outline-primary btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
+                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzWpN0-LZa_Lvd6VugBL5k3tWbHa5jdwKhJyD4UCH4Ml00BeNzved493zspKCgZAmz5Vg/exec', 'Banco de Horas')" class="btn btn-outline-primary btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
 
@@ -684,7 +686,7 @@
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-database text-info display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Base Rol</h6>
-                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbx8faffOLaa2D34yPcmyCTh1k4twGCvH-8GoUaKqOMejk9n6CBJbYA0khBu4Yd2WCai/exec', 'Base Rol')" class="btn btn-info text-white btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
+                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbx8faffOLaa2D34yPcmyCTh1k4twGCvH-8GoUaKqOMejk9n6CBJbYA0khBu4Yd2WCai/exec', 'Base Rol')" class="btn btn-info text-white btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
 
@@ -693,7 +695,7 @@
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-recycle text-success display-6 mb-2"></i>
                   <h6 class="fw-bold text-dark">Lixo Eletrônico</h6>
-                  <button onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbybafdaQteFy4FuWwPxIQLGJDGWUsac8jo_agut6PlF42-1ta3mW8uyyjdbtLYGsgWn/exec', 'Lixo Eletrônico')" class="btn btn-outline-success btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
+                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbybafdaQteFy4FuWwPxIQLGJDGWUsac8jo_agut6PlF42-1ta3mW8uyyjdbtLYGsgWn/exec', 'Lixo Eletrônico')" class="btn btn-outline-success btn-sm w-100 fw-bold mt-2">Acessar Painel Interno</button>
                 </div>
               </div>
             </div>
@@ -701,7 +703,7 @@
             <div id="container-embutido-painel" class="mt-4 d-none">
               <div class="d-flex justify-content-between align-items-center bg-light p-3 border rounded-top">
                 <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-window-stack me-2 text-primary"></i><span id="titulo-painel-embutido">Painel Corporativo</span></h6>
-                <button class="btn btn-sm btn-secondary fw-bold" onclick="fecharPainelEmbutido()"><i class="bi bi-x-lg me-1"></i> Fechar Painel</button>
+                <button type="button" class="btn btn-sm btn-secondary fw-bold" onclick="fecharPainelEmbutido()"><i class="bi bi-x-lg me-1"></i> Fechar Painel</button>
               </div>
               <div class="container-iframe-embutido">
                 <iframe id="iframe-painel-embutido-src" src="about:blank"></iframe>
@@ -715,8 +717,8 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
               <h5 class="fw-bold mb-0 text-dark">Extrato de Reembolso e Despesas</h5>
               <div class="d-flex gap-2">
-                <button onclick="alternarFormularioKMAvulso()" class="btn btn-warning text-white fw-bold shadow-sm"><i class="bi bi-car-front-fill me-1"></i> + KM Avulso</button>
-                <button onclick="imprimirRelatorioKM()" class="btn btn-light border fw-bold shadow-sm"><i class="bi bi-printer me-1"></i> Imprimir Extrato</button>
+                <button type="button" onclick="alternarFormularioKMAvulso()" class="btn btn-warning text-white fw-bold shadow-sm"><i class="bi bi-car-front-fill me-1"></i> + KM Avulso</button>
+                <button type="button" onclick="imprimirRelatorioKM()" class="btn btn-light border fw-bold shadow-sm"><i class="bi bi-printer me-1"></i> Imprimir Extrato</button>
               </div>
             </div>
 
@@ -774,7 +776,7 @@
                   <input type="date" id="filtro-extrato-fim" class="form-control form-control-sm" onchange="renderizarHistoricos()">
                 </div>
                 <div class="col-md-2">
-                  <button class="btn btn-secondary btn-sm w-100 fw-bold" onclick="document.getElementById('filtro-extrato-inicio').value=''; document.getElementById('filtro-extrato-fim').value=''; renderizarHistoricos();"><i class="bi bi-arrow-counterclockwise me-1"></i> Limpar</button>
+                  <button type="button" class="btn btn-secondary btn-sm w-100 fw-bold" onclick="document.getElementById('filtro-extrato-inicio').value=''; document.getElementById('filtro-extrato-fim').value=''; renderizarHistoricos();"><i class="bi bi-arrow-counterclockwise me-1"></i> Limpar</button>
                 </div>
               </div>
             </div>
@@ -794,7 +796,7 @@
               <h6 class="fw-bold text-dark mb-3"><i class="bi bi-tag-fill text-primary me-2"></i>Naturezas Extras Customizadas</h6>
               <div class="input-group mb-3" style="max-width: 600px;">
                 <input type="text" id="input-nova-natureza" class="form-control" placeholder="Nova natureza (Ex: Integração RH)">
-                <button class="btn btn-primary fw-bold" onclick="addNatureza()"><i class="bi bi-plus-lg me-1"></i> Adicionar</button>
+                <button type="button" class="btn btn-primary fw-bold" onclick="addNatureza()"><i class="bi bi-plus-lg me-1"></i> Adicionar</button>
               </div>
 
               <div id="container-lista-naturezas" class="d-flex flex-column gap-2 mt-3">
