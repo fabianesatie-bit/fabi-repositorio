@@ -18,27 +18,80 @@ function parseNumPtBr(val) {
 }
 
 /**
- * Carrega a aba DADOS_USUARIOS e mapeia Nome Completo e Foto por e-mail
+ * Extrai dia, mês e ano de uma data ou string sem problemas de fuso horário
+ * @param {Date|string} dataValor - Data a ser processada
+ * @return {Object} Objeto contendo {dia, mes, ano}
+ */
+function extrairMesAnoData(dataValor) {
+  var agora = new Date();
+  var res = { dia: agora.getDate(), mes: agora.getMonth() + 1, ano: agora.getFullYear() };
+  if (!dataValor) return res;
+
+  try {
+    if (dataValor instanceof Date) {
+      res.dia = dataValor.getDate();
+      res.mes = dataValor.getMonth() + 1;
+      res.ano = dataValor.getFullYear();
+      return res;
+    }
+
+    var str = String(dataValor).trim();
+
+    // Formato ISO YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+      var partesIso = str.split('T')[0].split('-');
+      res.ano = parseInt(partesIso[0], 10);
+      res.mes = parseInt(partesIso[1], 10);
+      res.dia = parseInt(partesIso[2], 10);
+      return res;
+    }
+
+    // Formato DD/MM/AAAA
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(str)) {
+      var pBarra = str.split('/');
+      res.dia = parseInt(pBarra[0], 10);
+      res.mes = parseInt(pBarra[1], 10);
+      res.ano = parseInt(pBarra[2].substring(0, 4), 10);
+      return res;
+    }
+
+    var dObj = new Date(dataValor);
+    if (!isNaN(dObj.getTime())) {
+      res.dia = dObj.getDate();
+      res.mes = dObj.getMonth() + 1;
+      res.ano = dObj.getFullYear();
+      return res;
+    }
+  } catch (e) {}
+
+  return res;
+}
+
+/**
+ * Carrega a aba DADOS_USUARIOS e mapeia Nome Completo e Foto do Drive indexados pelo e-mail
  * @param {Spreadsheet} ss - Instância da planilha ativa
- * @return {Object} Mapa de usuários indexado pelo e-mail em minúsculas
+ * @return {Object} Mapa de usuários indexado por e-mail em minúsculas
  */
 function obterMapaUsuarios(ss) {
   var mapa = {};
-  var abaUsr = ss.getSheetByName('DADOS_USUARIOS');
-  if (!abaUsr) return mapa;
+  var aba = ss.getSheetByName('DADOS_USUARIOS');
+  if (!aba) return mapa;
 
-  var dados = abaUsr.getDataRange().getValues();
+  var dados = aba.getDataRange().getValues();
   for (var i = 1; i < dados.length; i++) {
     var email = String(dados[i][0] || '').toLowerCase().trim();
     if (!email) continue;
 
-    var nome = String(dados[i][1] || '').trim();
     var rawFoto = String(dados[i][6] || '').trim();
     var driveId = extrairIdDrive(rawFoto);
     var fotoUrl = driveId ? ('https://lh3.googleusercontent.com/d/' + driveId + '=w400') : '';
 
     mapa[email] = {
-      nome: nome || email,
+      nome: String(dados[i][1] || email).trim(),
+      cargo: String(dados[i][2] || ''),
+      diretoria: String(dados[i][3] || ''),
+      regionais: String(dados[i][4] || ''),
+      nivelAcesso: String(dados[i][5] || ''),
       foto: fotoUrl
     };
   }
@@ -46,8 +99,7 @@ function obterMapaUsuarios(ss) {
 }
 
 /**
- * Carrega a aba DADOS_INDICADORES e mapeia os 6 indicadores por Filial_ID
- * Utiliza parsing seguro PT-BR (vírgulas) e dupla indexação ("0078" e "78")
+ * Carrega a aba DADOS_INDICADORES e mapeia os 6 indicadores por Filial_ID (com dupla chave)
  * @param {Spreadsheet} ss - Instância da planilha ativa
  * @return {Object} Mapa de indicadores indexado pelo Filial_ID
  */
@@ -66,15 +118,14 @@ function obterMapaIndicadoresLojas(ss) {
     var rawNumStr = String(numFilial);
 
     var item = {
-      vendas: parseNumPtBr(dados[i][3]),         // Col D: Vendas %
-      bh: parseNumPtBr(dados[i][4]),             // Col E: BH (Banco de Horas)
-      nps: parseNumPtBr(dados[i][5]),            // Col F: NPS
-      txDesligamento: parseNumPtBr(dados[i][6]), // Col G: Tx Desl %
-      coletaLixo: Math.round(parseNumPtBr(dados[i][7])), // Col H: COLETA LIXO
-      pcd: Math.round(parseNumPtBr(dados[i][8]))         // Col I: PCD (Gap)
+      vendas: parseNumPtBr(dados[i][3]),                  // Col D: Vendas %
+      bh: parseNumPtBr(dados[i][4]),                      // Col E: BH (Banco de Horas)
+      nps: parseNumPtBr(dados[i][5]),                     // Col F: NPS
+      txDesligamento: parseNumPtBr(dados[i][6]),          // Col G: Tx Desl %
+      coletaLixo: Math.round(parseNumPtBr(dados[i][7])),  // Col H: COLETA LIXO
+      pcd: Math.round(parseNumPtBr(dados[i][8]))          // Col I: PCD (Gap)
     };
 
-    // Dupla indexacao para garantir busca imune a formatação
     mapa[fId] = item;
     mapa[rawNumStr] = item;
   }
