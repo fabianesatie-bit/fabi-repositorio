@@ -1,8 +1,11 @@
-/**
- * ECOSSISTEMA GP360 - PORTAL GP 360
- * Arquivo: Config.gs
- * Subpasta Monorepo: src/portal-gp360/
- */
+/
+
+ECOSSISTEMA GP360 - PORTAL GP 360
+
+Arquivo: Config.gs
+
+Subpasta Monorepo: src/portal-gp360/
+*/
 
 // IDs de Planilhas e BDD Master
 var SPREADSHEET_ID = '1Nk0F5_tzevdbfmOTnpmhePdum6N22Ctf7g1N_ojuSjA'; // DB_MASTER
@@ -22,20 +25,38 @@ var PERMITTED_ROLES = ['Administrador', 'GERENTERH', 'Coordenador'];
 // Meta de Gamificação - Trilha da Montanha (Everest Reajustada para 100 Moedas)
 var META_EVEREST = 100;
 
-/**
- * Ponto de entrada da aplicação Web App com suporte PWA
- */
-function doGet() {
-  var template = HtmlService.createTemplateFromFile('Index');
-  return template.evaluate()
-      .setTitle('Portal GP 360°')
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no, viewport-fit=cover')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+/
+
+Função Global Obrigatória de Normalização de Filial ID (Middleware > 3000)
+
+@param {any} val - Valor do ID da filial
+
+@return {string} ID normalizado sem zeros à esquerda e ajustado para série original
+*/
+function normalizarFilialId(val) {
+if (!val && val !== 0) return "";
+var num = parseInt(String(val).replace(/\D/g, ''), 10);
+if (isNaN(num)) return String(val).trim();
+if (num > 3000) { num -= 3000; }
+return String(num);
 }
 
-/**
- * Função utilitária para inclusão de arquivos HTML no template
- */
+/
+
+Ponto de entrada da aplicação Web App com suporte PWA
+*/
+function doGet() {
+var template = HtmlService.createTemplateFromFile('Index');
+return template.evaluate()
+.setTitle('Portal GP 360°')
+.addMetaTag('viewport', 'width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no, viewport-fit=cover')
+.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/
+
+Função utilitária para inclusão de arquivos HTML no template
+*/
 function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
