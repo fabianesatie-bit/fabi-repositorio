@@ -4,9 +4,8 @@
  * Subpasta Monorepo: src/portal-gp360/
  */
 
-
 /**
- * Normaliza o ID da filial eliminando duplicações para lojas com número acima de 3000
+ * Normaliza o ID da filial eliminando duplicacoes para lojas com numero acima de 3000
  * @param {string|number} id - ID bruto da filial
  * @return {string} ID normalizado
  */
@@ -19,9 +18,9 @@ function normalizarFilialId(id) {
 }
 
 /**
- * Extrai o ID alfanumérico do Google Drive de uma URL ou ID direto
+ * Extrai o ID alfanumerico do Google Drive de uma URL ou ID isolado
  * @param {string} linkOuId - Link completo do Google Drive ou o ID isolado
- * @return {string} ID extraído
+ * @return {string} ID extraido
  */
 function extrairIdDrive(linkOuId) {
   if (!linkOuId) return '';
@@ -33,11 +32,65 @@ function extrairIdDrive(linkOuId) {
   return match ? match[0] : str;
 }
 
+/**
+ * Extrai dia, mes e ano de forma segura a partir de objetos Date, strings ISO ou strings DD/MM/AAAA
+ * Imune a oscilacoes de fuso horario (GMT-3)
+ * @param {Date|string} dataValor - Data de entrada
+ * @return {Object} Objeto contendo { dia: number, mes: number, ano: number }
+ */
+function extrairMesAnoData(dataValor) {
+  var agora = new Date();
+  if (!dataValor) {
+    return { dia: agora.getDate(), mes: agora.getMonth() + 1, ano: agora.getFullYear() };
+  }
+  try {
+    if (dataValor instanceof Date) {
+      return {
+        dia: dataValor.getDate(),
+        mes: dataValor.getMonth() + 1,
+        ano: dataValor.getFullYear()
+      };
+    }
+    var str = String(dataValor).trim();
+
+    // Formato ISO YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+      var pIso = str.split('T')[0].split('-');
+      return {
+        dia: parseInt(pIso[2], 10) || 1,
+        mes: parseInt(pIso[1], 10) || (agora.getMonth() + 1),
+        ano: parseInt(pIso[0], 10) || agora.getFullYear()
+      };
+    }
+
+    // Formato DD/MM/AAAA
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(str)) {
+      var pBarra = str.split('/');
+      return {
+        dia: parseInt(pBarra[0], 10) || 1,
+        mes: parseInt(pBarra[1], 10) || (agora.getMonth() + 1),
+        ano: parseInt(pBarra[2].substring(0, 4), 10) || agora.getFullYear()
+      };
+    }
+
+    var dObj = new Date(dataValor);
+    if (!isNaN(dObj.getTime())) {
+      return {
+        dia: dObj.getDate(),
+        mes: dObj.getMonth() + 1,
+        ano: dObj.getFullYear()
+      };
+    }
+  } catch (e) {
+    Logger.log('Erro ao extrair mes/ano da data: ' + e.toString());
+  }
+  return { dia: agora.getDate(), mes: agora.getMonth() + 1, ano: agora.getFullYear() };
+}
 
 /**
- * Padroniza saída de datas para string dd/MM/yyyy tratando problemas de fuso horário (GMT-3)
+ * Padroniza saida de datas para string dd/MM/yyyy tratando problemas de fuso horario (GMT-3)
  * @param {Date|string} dataValor - Data a ser formatada
- * @return {string} Data formatada no padrão dd/MM/yyyy
+ * @return {string} Data formatada no padrao dd/MM/yyyy
  */
 function formatarDataSegura(dataValor) {
   if (!dataValor) return '';
@@ -48,7 +101,7 @@ function formatarDataSegura(dataValor) {
 
     var str = String(dataValor).trim();
 
-    // Tratamento direto para formato ISO YYYY-MM-DD sem recuo de fuso horário
+    // Tratamento direto para formato ISO YYYY-MM-DD sem recuo de fuso horario
     if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
       var partesIso = str.split('T')[0].split('-');
       if (partesIso.length === 3) {
@@ -75,11 +128,10 @@ function formatarDataSegura(dataValor) {
   }
 }
 
-
 /**
- * Converte strings ou objetos de data em Timestamp para ordenação em arrays
+ * Converte strings ou objetos de data em Timestamp para ordenacao em arrays
  * @param {Date|string} dataValor - Data de entrada
- * @return {number} Timestamp numérico em milissegundos
+ * @return {number} Timestamp numerico em milissegundos
  */
 function obterDataRawSegura(dataValor) {
   if (!dataValor) return 0;
