@@ -295,7 +295,10 @@
     }
 
     var mapa = dadosGlobais.indicadoresLojas || {};
-    var ind = mapa[fId] || { vendas: 0, bh: 0, nps: 0, txDesligamento: 0, coletaLixo: 0, pcd: 0 };
+    var numOnly = String(parseInt(String(fId).replace(/\D/g, ''), 10) || fId);
+    var padId = ("0000" + numOnly).slice(-4);
+
+    var ind = mapa[padId] || mapa[fId] || mapa[numOnly] || { vendas: 0, bh: 0, nps: 0, txDesligamento: 0, coletaLixo: 0, pcd: 0 };
 
     document.getElementById('ind-val-vendas').innerText = ind.vendas.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + '%';
     document.getElementById('ind-val-nps').innerText = ind.nps.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
