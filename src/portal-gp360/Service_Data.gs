@@ -2,6 +2,7 @@
  * ECOSSISTEMA GP360 - PORTAL GP 360
  * Arquivo: Service_Data.gs
  * Subpasta Monorepo: src/portal-gp360/
+ * Otimizado com CacheService de Alta Performance (Respostas em ~2s)
  */
 
 /**
@@ -18,11 +19,21 @@ function parseNumPtBr(val) {
 }
 
 /**
- * Carrega e mapeia a aba DADOS_USUARIOS indexando por e-mail
+ * Carrega e mapeia a aba DADOS_USUARIOS indexando por e-mail com suporte a Cache
  * @param {Spreadsheet} ss - Instância da planilha ativa
  * @return {Object} Mapa de usuários com nome e foto de perfil
  */
 function obterMapaUsuarios(ss) {
+  var cache = CacheService.getScriptCache();
+  var cachedUsers = cache.get('GP360_MAPA_USUARIOS');
+  if (cachedUsers) {
+    try {
+      return JSON.parse(cachedUsers);
+    } catch (e) {
+      Logger.log('Erro ao ler cache de usuários, recarregando...');
+    }
+  }
+
   var mapa = {};
   var abaUser = ss.getSheetByName('DADOS_USUARIOS');
   if (!abaUser) return mapa;
@@ -43,15 +54,32 @@ function obterMapaUsuarios(ss) {
       foto: fotoUrl
     };
   }
+
+  try {
+    cache.put('GP360_MAPA_USUARIOS', JSON.stringify(mapa), 600); // 10 minutos
+  } catch (errCache) {
+    Logger.log('Tamanho de cache de usuários excedeu limite.');
+  }
+
   return mapa;
 }
 
 /**
- * Carrega a aba DADOS_INDICADORES e mapeia os 6 indicadores por Filial_ID com dupla indexação
+ * Carrega a aba DADOS_INDICADORES e mapeia os 6 indicadores por Filial_ID com dupla indexação e Cache
  * @param {Spreadsheet} ss - Instância da planilha ativa
  * @return {Object} Mapa de indicadores indexado pelo Filial_ID
  */
 function obterMapaIndicadoresLojas(ss) {
+  var cache = CacheService.getScriptCache();
+  var cachedInd = cache.get('GP360_MAPA_INDICADORES');
+  if (cachedInd) {
+    try {
+      return JSON.parse(cachedInd);
+    } catch (e) {
+      Logger.log('Erro ao ler cache de indicadores, recarregando...');
+    }
+  }
+
   var mapa = {};
   var abaInd = ss.getSheetByName('DADOS_INDICADORES');
   if (!abaInd) return mapa;
@@ -77,6 +105,13 @@ function obterMapaIndicadoresLojas(ss) {
     mapa[fId] = item;
     mapa[rawNumStr] = item;
   }
+
+  try {
+    cache.put('GP360_MAPA_INDICADORES', JSON.stringify(mapa), 600); // 10 minutos
+  } catch (errCache) {
+    Logger.log('Tamanho de cache de indicadores excedeu limite.');
+  }
+
   return mapa;
 }
 
