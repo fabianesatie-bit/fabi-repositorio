@@ -302,7 +302,7 @@
 
         <hr class="my-2 text-muted opacity-25">
 
-        <!-- MENU NAVEGAÇÃO -->
+        <!-- MENU NAVEGAÇÃO ENXUTO (SEM GESTÃO E GALERIA) -->
         <nav class="nav flex-column text-start">
           <div class="nav-btn-card active" role="button" onclick="mudarAba('aba-home', this)">
             <div class="nav-icon-badge" style="background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text);"><i class="bi bi-house-door-fill"></i></div>
@@ -312,16 +312,6 @@
           <div class="nav-btn-card" role="button" onclick="mudarAba('aba-lancamento', this)">
             <div class="nav-icon-badge" style="background: var(--pastel-green-bg); color: var(--pastel-green-text);"><i class="bi bi-plus-circle-fill"></i></div>
             <span>Lançar Atividade</span>
-          </div>
-
-          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-gestao', this)">
-            <div class="nav-icon-badge" style="background: var(--pastel-peach-bg); color: var(--pastel-peach-text);"><i class="bi bi-list-task"></i></div>
-            <span>Gestão Atividades</span>
-          </div>
-
-          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-galeria', this)">
-            <div class="nav-icon-badge" style="background: var(--pastel-blue-bg); color: var(--pastel-blue-text);"><i class="bi bi-images"></i></div>
-            <span>Galeria Evidências</span>
           </div>
 
           <div class="nav-btn-card" role="button" onclick="mudarAba('aba-historico', this)">
@@ -632,7 +622,7 @@
           </div>
         </div>
 
-        <!-- ABA CONSULTAS -->
+        <!-- ABA CONSULTAS (7 CARDS REINTEGRADOS) -->
         <div id="aba-consultas" class="view-aba d-none">
           <div class="bento-card mb-3">
             <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-search me-2" style="color: var(--pastel-lavender);"></i>Consultas Gerais</h6>
@@ -715,14 +705,13 @@
           </div>
         </div>
 
-        <!-- ABA HISTÓRICO -->
+        <!-- ABA HISTÓRICO / EXTRATO COM SUPORTE A EXCLUSÃO DE LANÇAMENTOS PRÓPRIOS -->
         <div id="aba-historico" class="view-aba d-none">
           <div class="bento-card">
             <div class="d-flex justify-content-between align-items-center mb-3">
               <h6 class="fw-bold mb-0 text-dark">Extrato de Reembolso e Despesas</h6>
               <div class="d-flex gap-2">
                 <button type="button" onclick="alternarFormularioKMAvulso()" class="btn btn-sm fw-bold shadow-sm rounded-3" style="background: var(--pastel-peach-bg); border: 1px solid var(--pastel-peach-border); color: var(--pastel-peach-text);"><i class="bi bi-car-front-fill me-1"></i> + KM Avulso</button>
-                <button type="button" onclick="imprimirRelatorioKM()" class="btn btn-sm btn-light border fw-bold shadow-sm rounded-3"><i class="bi bi-printer me-1"></i> Imprimir</button>
               </div>
             </div>
 
@@ -740,24 +729,6 @@
 
             <div id="container-lista-naturezas" class="d-flex flex-column gap-2 mt-2">
               <div class="text-muted small">Carregando naturezas...</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ABA GESTÃO -->
-        <div id="aba-gestao" class="view-aba d-none">
-          <div class="bento-card">
-            <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-list-task me-2" style="color: var(--pastel-lavender);"></i>Gestão de Atividades</h6>
-            <div id="timeline-atividades" class="d-flex flex-column gap-2 mt-2"></div>
-          </div>
-        </div>
-
-        <!-- ABA GALERIA -->
-        <div id="aba-galeria" class="view-aba d-none">
-          <div class="bento-card">
-            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-images me-2" style="color: var(--pastel-blue);"></i>Galeria de Evidências Fotográficas</h6>
-            <div class="row g-2" id="grid-galeria">
-              <div class="col-12 text-muted small">Acesse a galeria para visualizar as evidências do mês.</div>
             </div>
           </div>
         </div>
@@ -790,6 +761,7 @@
     });
   </script>
 
+  <?!= include('Scripts_Core'); ?>
   <?!= include('Scripts_UI'); ?>
 </body>
 </html>

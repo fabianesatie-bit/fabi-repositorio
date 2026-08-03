@@ -26,7 +26,7 @@ function extrairIdDrive(url) {
 }
 
 /**
- * Normaliza e extrai dia, mês e ano com alta velocidade (evita new Date redundante)
+ * Normaliza e extrai dia, mês e ano com alta velocidade
  */
 function extrairMesAnoData(val) {
   var d = new Date();
