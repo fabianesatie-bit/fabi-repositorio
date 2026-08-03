@@ -1,4 +1,6 @@
 <script>
+  let arquivoColadoMemoria = null;
+
   window.onload = function() {
     document.getElementById('lanc-data').valueAsDate = new Date(); 
     let h = new Date().getHours();
@@ -61,8 +63,49 @@
        renderizarAvisos(res.avisos);
        renderizarHistoricos();
        renderizarListaAdmin(res.naturezas);
+       
+       let zonePaste = document.getElementById('paste-zone');
+       if (zonePaste) {
+           zonePaste.addEventListener('paste', function(e) {
+              let items = e.clipboardData.items;
+              for (let i = 0; i < items.length; i++) {
+                  if (items[i].type.indexOf('image') !== -1) {
+                      let blob = items[i].getAsFile();
+                      let reader = new FileReader();
+                      reader.onload = function(event) {
+                          arquivoColadoMemoria = { fileName: 'colado_' + Date.now() + '.png', mimeType: blob.type, base64: event.target.result.split(',')[1] };
+                          document.getElementById('paste-preview').innerHTML = `<img src="${event.target.result}" style="max-height:100px; border-radius:8px; margin-top:8px; border:1px solid #cbd5e1;">`;
+                          zonePaste.innerHTML = "Imagem capturada com sucesso!";
+                          zonePaste.style.borderColor = "#10b981";
+                      };
+                      reader.readAsDataURL(blob);
+                  }
+              }
+           });
+       }
     }).obterDadosIniciais();
   };
+
+  function limparOutrasEvidencias(origem) {
+      if(origem !== 'file') {
+          let fileEl = document.getElementById('lanc-arquivo');
+          if(fileEl) fileEl.value = '';
+      }
+      if(origem !== 'paste') {
+          arquivoColadoMemoria = null;
+          let prevEl = document.getElementById('paste-preview');
+          if(prevEl) prevEl.innerHTML = '';
+          let zoneEl = document.getElementById('paste-zone');
+          if(zoneEl) {
+              zoneEl.innerHTML = "Clique aqui e aperte <strong>Ctrl+V</strong> para colar a imagem";
+              zoneEl.style.borderColor = "#cbd5e1";
+          }
+      }
+      if(origem !== 'link') {
+          let linkEl = document.getElementById('lanc-link-drive');
+          if(linkEl) linkEl.value = '';
+      }
+  }
 
   function selecionarCicloDash(modo) {
       modoCicloDash = modo;
@@ -113,7 +156,6 @@
           return;
       }
 
-      // Ordenar cópia do ranking com base no ciclo ativo selecionado
       let rankingCiclo = [...ranking];
       if (modoCicloDash === 'atual') {
           rankingCiclo.sort((a, b) => (b.moedasMes || 0) - (a.moedasMes || 0));
@@ -461,7 +503,7 @@
              linkEvidenciaExterna: ""
          };
          btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Registrando..."; btn.disabled = true;
-         chamarBackendSalvar(dRedir, btn);
+         chamarBackendSalvar(dRedir, null, btn);
          document.getElementById('lanc-motivo').value = '';
          verificarCamposDinamicos();
          return; 
@@ -490,10 +532,25 @@
         linkEvidenciaExterna: linkInputDrive
      };
      btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Salvando..."; btn.disabled = true;
-     chamarBackendSalvar(d, btn);
+
+     let fileInput = document.getElementById('lanc-arquivo');
+     if (fileInput && fileInput.files && fileInput.files[0]) {
+         let file = fileInput.files[0];
+         let fr = new FileReader();
+         fr.onload = function(e) {
+             let data = e.target.result.split(",");
+             let fileData = { fileName: file.name, mimeType: file.type, base64: data[1] };
+             chamarBackendSalvar(d, fileData, btn);
+         };
+         fr.readAsDataURL(file);
+     } else if (arquivoColadoMemoria) {
+         chamarBackendSalvar(d, arquivoColadoMemoria, btn);
+     } else {
+         chamarBackendSalvar(d, null, btn);
+     }
   }
 
-  function chamarBackendSalvar(dados, btn) {
+  function chamarBackendSalvar(dados, fileData, btn) {
      google.script.run.withSuccessHandler(function(res){
          if(res.erro) { mostrarToast("Erro: " + res.erro); btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-coins"></i> Salvar e Ganhar Moeda'; return; }
 
@@ -514,6 +571,7 @@
              document.getElementById('gasto-estacionamento').value = '';
              document.querySelectorAll('.chk-abrangencia').forEach(chk => chk.checked = false);
              let checkTodas = document.getElementById('check-todas-abrangencia'); if(checkTodas) checkTodas.checked = false;
+             limparOutrasEvidencias('all');
              calcularDespesas();
              document.getElementById('painel-indicadores-lancamento').style.display = 'none';
 
@@ -531,7 +589,7 @@
                  mudarAba('home', document.querySelector('.nav-item'));
              }).obterDadosIniciais();
          }, 1000);
-     }).registrarAtividade(dados);
+     }).registrarAtividade(dados, fileData);
   }
 
   function abrirModalAvulso() {
@@ -593,7 +651,7 @@
              renderizarHistoricos();
              atualizarCardsDashboard();
          }).obterDadosIniciais(); 
-     }).registrarAtividade(payload);
+     }).registrarAtividade(payload, null);
   }
 
   function parseDataBR(dataString) {

@@ -288,8 +288,21 @@
             </div>
 
             <div class="form-group" id="grupo-evidencia" style="background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:15px;">
-              <label style="color:#0f172a; margin-bottom:10px;"><i class="fa-solid fa-link"></i> Link do Comprovante/Evidência (Google Drive)</label>
-              <input type="text" id="lanc-link-drive" class="form-control" placeholder="Cole o link do Google Drive aqui (Opcional)">
+              <label style="color:#0f172a; margin-bottom:10px;"><i class="fa-solid fa-paperclip"></i> Evidência da Atividade <span style="font-size:11px; color:#64748b; font-weight:normal;">(Anexo ou Link)</span></label>
+
+              <div style="margin-bottom:12px;">
+                 <label style="font-size:11px; color:#475569; font-weight:bold;">Opção 1: Enviar Arquivo do Computador/Celular</label>
+                 <input type="file" id="lanc-arquivo" class="form-control" accept="image/*,.pdf" onchange="limparOutrasEvidencias('file')">
+              </div>
+              <div style="margin-bottom:12px;">
+                 <label style="font-size:11px; color:#475569; font-weight:bold;">Opção 2: Colar Imagem da Área de Transferência</label>
+                 <div id="paste-zone" class="paste-zone" tabindex="0" onfocus="limparOutrasEvidencias('paste')">Clique aqui e aperte <strong>Ctrl+V</strong> para colar a imagem</div>
+                 <div id="paste-preview" style="margin-top:5px; text-align:center;"></div>
+              </div>
+              <div>
+                 <label style="font-size:11px; color:#475569; font-weight:bold;">Opção 3: Link do Google Drive (Público)</label>
+                 <input type="text" id="lanc-link-drive" class="form-control" placeholder="Cole o link do Google Drive aqui" oninput="limparOutrasEvidencias('link')">
+              </div>
             </div>
 
             <div class="form-group" id="grupo-obs">

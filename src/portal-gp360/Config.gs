@@ -3,6 +3,7 @@
 // =============================================================================
 
 const SPREADSHEET_ID = '1Nk0F5_tzevdbfmOTnpmhePdum6N22Ctf7g1N_ojuSjA'; // ID Planilha GP 360 (DB_MASTER)
+const EVIDENCIAS_FOLDER_ID = '1v28G-ZDd6yQpjTUvBNcODlpxkM5AeaQZ'; // ID Pasta do Drive para Evidências
 const SPREADSHEET_DASH = '1FKcQtoGI5Hz8vYefD450EcnO8rW36sTSPIsAQkEIVlc'; // Base de Indicadores Geral (DB_DASH)
 const SPREADSHEET_LOG_ID = '1phPQnIBiyVC1OqxooDQhyrR3_aR84jtqYnPJyOij0lY'; // ID Planilha Auditoria Exclusiva
 

@@ -2,16 +2,17 @@
 // GRAVAÇÕES E ESCRITAS CORPORATIVAS (LOCKSERVICE BLINDADO E RÁPIDO)
 // =============================================================================
 
-function registrarAtividade(dados) {
+function registrarAtividade(dados, fileData) {
   const lock = LockService.getScriptLock();
   try {
-    lock.waitLock(10000); 
+    lock.waitLock(15000); 
     const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
     const controle = obterControleAcesso(emailLogado);
     if (!controle.autorizado) {
       throw new Error("Usuário não autorizado a realizar lançamentos.");
     }
     registrarAuditoria("Nova Atividade", dados.motivo + " | " + dados.destino);
+    
     try {
       const cache = CacheService.getScriptCache();
       if (dados.destino && !String(dados.destino).startsWith("REGIONAL") && !String(dados.destino).startsWith("DIRETORIA")) {
@@ -19,6 +20,17 @@ function registrarAtividade(dados) {
           if (!isNaN(fId)) cache.remove('IND_LOJA_' + fId);
       }
     } catch(err) {}
+
+    let linkEvidencia = "";
+    if (fileData && fileData.base64) {
+      let safeName = fileData.fileName || "evidencia_" + new Date().getTime() + ".png";
+      let safeMime = fileData.mimeType || "image/png";
+      linkEvidencia = DriveApp.getFolderById(EVIDENCIAS_FOLDER_ID).createFile(
+        Utilities.newBlob(Utilities.base64Decode(fileData.base64), safeMime, safeName)
+      ).getUrl();
+    } else if (dados.linkEvidenciaExterna) {
+      linkEvidencia = dados.linkEvidenciaExterna;
+    }
 
     const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('DADOS_LANCAMENTOS');
     const arrayInsert = new Array(27).fill("");
@@ -35,7 +47,7 @@ function registrarAtividade(dados) {
     arrayInsert[8] = "";
     arrayInsert[9] = (dados.moedas !== undefined) ? dados.moedas : 1;
     arrayInsert[10] = dados.observacoes || "";
-    arrayInsert[11] = dados.linkEvidenciaExterna || "";
+    arrayInsert[11] = linkEvidencia;
     arrayInsert[12] = dados.dataViagem || dados.dataAtividade || "";
     arrayInsert[13] = "";
     arrayInsert[14] = dados.kmValor || "";
@@ -63,7 +75,7 @@ function registrarAtividade(dados) {
 function excluirLancamento(idLancamento) {
   const lock = LockService.getScriptLock();
   try {
-    lock.waitLock(10000);
+    lock.waitLock(15000);
     const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
     const controle = obterControleAcesso(emailLogado);
     if (!controle.autorizado) {
