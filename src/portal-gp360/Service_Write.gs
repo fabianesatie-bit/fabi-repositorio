@@ -2,13 +2,11 @@
  * ECOSSISTEMA GP360 - PORTAL GP 360
  * Arquivo: Service_Write.gs
  * Subpasta Monorepo: src/portal-gp360/
- * Módulo de Gravação Segura no BDD Master com LockService otimizado
+ * Módulo de Gravação Segura no BDD Master com LockService ajustado
  */
 
 /**
  * Salva arquivo de imagem/evidência na pasta do Google Drive
- * @param {Object} arquivoObj - Objeto contendo base64, mimeType e nome
- * @return {string} URL pública ou do Drive do arquivo salvo
  */
 function salvarEvidenciaNoDrive(arquivoObj) {
   if (!arquivoObj || !arquivoObj.base64) return '';
@@ -28,13 +26,10 @@ function salvarEvidenciaNoDrive(arquivoObj) {
 
 /**
  * Salva uma nova atividade no BDD Master (DADOS_LANCAMENTOS)
- * @param {Object} dados - Objeto do formulário enviado pelo front-end
- * @return {Object} Resposta de sucesso ou falha
  */
 function salvarAtividadeServidor(dados) {
   var lock = LockService.getScriptLock();
   try {
-    // Trava de segurança com janela ampliada para 30 segundos
     var success = lock.tryLock(30000);
     if (!success) {
       return { sucesso: false, mensagem: 'O sistema está processando outro salvamento. Tente novamente em alguns segundos.' };
@@ -51,16 +46,13 @@ function salvarAtividadeServidor(dados) {
       return { sucesso: false, mensagem: 'Aba DADOS_LANCAMENTOS não encontrada no banco de dados.' };
     }
 
-    // Processamento de evidência
     var urlEvidenciaFinal = dados.evidenciaUrl || '';
     if (dados.arquivoEvidencia && dados.arquivoEvidencia.base64) {
       urlEvidenciaFinal = salvarEvidenciaNoDrive(dados.arquivoEvidencia);
     }
 
-    // Identificador único de registro
     var novoId = 'REG_' + new Date().getTime() + '_' + Math.floor(Math.random() * 1000);
     
-    // Tratamento de destino conforme escopo selecionado (FILIAL / REGIONAL / DIRETORIA)
     var destinoFinal = '';
     var escopo = dados.escopo || 'FILIAL';
     
@@ -71,11 +63,9 @@ function salvarAtividadeServidor(dados) {
       destinoFinal = String(dados.destinoRegionalDiretoria || dados.filial || escopo).trim().toUpperCase();
     }
 
-    // Formatação de data
     var dtData = new Date(dados.dataAtividade + 'T12:00:00');
     var dtStrFormatted = ("0" + dtData.getDate()).slice(-2) + '/' + ("0" + (dtData.getMonth() + 1)).slice(-2) + '/' + dtData.getFullYear();
 
-    // Valores financeiros
     var rateKm = parseFloat(dados.rateKm) || 1.20;
     var km = parseFloat(dados.km) || 0;
     var custoKm = km * rateKm;
@@ -86,7 +76,6 @@ function salvarAtividadeServidor(dados) {
     var estacionamento = parseFloat(dados.estacionamento) || 0;
     var custoTotal = custoKm + alimentacao + hospedagem + aereo + pedagio + estacionamento;
 
-    // Status inicial e validação de especialista
     var motivoLower = String(dados.natureza || '').toLowerCase();
     var ehEspecialista = motivoLower.includes('atendimento social') || 
                          motivoLower.includes('apuraç') || 
@@ -96,43 +85,34 @@ function salvarAtividadeServidor(dados) {
 
     var statusInicial = ehEspecialista ? 'PENDENTE' : 'VALIDADO';
 
-    // Montagem da linha de dados para inserção
     var novaLinha = [
       novoId,                          // Coluna A: ID Registro
-      dtStrFormatted,                   // Coluna B: Data Formatada (DD/MM/YYYY)
+      dtStrFormatted,                   // Coluna B: Data Formatada
       controle.email,                   // Coluna C: Autor Email
       destinoFinal,                     // Coluna D: Filial/Regional/Diretoria Destino
       dados.natureza || '',             // Coluna E: Motivo / Natureza
-      '',                               // Coluna F: Reservado
-      '',                               // Coluna G: Reservado
-      '',                               // Coluna H: Reservado
+      '', '', '',                      // Colunas F, G, H: Reservado
       custoTotal,                       // Coluna I: Custo Total
       1,                                // Coluna J: Pontos/Moeda Padrão
       dados.observacao || '',           // Coluna K: Observações
       urlEvidenciaFinal,                // Coluna L: URL Evidência
-      dados.dataAtividade,              // Coluna M: Data Raw ISO (YYYY-MM-DD)
-      escopo,                           // Coluna N: Escopo (FILIAL/REGIONAL/DIRETORIA)
+      dados.dataAtividade,              // Coluna M: Data ISO (YYYY-MM-DD)
+      escopo,                           // Coluna N: Escopo
       '',                               // Coluna O: Reservado
-      km,                               // Coluna P: KM Percorrido
-      custoKm,                          // Coluna Q: Custo KM
+      km, custoKm,                      // Colunas P, Q: KM e Custo KM
       dados.tipoRoteiro || 'Presencial',// Coluna R: Tipo Roteiro
-      (dados.temasReuniao || []).join(', ') || dados.temaTreinamento || '', // Coluna S: Temas/Treinamento
-      parseFloat(dados.pessoasImpactadas) || 0, // Coluna T: Pessoas Impactadas
-      parseFloat(dados.tempoGasto) || 0,         // Coluna U: Tempo Gasto
+      (dados.temasReuniao || []).join(', ') || dados.temaTreinamento || '', // Coluna S: Temas
+      parseFloat(dados.pessoasImpactadas) || 0, // Coluna T: Pessoas
+      parseFloat(dados.tempoGasto) || 0,         // Coluna U: Tempo
       custoTotal,                       // Coluna V: Total Reembolso
-      alimentacao,                      // Coluna W: Alimentação
-      hospedagem,                       // Coluna X: Hospedagem
-      aereo,                            // Coluna Y: Aéreo
-      pedagio,                          // Coluna Z: Pedágio
-      estacionamento,                   // Coluna AA: Estacionamento
-      statusInicial                     // Coluna AB: Status Validação
+      alimentacao, hospedagem, aereo, pedagio, estacionamento, // Colunas W, X, Y, Z, AA
+      statusInicial                     // Coluna AB: Status
     ];
 
     abaLanc.appendRow(novaLinha);
 
-    // Limpa caches para garantir atualização rápida dos totais
     var cache = CacheService.getScriptCache();
-    cache.remove('GP360_MAPA_INDICADORES_SLIM_V5');
+    cache.remove('GP360_MAPA_INDICADORES_SLIM_V7');
 
     return { sucesso: true, mensagem: 'Atividade salva com sucesso! +1 Moeda na sua jornada.' };
 
@@ -145,9 +125,7 @@ function salvarAtividadeServidor(dados) {
 }
 
 /**
- * Salva lançamento exclusivo de KM Avulso
- * @param {Object} dados - Dados do formulário de KM Avulso
- * @return {Object} Resposta da operação
+ * Salva lançamento de KM Avulso
  */
 function salvarKMAvulsoServidor(dados) {
   var lock = LockService.getScriptLock();
@@ -158,15 +136,11 @@ function salvarKMAvulsoServidor(dados) {
     }
 
     var controle = obterControleAcesso();
-    if (!controle.temAcesso) {
-      return { sucesso: false, mensagem: 'Acesso negado.' };
-    }
+    if (!controle.temAcesso) return { sucesso: false, mensagem: 'Acesso negado.' };
 
     var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     var abaLanc = ss.getSheetByName('DADOS_LANCAMENTOS');
-    if (!abaLanc) {
-      return { sucesso: false, mensagem: 'Aba DADOS_LANCAMENTOS não encontrada.' };
-    }
+    if (!abaLanc) return { sucesso: false, mensagem: 'Aba DADOS_LANCAMENTOS não encontrada.' };
 
     var novoId = 'REG_AVULSO_' + new Date().getTime();
     var dtData = new Date(dados.data + 'T12:00:00');
@@ -200,9 +174,7 @@ function salvarKMAvulsoServidor(dados) {
 }
 
 /**
- * Exclui um lançamento do BDD pelo ID
- * @param {string} idRegistro - ID único do registro
- * @return {Object} Status da exclusão
+ * Exclui um lançamento pelo ID
  */
 function deletarLancamento(idRegistro) {
   var lock = LockService.getScriptLock();

@@ -8,6 +8,7 @@
   var dadosGlobais = {};
   var meuGraficoAtividades = null;
   var temasReuniaoSelecionados = [];
+  window.targetRegionalDiretoriaSelecionada = '';
 
   // Inicialização Automática assim que a página é aberta no navegador/celular
   window.addEventListener('DOMContentLoaded', function() {
@@ -35,12 +36,14 @@
           dadosGlobais = res;
           renderizarInterfaceCompleta();
 
-          // Carregamento assíncrono secundário das listas de lojas e configurações
+          // Carregamento assíncrono secundário das listas de lojas, regionais e diretorias
           google.script.run
             .withSuccessHandler(function(comp) {
               if (comp) {
                 dadosGlobais.lojas = comp.lojas || [];
                 dadosGlobais.lojasCarteiraTotal = comp.lojasCarteiraTotal || 0;
+                dadosGlobais.regionaisLista = comp.regionaisLista || [];
+                dadosGlobais.diretoriasLista = comp.diretoriasLista || [];
                 dadosGlobais.indicadoresLojas = comp.indicadoresLojas || {};
                 dadosGlobais.naturezas = comp.naturezas || [];
                 dadosGlobais.temas = comp.temas || {};
@@ -280,7 +283,11 @@
     var selNat = document.getElementById('select-natureza');
     if (selNat) {
       selNat.innerHTML = '<option value="">Selecione a natureza...</option>';
-      var naturezasOrdenadas = (dadosGlobais.naturezas || []).slice().sort(function(a, b) {
+      var listaNat = (dadosGlobais.naturezas && dadosGlobais.naturezas.length > 0) ? 
+        dadosGlobais.naturezas : 
+        ['Apurações e Feedback', 'Atendimento Social', 'Checklist de Loja', 'Reunião Regional', 'Roteiro Regional', 'Treinamento', 'Visita Presencial'];
+      
+      var naturezasOrdenadas = listaNat.slice().sort(function(a, b) {
         return a.localeCompare(b, 'pt-BR');
       });
       naturezasOrdenadas.forEach(function(n) {
@@ -291,7 +298,9 @@
     var containerChips = document.getElementById('chips-container-reuniao');
     if (containerChips) {
       containerChips.innerHTML = '';
-      var listaReuniao = (dadosGlobais.temas && dadosGlobais.temas.reuniao) ? dadosGlobais.temas.reuniao : ['NPS', 'GMD', 'Banco de Horas', 'PCD', 'Quadro', 'Lixo Eletrônico', 'Campanha Sazonais', 'Agente Integrador'];
+      var listaReuniao = (dadosGlobais.temas && dadosGlobais.temas.reuniao && dadosGlobais.temas.reuniao.length > 0) ? 
+        dadosGlobais.temas.reuniao : 
+        ['NPS', 'GMD', 'Banco de Horas', 'PCD', 'Quadro', 'Lixo Eletrônico', 'Campanha Sazonais', 'Agente Integrador'];
       listaReuniao.forEach(function(t) {
         containerChips.innerHTML += '<span class="chip-tema" onclick="toggleChipTema(this, \'' + t + '\')">' + t + '</span>';
       });
@@ -300,11 +309,15 @@
     var selTreinamento = document.getElementById('select-tema-treinamento');
     if (selTreinamento) {
       selTreinamento.innerHTML = '<option value="">Selecione o tema...</option>';
-      var listaTreinamento = (dadosGlobais.temas && dadosGlobais.temas.treinamento) ? dadosGlobais.temas.treinamento : ['Liderança', 'Assédio', 'Jurídico', 'Auditoria', 'Integração', 'Atendimento 10 estrelas', 'Motivacional', 'Feedback', 'Inegociáveis', 'Apontamento'];
+      var listaTreinamento = (dadosGlobais.temas && dadosGlobais.temas.treinamento && dadosGlobais.temas.treinamento.length > 0) ? 
+        dadosGlobais.temas.treinamento : 
+        ['Liderança', 'Assédio', 'Jurídico', 'Auditoria', 'Integração', 'Atendimento 10 estrelas', 'Motivacional', 'Feedback', 'Inegociáveis', 'Apontamento'];
       listaTreinamento.forEach(function(t) {
         selTreinamento.innerHTML += '<option value="' + t + '">' + t + '</option>';
       });
     }
+
+    alternarEscopoAtendimento();
   }
 
   function toggleChipTema(elem, tema) {
@@ -318,16 +331,47 @@
     var escopo = document.getElementById('select-escopo-atendimento').value;
     var boxFilial = document.getElementById('box-destino-filial');
     var boxInd = document.getElementById('box-indicadores-filial');
-    
-    if (boxFilial) {
-      if (escopo === 'FILIAL') {
-        boxFilial.classList.remove('d-none');
-        exibirIndicadoresFilialSelecionada();
-      } else {
-        boxFilial.classList.add('d-none');
-        if (boxInd) boxInd.classList.add('d-none');
+    var boxRegDir = document.getElementById('box-destino-regional-diretoria');
+    var containerTargetChips = document.getElementById('chips-container-target');
+    var labelEscopo = document.getElementById('label-target-escopo');
+
+    window.targetRegionalDiretoriaSelecionada = '';
+
+    if (escopo === 'FILIAL') {
+      if (boxFilial) boxFilial.classList.remove('d-none');
+      if (boxRegDir) boxRegDir.classList.add('d-none');
+      exibirIndicadoresFilialSelecionada();
+    } else {
+      if (boxFilial) boxFilial.classList.add('d-none');
+      if (boxInd) boxInd.classList.add('d-none');
+      if (boxRegDir) boxRegDir.classList.remove('d-none');
+
+      if (labelEscopo) labelEscopo.innerText = escopo === 'REGIONAL' ? 'Regional' : 'Diretoria';
+
+      var listaItens = (escopo === 'REGIONAL') ? (dadosGlobais.regionaisLista || []) : (dadosGlobais.diretoriasLista || []);
+
+      if (containerTargetChips) {
+        containerTargetChips.innerHTML = '';
+        if (!listaItens || listaItens.length === 0) {
+          listaItens = escopo === 'REGIONAL' ? 
+            ['REGIONAL 01', 'REGIONAL 02', 'REGIONAL 03', 'REGIONAL SP', 'REGIONAL SUL'] : 
+            ['DIRETORIA OPERAÇÕES', 'DIRETORIA RH', 'DIRETORIA COMERCIAL', 'DIRETORIA LOGÍSTICA'];
+        }
+
+        listaItens.forEach(function(item) {
+          containerTargetChips.innerHTML += '<span class="card-target-chip" onclick="selecionarTargetChip(this, \'' + item + '\')">' +
+            '<i class="bi bi-geo-alt me-1"></i>' + item +
+          '</span>';
+        });
       }
     }
+  }
+
+  function selecionarTargetChip(elem, valor) {
+    var chips = document.querySelectorAll('.card-target-chip');
+    chips.forEach(function(c) { c.classList.remove('selected'); });
+    elem.classList.add('selected');
+    window.targetRegionalDiretoriaSelecionada = valor;
   }
 
   function exibirIndicadoresFilialSelecionada() {

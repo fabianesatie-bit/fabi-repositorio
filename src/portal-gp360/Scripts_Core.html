@@ -95,7 +95,6 @@
         restaurarBotaoSalvar();
         if (res && res.sucesso) {
           mostrarToast(res.mensagem, 'success');
-          dispararConfetesFestao();
           document.getElementById('form-lancamento').reset();
           window.temasReuniaoSelecionados = [];
           window.targetRegionalDiretoriaSelecionada = '';
@@ -152,7 +151,6 @@
         if (res && res.sucesso) {
           mostrarToast(res.mensagem, 'success');
           document.getElementById('form-km-avulso').reset();
-          alternarFormularioKMAvulso();
           carregarDadosIniciais();
         } else {
           mostrarToast((res ? res.mensagem : 'Erro ao salvar KM avulso.'), 'danger');

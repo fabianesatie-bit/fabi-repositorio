@@ -9,10 +9,6 @@ var SPREADSHEET_ID = '1Nk0F5_tzevdbfmOTnpmhePdum6N22Ctf7g1N_ojuSjA'; // DB_MASTE
 var SPREADSHEET_DASH = '1FKcQtoGI5Hz8vYefD450EcnO8rW36sTSPIsAQkEIVlc'; // DB_DASH
 var SPREADSHEET_LOG_ID = '1phPQnIBiyVC1OqxooDQhyrR3_aR84jtqYnPJyOij0lY'; // DB_LOG
 
-// IDs de Planilhas Externas Integradas
-var SPREADSHEET_SOCIAL_ID = '1InLKT3qmWxAv7N-U1tyoSW0tNI-Qc4LTW0vyza1oSg0'; // Atendimento Social
-var SPREADSHEET_APURACOES_ID = '1tn2FiNVWVMFM-3DC14_L0LaHGmd9O-teU2cvsIoajkk'; // Apurações / Feedback / Desligamentos
-
 // Pastas do Google Drive
 var EVIDENCIAS_FOLDER_ID = '1v28G-ZDd6yQpjTUvBNcODlpxkM5AeaQZ';
 

@@ -2,7 +2,7 @@
  * ECOSSISTEMA GP360 - PORTAL GP 360
  * Arquivo: Service_Data.gs
  * Subpasta Monorepo: src/portal-gp360/
- * Otimizado para abertura sub-3s com validação precisa e lista de regionais/diretorias
+ * Otimizado com Leitura Seletiva de Colunas e Povoamento Garantido de Lojas, Regionais e Diretorias
  */
 
 /**
@@ -26,7 +26,7 @@ function extrairIdDrive(url) {
 }
 
 /**
- * Normaliza e extrai dia, mês e ano
+ * Normaliza e extrai dia, mês e ano com alta performance
  */
 function extrairMesAnoData(val) {
   var d = new Date();
@@ -81,11 +81,11 @@ function parseNumPtBr(val) {
 }
 
 /**
- * Carrega e mapeia a aba DADOS_USUARIOS
+ * Carrega e mapeia a aba DADOS_USUARIOS com suporte a Cache
  */
 function obterMapaUsuarios(ss) {
   var cache = CacheService.getScriptCache();
-  var cachedUsers = cache.get('GP360_MAPA_USUARIOS_SLIM_V5');
+  var cachedUsers = cache.get('GP360_MAPA_USUARIOS_SLIM_V7');
   if (cachedUsers) {
     try {
       var rawUsers = JSON.parse(cachedUsers);
@@ -122,7 +122,7 @@ function obterMapaUsuarios(ss) {
     rawSlim[email] = [nome, cargo, regional, fotoUrl];
   }
 
-  try { cache.put('GP360_MAPA_USUARIOS_SLIM_V5', JSON.stringify(rawSlim), 900); } catch (e) {}
+  try { cache.put('GP360_MAPA_USUARIOS_SLIM_V7', JSON.stringify(rawSlim), 900); } catch (e) {}
   return mapa;
 }
 
@@ -131,7 +131,7 @@ function obterMapaUsuarios(ss) {
  */
 function obterMapaIndicadoresLojas(ss) {
   var cache = CacheService.getScriptCache();
-  var cachedInd = cache.get('GP360_MAPA_INDICADORES_SLIM_V5');
+  var cachedInd = cache.get('GP360_MAPA_INDICADORES_SLIM_V7');
   if (cachedInd) {
     try {
       var rawMap = JSON.parse(cachedInd);
@@ -177,12 +177,13 @@ function obterMapaIndicadoresLojas(ss) {
     rawSlim[fId] = [item.vendas, item.bh, item.nps, item.txDesligamento, item.coletaLixo, item.pcd];
   }
 
-  try { cache.put('GP360_MAPA_INDICADORES_SLIM_V5', JSON.stringify(rawSlim), 900); } catch (e) {}
+  try { cache.put('GP360_MAPA_INDICADORES_SLIM_V7', JSON.stringify(rawSlim), 900); } catch (e) {}
   return mapa;
 }
 
 /**
- * ETAPA 1: Retorna payload leve para renderização inicial imediata
+ * ETAPA 1 (CARREGAMENTO ULTRA-RÁPIDO SUB-1S):
+ * Lê estritamente as colunas A-N necessárias para a abertura da UI
  */
 function obterDadosIniciais(filtroMes, filtroAno) {
   var controle = obterControleAcesso();
@@ -213,10 +214,10 @@ function obterDadosIniciais(filtroMes, filtroAno) {
 
   var chavesValidadasEspecialista = {};
 
-  // Validação rápida via DADOS_SOCIAL
+  // Validação rápida e seletiva via DADOS_SOCIAL
   var abaSocCons = ss.getSheetByName('DADOS_SOCIAL');
-  if (abaSocCons) {
-    var dSoc = abaSocCons.getDataRange().getValues();
+  if (abaSocCons && abaSocCons.getLastRow() > 1) {
+    var dSoc = abaSocCons.getRange(1, 1, abaSocCons.getLastRow(), 2).getValues();
     for (var s = 1; s < dSoc.length; s++) {
       var rawRegSoc = dSoc[s][0];
       var numFilSoc = normalizarFilialId(rawRegSoc);
@@ -228,10 +229,10 @@ function obterDadosIniciais(filtroMes, filtroAno) {
     }
   }
 
-  // Validação rápida via DADOS_APUR
+  // Validação rápida e seletiva via DADOS_APUR
   var abaApurCons = ss.getSheetByName('DADOS_APUR');
-  if (abaApurCons) {
-    var dApur = abaApurCons.getDataRange().getValues();
+  if (abaApurCons && abaApurCons.getLastRow() > 1) {
+    var dApur = abaApurCons.getRange(1, 1, abaApurCons.getLastRow(), 3).getValues();
     for (var a = 1; a < dApur.length; a++) {
       var rawRegApur = dApur[a][0];
       var numFilApur = normalizarFilialId(rawRegApur);
@@ -255,8 +256,8 @@ function obterDadosIniciais(filtroMes, filtroAno) {
   var mesAnoStrRef = ("0" + mesAlvo).slice(-2) + '/' + anoAlvo;
 
   var abaLanc = ss.getSheetByName('DADOS_LANCAMENTOS');
-  if (abaLanc) {
-    var dLanc = abaLanc.getDataRange().getValues();
+  if (abaLanc && abaLanc.getLastRow() > 1) {
+    var dLanc = abaLanc.getRange(1, 1, abaLanc.getLastRow(), 14).getValues();
     var totalRows = dLanc.length;
 
     for (var k = 1; k < totalRows; k++) {
@@ -270,7 +271,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       var mReg = infoDt.mes;
       var aReg = infoDt.ano;
 
-      // Filtro de Segurança por Ano
+      // Filtro estrito de Ano para performance
       if (aReg !== anoAlvo) continue;
 
       var dtStr = ("0" + infoDt.dia).slice(-2) + '/' + ("0" + infoDt.mes).slice(-2) + '/' + infoDt.ano;
@@ -279,9 +280,9 @@ function obterDadosIniciais(filtroMes, filtroAno) {
       var fIdLanc = numFilialLanc ? ("0000" + numFilialLanc).slice(-4) : String(rawFilialLanc || '');
       var motivoLanc = String(row[4] || '').trim();
       var motivoLancUpper = motivoLanc.toUpperCase();
-      var custoTotalItem = parseFloat(row[8]) || parseFloat(row[21]) || 0;
+      var custoTotalItem = parseFloat(row[8]) || 0;
 
-      var statusSalvoCol28 = String(row[27] || '').trim().toUpperCase();
+      var statusSalvoCol = String(row[13] || '').trim().toUpperCase();
       var motivoLower = motivoLanc.toLowerCase();
       var ehEspecialista = motivoLower.includes('atendimento social') || 
                            motivoLower.includes('apuraç') || 
@@ -290,7 +291,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
                            motivoLower.includes('acompanhamento');
 
       var ehMesAtual = (mReg === mesAlvo);
-      var statusFinal = statusSalvoCol28;
+      var statusFinal = statusSalvoCol;
 
       var encSoc = !!chavesValidadasEspecialista['SOCIAL_' + fIdLanc + '_' + mesAnoStrRef];
       var encApur = chavesValidadasEspecialista['APUR_' + fIdLanc + '_' + mesAnoStrRef];
@@ -355,19 +356,8 @@ function obterDadosIniciais(filtroMes, filtroAno) {
           data: dtStr,
           filial: fIdLanc,
           motivo: motivoLanc,
-          tema: row[18] || '',
           observacao: row[10] || '',
           evidenciaUrl: row[11] || '',
-          kmPercorrido: row[15] || 0,
-          custoKm: row[16] || 0,
-          tipoRoteiro: row[17] || '',
-          pessoasImpactadas: row[19] || 0,
-          tempoGasto: row[20] || 0,
-          valorPedagio: row[25] || 0,
-          valorAlimentacao: row[22] || 0,
-          valorHospedagem: row[23] || 0,
-          valorAereo: row[24] || 0,
-          valorEstacionamento: row[26] || 0,
           custoTotal: custoTotalItem,
           statusValidacao: statusFinal,
           validadoEspecialista: estaValidadoEspecialista,
@@ -416,7 +406,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
 }
 
 /**
- * ETAPA 2: Carregamento assíncrono secundário com Regionais e Diretorias
+ * ETAPA 2: Retorna em segundo plano lojas, indicadores e listas de Regionais e Diretorias para os cards
  */
 function obterDadosComplementares() {
   var controle = obterControleAcesso();
@@ -439,6 +429,7 @@ function obterDadosComplementares() {
       if (!numFilial) continue;
 
       var fId = ("0000" + numFilial).slice(-4);
+      var nomeLoja = String(dadosLojas[j][1] || '').trim();
       var reg = String(dadosLojas[j][2] || '').trim().toUpperCase();
       var dir = String(dadosLojas[j][3] || '').trim().toUpperCase();
 
@@ -446,11 +437,15 @@ function obterDadosComplementares() {
       if (dir) diretoriasSet[dir] = true;
 
       if (!filiaisUnicasContadas[fId]) {
-        if (controle.isSuperAdmin || controle.regionais.includes(reg)) {
+        var temPermissao = controle.isSuperAdmin || controle.isAdmin || 
+                           !controle.regionais || controle.regionais.length === 0 || 
+                           controle.regionais.indexOf(reg) > -1;
+
+        if (temPermissao) {
           filiaisUnicasContadas[fId] = true;
           lojas.push({
             id: fId,
-            nome: dadosLojas[j][1],
+            nome: nomeLoja || ('Loja ' + fId),
             regional: reg,
             diretoria: dir
           });
@@ -486,11 +481,13 @@ function obterDadosComplementares() {
 function carregarNaturezasSeguras(ss) {
   var config = ss.getSheetByName('CONFIGURAÇÕES');
   var naturezas = [];
-  if (config) {
+  if (config && config.getLastRow() > 1) {
     var dados = config.getDataRange().getValues();
     for (var i = 1; i < dados.length; i++) {
       var val = String(dados[i][0] || '').trim();
-      if (val && !val.startsWith('TEMA_')) naturezas.push(val);
+      if (val && !val.toUpperCase().startsWith('TEMA_') && naturezas.indexOf(val) === -1) {
+        naturezas.push(val);
+      }
     }
   }
 
