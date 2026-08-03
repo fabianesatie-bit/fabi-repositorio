@@ -1,181 +1,135 @@
 <script>
-  /**
-   * ECOSSISTEMA GP360 - PORTAL GP 360
-   * Arquivo: Scripts_Core.html
-   * Subpasta Monorepo: src/portal-gp360/
-   */
-
-  /**
-   * Submete o formulário principal de Lançamento de Atividade
-   */
-  function salvarAtividade() {
-    var btn = document.getElementById('btn-salvar-lancamento');
-    if (btn) {
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Gravando Atividade...';
-    }
-
-    var dataAtividade = document.getElementById('input-data-atividade').value;
-    var escopo = document.getElementById('select-escopo-atendimento').value;
-    var tipoRoteiro = document.getElementById('select-tipo-roteiro').value;
-    var filial = document.getElementById('select-filial').value;
-    var natureza = document.getElementById('select-natureza').value;
-    var destinoRegDir = window.targetRegionalDiretoriaSelecionada || '';
-
-    if (!dataAtividade) {
-      mostrarToast('Por favor, informe a data da atividade.', 'danger');
-      restaurarBotaoSalvar();
-      return;
-    }
-
-    if (escopo === 'FILIAL' && !filial) {
-      mostrarToast('Por favor, selecione a filial de destino.', 'danger');
-      restaurarBotaoSalvar();
-      return;
-    }
-
-    if ((escopo === 'REGIONAL' || escopo === 'DIRETORIA') && !destinoRegDir) {
-      mostrarToast('Por favor, clique e selecione qual ' + escopo.toLowerCase() + ' foi atendida.', 'danger');
-      restaurarBotaoSalvar();
-      return;
-    }
-
-    if (!natureza) {
-      mostrarToast('Por favor, selecione a natureza do atendimento.', 'danger');
-      restaurarBotaoSalvar();
-      return;
-    }
-
-    var fileInput = document.getElementById('input-evidencia-file');
-    var fileObj = null;
-
-    if (fileInput && fileInput.files && fileInput.files[0]) {
-      var file = fileInput.files[0];
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        fileObj = {
-          base64: e.target.result,
-          mimeType: file.type,
-          nome: file.name
-        };
-        enviarPayloadAtividade(fileObj);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      enviarPayloadAtividade(null);
-    }
-  }
-
-  function enviarPayloadAtividade(arquivoEvidencia) {
-    var payload = {
-      dataAtividade: document.getElementById('input-data-atividade').value,
-      escopo: document.getElementById('select-escopo-atendimento').value,
-      destinoRegionalDiretoria: window.targetRegionalDiretoriaSelecionada || '',
-      tipoRoteiro: document.getElementById('select-tipo-roteiro').value,
-      filial: document.getElementById('select-filial').value,
-      natureza: document.getElementById('select-natureza').value,
-      temasReuniao: window.temasReuniaoSelecionados || [],
-      temaTreinamento: document.getElementById('select-tema-treinamento') ? document.getElementById('select-tema-treinamento').value : '',
-      pessoasImpactadas: document.getElementById('input-pessoas-impactadas').value,
-      tempoGasto: document.getElementById('input-tempo-gasto').value,
-      rateKm: document.getElementById('input-rate-km').value,
-      km: document.getElementById('input-km').value,
-      alimentacao: document.getElementById('input-alimentacao').value,
-      hospedagem: document.getElementById('input-hospedagem').value,
-      aereo: document.getElementById('input-aereo').value,
-      pedagio: document.getElementById('input-pedagio').value,
-      estacionamento: document.getElementById('input-estacionamento').value,
-      evidenciaUrl: document.getElementById('input-evidencia-url').value,
-      observacao: document.getElementById('input-observacao').value,
-      arquivoEvidencia: arquivoEvidencia
-    };
-
-    google.script.run
-      .withSuccessHandler(function(res) {
-        restaurarBotaoSalvar();
-        if (res && res.sucesso) {
-          mostrarToast(res.mensagem, 'success');
-          document.getElementById('form-lancamento').reset();
-          window.temasReuniaoSelecionados = [];
-          window.targetRegionalDiretoriaSelecionada = '';
-          var containerChips = document.getElementById('chips-container-reuniao');
-          if (containerChips) {
-            var chips = containerChips.querySelectorAll('.chip-tema');
-            chips.forEach(function(c) { c.classList.remove('selected'); });
+  if (typeof google === 'undefined') {
+      console.warn("Ambiente Google Apps Script não detectado. Iniciando modo Mock para Preview.");
+      window.google = {
+          script: {
+              run: {
+                  registrarAuditoria: function(evt, det) { console.log("Auditoria Mock:", evt, det); return this; },
+                  withSuccessHandler: function(callback) {
+                      return {
+                          obterDadosIniciais: function() {
+                              setTimeout(() => callback({
+                                  bloqueado: false,
+                                  usuario: { nome: "Usuário Preview", cargo: "Administrador", infoLinha2: "Visão Preview", regionais: ["Regional Teste"], diretoriasAtendidas: ["Diretoria Teste"], isAdmin: true, isSuperAdmin: true, isConfigAdmin: true, isGerenteGP: true, foto: "" },
+                                  lojas: [{id: 1001, nome: "Loja Preview 1", regional: "Regional Teste"}],
+                                  qtdLojasCarteira: 1, qtdVisitas: 5, moedas: 125, moedasMes: 85, moedasMesAnterior: 40, faseMontanha: 3, gastos: 120.00, gastosMesAnterior: 95.00, historico: [], avisos: [], ranking: [], naturezas: ["Integração Preview"], diretorias: ["Diretoria Teste"],
+                                  mesAtualNum: 7, anoAtualNum: 2026, mesAnteriorNum: 6, anoAnteriorNum: 2026
+                              }), 400);
+                          },
+                          buscarIndicadoresLoja: function() {
+                              setTimeout(() => callback({sucesso: true, venda: "110%", nps: "95", bancoHoras: "10 h", quadro: "0", txdes: "1.5%"}), 400);
+                          },
+                          registrarAtividade: function() { setTimeout(() => callback({sucesso: true}), 400); },
+                          publicarAviso: function() { setTimeout(() => callback({sucesso: true}), 400); },
+                          adicionarNatureza: function() { setTimeout(() => callback({sucesso: true, naturezas: ["Nova Natureza Mock"]}), 400); },
+                          excluirNatureza: function() { setTimeout(() => callback({sucesso: true, naturezas: []}), 400); },
+                          excluirLancamento: function() { setTimeout(() => callback({sucesso: true}), 400); }
+                      };
+                  }
+              }
           }
-          mudarAba('aba-home', document.querySelector('.nav-btn-card'));
-          carregarDadosIniciais();
-        } else {
-          mostrarToast((res ? res.mensagem : 'Falha ao salvar atividade.'), 'danger');
-        }
-      })
-      .withFailureHandler(function(err) {
-        restaurarBotaoSalvar();
-        mostrarToast('Erro na conexão com o servidor: ' + (err.message || err), 'danger');
-      })
-      .salvarAtividadeServidor(payload);
+      };
   }
 
-  function restaurarBotaoSalvar() {
-    var btn = document.getElementById('btn-salvar-lancamento');
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-coin me-1"></i> Salvar e Ganhar Moeda';
+  let dadosGlobais = null; 
+  let modoCicloDash = 'atual';
+
+  const nomesMesesMap = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+  const urlsRedirecionamento = {
+      "Relatorios/Feedback/Acompanhamento": "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec",
+      "Atendimento Social": "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec"
+  };
+  const motivosRedirecionamento = Object.keys(urlsRedirecionamento);
+
+  function usarIniciaisComoFallback(imgElement) {
+      let nome = imgElement.getAttribute('data-nome');
+      if(!nome) nome = 'Usuario GP';
+      imgElement.outerHTML = usarIniciais(nome);
+  }
+
+  function usarIniciais(nome) {
+      let iniciais = nome.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      return '<div style="width:100%;height:100%;border-radius:50%;background:#7C3AED;color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:24px;border:3px solid #7C3AED;">' + iniciais + '</div>';
+  }
+
+  function mostrarToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.innerText = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  function toggleMenu() {
+    document.getElementById('sidebar').classList.toggle('open');
+  }
+
+  function customConfirm(message, onConfirm) {
+      let boxConfirm = document.createElement('div');
+      boxConfirm.style.cssText = "position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; color:#333; padding:25px; border-radius:14px; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.2); text-align:center; min-width:320px; border:1px solid #e2e8f0;";
+      boxConfirm.innerHTML = `
+          <div style="margin-bottom:15px; color:#f43f5e; font-size:30px;"><i class="fa-solid fa-circle-exclamation"></i></div>
+          <h3 style="margin-top:0; color:#1e293b; font-size:18px;">Atenção</h3>
+          <p style="color:#64748b; font-size:14px; margin-bottom:20px;">${message}</p>
+          <div style="display:flex; gap:10px; justify-content:center;">
+              <button id="btn-cancelar-modal" class="btn-secondary" style="width:auto;">Cancelar</button>
+              <button id="btn-confirmar-modal" class="btn-danger" style="width:auto;">Sim, Confirmar</button>
+          </div>
+      `;
+      document.body.appendChild(boxConfirm);
+      document.getElementById('btn-cancelar-modal').onclick = () => boxConfirm.remove();
+      document.getElementById('btn-confirmar-modal').onclick = () => {
+          boxConfirm.remove();
+          onConfirm();
+      };
+  }
+
+  function abrirPainelExterno(titulo, icone, cor, url) {
+     document.getElementById('iframe-title').innerText = titulo;
+     document.getElementById('iframe-icon').className = 'fa-solid ' + icone;
+     document.getElementById('iframe-icon').style.color = cor;
+     document.getElementById('iframe-externo').src = url;
+     document.getElementById('container-iframe-externo').style.display = 'block';
+     setTimeout(() => { document.getElementById('container-iframe-externo').scrollIntoView({ behavior: 'smooth' }); }, 100);
+     google.script.run.registrarAuditoria("Painel Externo", titulo);
+  }
+
+  function fecharPainelExterno() {
+     document.getElementById('container-iframe-externo').style.display = 'none';
+     document.getElementById('iframe-externo').src = '';
+  }
+
+  function abrirPainelInternoEmbutido(url, titulo) {
+     const container = document.getElementById('container-embutido-painel');
+     const iframe = document.getElementById('iframe-painel-embutido-src');
+     const lblTitulo = document.getElementById('titulo-painel-embutido');
+     if (!container || !iframe) return;
+
+     if (lblTitulo) lblTitulo.innerText = titulo || "Painel Corporativo";
+     iframe.src = url;
+     container.style.display = 'block';
+     setTimeout(() => { container.scrollIntoView({ behavior: 'smooth' }); }, 100);
+     google.script.run.registrarAuditoria("Painel Embutido", titulo || url);
+  }
+
+  function fecharPainelEmbutido() {
+     const container = document.getElementById('container-embutido-painel');
+     const iframe = document.getElementById('iframe-painel-embutido-src');
+     if (container) container.style.display = 'none';
+     if (iframe) iframe.src = 'about:blank';
+  }
+
+  function mudarAba(abaId, element) {
+    document.querySelectorAll('.view-aba').forEach(el => el.style.display = 'none');
+    document.getElementById('aba-' + abaId).style.display = 'block';
+    if (element) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      element.classList.add('active');
     }
+    if(window.innerWidth <= 768) { document.getElementById('sidebar').classList.remove('open'); }
   }
 
-  function salvarKMAvulso() {
-    var data = document.getElementById('avulso-data').value;
-    var destino = document.getElementById('avulso-destino').value;
-    var km = document.getElementById('avulso-km').value;
-
-    if (!data || !destino || !km) {
-      mostrarToast('Preencha os campos obrigatórios do KM Avulso.', 'danger');
-      return;
-    }
-
-    var payload = {
-      data: data,
-      destino: destino,
-      rate: document.getElementById('avulso-rate').value,
-      km: km,
-      alimentacao: document.getElementById('avulso-alimentacao').value,
-      hospedagem: document.getElementById('avulso-hospedagem').value,
-      aereo: document.getElementById('avulso-aereo').value,
-      pedagio: document.getElementById('avulso-pedagio').value,
-      estacionamento: document.getElementById('avulso-estacionamento').value
-    };
-
-    google.script.run
-      .withSuccessHandler(function(res) {
-        if (res && res.sucesso) {
-          mostrarToast(res.mensagem, 'success');
-          document.getElementById('form-km-avulso').reset();
-          carregarDadosIniciais();
-        } else {
-          mostrarToast((res ? res.mensagem : 'Erro ao salvar KM avulso.'), 'danger');
-        }
-      })
-      .withFailureHandler(function(err) {
-        mostrarToast('Erro ao gravar KM Avulso: ' + (err.message || err), 'danger');
-      })
-      .salvarKMAvulsoServidor(payload);
-  }
-
-  function deletarHistorico(idReg) {
-    if (!idReg) return;
-    google.script.run
-      .withSuccessHandler(function(res) {
-        if (res && res.sucesso) {
-          mostrarToast(res.mensagem, 'success');
-          carregarDadosIniciais();
-        } else {
-          mostrarToast((res ? res.mensagem : 'Erro ao excluir registro.'), 'danger');
-        }
-      })
-      .withFailureHandler(function(err) {
-        mostrarToast('Erro ao comunicar com o servidor: ' + (err.message || err), 'danger');
-      })
-      .deletarLancamento(idReg);
+  function dispararConfetes() {
+     try { if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, zIndex: 9999 }); } catch(e) {}
   }
 </script>

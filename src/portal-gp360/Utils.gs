@@ -1,150 +1,81 @@
-/**
- * ECOSSISTEMA GP360 - PORTAL GP 360
- * Arquivo: Utils.gs
- * Subpasta Monorepo: src/portal-gp360/
- */
+// =============================================================================
+// MIDDLEWARE E FUNÇÕES UTILITÁRIAS DE SUPORTE
+// =============================================================================
 
 /**
- * Normaliza o ID da filial mantendo o isolamento exato entre filiais e depósitos
- * @param {string|number} id - ID bruto da filial
- * @return {string} ID normalizado
+ * Regra global de higienização de filiais (Séries 3000/4000 para Série Original).
+ * @param {string|number} val ID da filial bruto.
+ * @return {string} ID da filial higienizado.
  */
-function normalizarFilialId(id) {
-  if (id === undefined || id === null || id === '') return '';
-  var str = String(id).trim();
-  var num = parseInt(str.replace(/\D/g, ''), 10);
-  if (isNaN(num)) return str;
+function normalizarFilialId(val) {
+  if (!val && val !== 0) return "";
+  var num = parseInt(String(val).replace(/\D/g, ''), 10);
+  if (isNaN(num)) return String(val).trim();
+  if (num > 3000) { num -= 3000; }
   return String(num);
 }
 
 /**
- * Extrai o ID alfanumerico do Google Drive de uma URL ou ID isolado
- * @param {string} linkOuId - Link completo do Google Drive ou o ID isolado
- * @return {string} ID extraido
+ * Motor centralizado de auditoria para registros de acesso e operações.
+ */
+function registrarAuditoria(evento, detalhe) {
+  try {
+    const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
+    const ssLog = SpreadsheetApp.openById(SPREADSHEET_LOG_ID);
+    const sheetLog = ssLog.getSheetByName('AUDITORIA') || ssLog.getSheets()[0];
+    sheetLog.appendRow([new Date(), emailLogado, evento, detalhe]);
+  } catch(e) { /* Falha silenciosa para estabilidade da UX */ }
+}
+
+/**
+ * Extrai o ID limpo de um arquivo do Google Drive a partir de link ou string bruta.
  */
 function extrairIdDrive(linkOuId) {
-  if (!linkOuId) return '';
-  var str = String(linkOuId).trim();
-  if (str.length === 33 || (str.length >= 25 && !str.includes('/'))) {
-    return str;
-  }
-  var match = str.match(/[-\w]{25,}/);
-  return match ? match[0] : str;
+  if (!linkOuId) return "";
+  const match = linkOuId.match(/[-\w]{25,}(?!.*[-\w]{25,})/);
+  return match ? match[0] : linkOuId;
 }
 
 /**
- * Extrai dia, mes e ano de forma segura a partir de objetos Date, strings ISO ou strings DD/MM/AAAA
- * Imune a oscilacoes de fuso horario (GMT-3)
- * @param {Date|string} dataValor - Data de entrada
- * @return {Object} Objeto contendo { dia: number, mes: number, ano: number }
- */
-function extrairMesAnoData(dataValor) {
-  var agora = new Date();
-  if (!dataValor) {
-    return { dia: agora.getDate(), mes: agora.getMonth() + 1, ano: agora.getFullYear() };
-  }
-  try {
-    if (dataValor instanceof Date) {
-      return {
-        dia: dataValor.getDate(),
-        mes: dataValor.getMonth() + 1,
-        ano: dataValor.getFullYear()
-      };
-    }
-    var str = String(dataValor).trim();
-
-    // Formato ISO YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-      var pIso = str.split('T')[0].split('-');
-      return {
-        dia: parseInt(pIso[2], 10) || 1,
-        mes: parseInt(pIso[1], 10) || (agora.getMonth() + 1),
-        ano: parseInt(pIso[0], 10) || agora.getFullYear()
-      };
-    }
-
-    // Formato DD/MM/AAAA
-    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(str)) {
-      var pBarra = str.split('/');
-      return {
-        dia: parseInt(pBarra[0], 10) || 1,
-        mes: parseInt(pBarra[1], 10) || (agora.getMonth() + 1),
-        ano: parseInt(pBarra[2].substring(0, 4), 10) || agora.getFullYear()
-      };
-    }
-
-    var dObj = new Date(dataValor);
-    if (!isNaN(dObj.getTime())) {
-      return {
-        dia: dObj.getDate(),
-        mes: dObj.getMonth() + 1,
-        ano: dObj.getFullYear()
-      };
-    }
-  } catch (e) {
-    Logger.log('Erro ao extrair mes/ano da data: ' + e.toString());
-  }
-  return { dia: agora.getDate(), mes: agora.getMonth() + 1, ano: agora.getFullYear() };
-}
-
-/**
- * Padroniza saida de datas para string dd/MM/yyyy tratando problemas de fuso horario (GMT-3)
- * @param {Date|string} dataValor - Data a ser formatada
- * @return {string} Data formatada no padrao dd/MM/yyyy
+ * Formata datas com segurança para o padrão dd/MM/yyyy.
  */
 function formatarDataSegura(dataValor) {
-  if (!dataValor) return '';
-  try {
+  if (!dataValor) return "";
+  try { 
     if (dataValor instanceof Date) {
-      return Utilities.formatDate(dataValor, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+        return Utilities.formatDate(dataValor, Session.getScriptTimeZone(), 'dd/MM/yyyy');
     }
+    let str = String(dataValor).trim();
+    let ds = str.split(' ')[0];
+    if (ds.includes('/')) return ds;
 
-    var str = String(dataValor).trim();
-
-    // Tratamento direto para formato ISO YYYY-MM-DD sem recuo de fuso horario
-    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-      var partesIso = str.split('T')[0].split('-');
-      if (partesIso.length === 3) {
-        return partesIso[2] + '/' + partesIso[1] + '/' + partesIso[0];
-      }
+    const dt = new Date(dataValor); 
+    if (!isNaN(dt.getTime())) {
+        return Utilities.formatDate(dt, Session.getScriptTimeZone(), 'dd/MM/yyyy'); 
     }
-
-    // Tratamento direto para formato dd/MM/yyyy
-    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(str)) {
-      var pBarra = str.split('/');
-      var d = ("0" + pBarra[0]).slice(-2);
-      var m = ("0" + pBarra[1]).slice(-2);
-      var a = pBarra[2].substring(0, 4);
-      return d + '/' + m + '/' + a;
-    }
-
-    var dObj = new Date(dataValor);
-    if (!isNaN(dObj.getTime())) {
-      return Utilities.formatDate(dObj, Session.getScriptTimeZone(), 'dd/MM/yyyy');
-    }
-    return str;
-  } catch (e) {
-    return String(dataValor);
-  }
+    return ds; 
+  } catch(e) { return String(dataValor).split(' ')[0]; }
 }
 
 /**
- * Converte strings ou objetos de data em Timestamp para ordenacao em arrays
- * @param {Date|string} dataValor - Data de entrada
- * @return {number} Timestamp numerico em milissegundos
+ * Converte valores de data para timestamp numérico com segurança.
  */
 function obterDataRawSegura(dataValor) {
   if (!dataValor) return 0;
-  try {
+  try { 
     if (dataValor instanceof Date) return dataValor.getTime();
-    var parts = String(dataValor).split('/');
-    if (parts.length === 3) {
-      var d = new Date(parts[2], parts[1] - 1, parts[0]);
-      return d.getTime();
+
+    let str = String(dataValor).trim();
+    let ds = str.split(' ')[0];
+    if (ds.includes('/')) {
+        let p = ds.split('/');
+        if(p.length === 3) return new Date(p[2], p[1]-1, p[0]).getTime();
+    } else if (ds.includes('-')) {
+        let p = ds.split('-');
+        if(p.length === 3) return new Date(p[0], p[1]-1, p[2]).getTime();
     }
-    var d2 = new Date(dataValor);
-    return isNaN(d2.getTime()) ? 0 : d2.getTime();
-  } catch (e) {
-    return 0;
-  }
+    const dt = new Date(dataValor); 
+    if (!isNaN(dt.getTime())) return dt.getTime(); 
+    return 0; 
+  } catch(e) { return 0; }
 }

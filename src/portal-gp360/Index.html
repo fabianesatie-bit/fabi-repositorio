@@ -2,765 +2,470 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Portal GP 360°</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Portal GP 360</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <!-- PWA Standalone Metadata -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="GP 360º">
-  <meta name="theme-color" content="#8B5CF6">
-
-  <!-- Ícone Corporativo Oficial GP 360 -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' width='512' height='512'><defs><linearGradient id='bgGrad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%234203A9;stop-opacity:1'/><stop offset='100%' style='stop-color:%23160048;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad1' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%2317F036;stop-opacity:1'/><stop offset='20%' style='stop-color:%23FBE53B;stop-opacity:1'/><stop offset='40%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='70%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad2' x1='100%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='50%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient><filter id='glow' x='-20%' y='-20%' width='140%' height='140%'><feGaussianBlur stdDeviation='8' result='blur'/><feComposite in='SourceGraphic' in2='blur' operator='over'/></filter></defs><rect width='512' height='512' rx='110' fill='url(%23bgGrad)'/><g filter='url(%23glow)'><ellipse cx='256' cy='256' rx='195' ry='120' fill='none' stroke='url(%23ringGrad1)' stroke-width='14' transform='rotate(-28 256 256)'/><ellipse cx='256' cy='256' rx='185' ry='105' fill='none' stroke='url(%23ringGrad2)' stroke-width='8' transform='rotate(28 256 256)'/></g><text x='51%' y='54%' font-family='Arial, sans-serif' font-size='180' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='middle' letter-spacing='-6'>GP</text></svg>">
-  
-  <link rel="apple-touch-icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' width='512' height='512'><defs><linearGradient id='bgGrad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%234203A9;stop-opacity:1'/><stop offset='100%' style='stop-color:%23160048;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad1' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%2317F036;stop-opacity:1'/><stop offset='20%' style='stop-color:%23FBE53B;stop-opacity:1'/><stop offset='40%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='70%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient><linearGradient id='ringGrad2' x1='100%' y1='0%' x2='0%' y2='100%'><stop offset='0%' style='stop-color:%23FF8A00;stop-opacity:1'/><stop offset='50%' style='stop-color:%23FF14B3;stop-opacity:1'/><stop offset='100%' style='stop-color:%230087FF;stop-opacity:1'/></linearGradient></defs><rect width='512' height='512' rx='110' fill='url(%23bgGrad)'/><ellipse cx='256' cy='256' rx='195' ry='120' fill='none' stroke='url(%23ringGrad1)' stroke-width='14' transform='rotate(-28 256 256)'/><ellipse cx='256' cy='256' rx='185' ry='105' fill='none' stroke='url(%23ringGrad2)' stroke-width='8' transform='rotate(28 256 256)'/><text x='51%' y='54%' font-family='Arial, sans-serif' font-size='180' font-weight='900' fill='white' text-anchor='middle' dominant-baseline='middle' letter-spacing='-6'>GP</text></svg>">
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-
-  <style>
-    :root {
-      /* Soft Pastel UI */
-      --pastel-lavender: #8B5CF6;
-      --pastel-lavender-bg: #F3E8FF;
-      --pastel-lavender-border: #E9D5FF;
-      --pastel-lavender-text: #6D28D9;
-
-      --pastel-blue: #3B82F6;
-      --pastel-blue-bg: #EFF6FF;
-      --pastel-blue-border: #BFDBFE;
-      --pastel-blue-text: #1E40AF;
-
-      --pastel-green: #10B981;
-      --pastel-green-bg: #ECFDF5;
-      --pastel-green-border: #A7F3D0;
-      --pastel-green-text: #047857;
-
-      --pastel-peach: #F59E0B;
-      --pastel-peach-bg: #FFFBEB;
-      --pastel-peach-border: #FDE68A;
-      --pastel-peach-text: #B45309;
-
-      --pastel-pink: #F43F5E;
-      --pastel-pink-bg: #FFF1F2;
-      --pastel-pink-border: #FECDD3;
-      --pastel-pink-text: #BE123C;
-
-      --bg-neutral: #FAFBFD;
-      --card-bg: #FFFFFF;
-      --card-border: #EEF2F6;
-      --text-dark: #1E293B;
-      --text-muted: #64748B;
-    }
-
-    body {
-      background-color: var(--bg-neutral);
-      color: var(--text-dark);
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-      letter-spacing: -0.01em;
-    }
-
-    .top-accent-line {
-      height: 4px;
-      background: linear-gradient(90deg, #DDD6FE, #BFDBFE, #A7F3D0, #FDE68A, #FECDD3);
-      width: 100%;
-    }
-
-    .sidebar {
-      min-height: 100vh;
-      background: #FFFFFF;
-      border-right: 1px solid var(--card-border);
-      box-shadow: 4px 0 20px rgba(148, 163, 184, 0.05);
-    }
-
-    .avatar-profile {
-      width: 82px;
-      height: 82px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 3px solid var(--pastel-lavender-border);
-      box-shadow: 0 6px 16px rgba(124, 58, 237, 0.08);
-      background-color: var(--pastel-lavender-bg);
-    }
-
-    .regional-pills-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      justify-content: center;
-      max-width: 100%;
-    }
-    .regional-pill {
-      font-size: 0.72rem;
-      font-weight: 600;
-      background: var(--pastel-blue-bg);
-      color: var(--pastel-blue-text);
-      border: 1px solid var(--pastel-blue-border);
-      border-radius: 20px;
-      padding: 3px 10px;
-      word-break: break-word;
-    }
-
-    .nav-btn-card {
-      color: #475569;
-      border-radius: 16px;
-      padding: 10px 14px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: #FAFAFC;
-      border: 1px solid #F1F5F9;
-      text-decoration: none;
-      margin-bottom: 6px;
-      user-select: none;
-    }
-    .nav-btn-card:hover, .nav-btn-card:active {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(148, 163, 184, 0.08);
-      background: #FFFFFF;
-      border-color: var(--pastel-lavender-border);
-    }
-    .nav-btn-card.active {
-      background: var(--pastel-lavender-bg) !important;
-      color: var(--pastel-lavender-text) !important;
-      border: 1px solid var(--pastel-lavender-border) !important;
-      box-shadow: 0 4px 14px rgba(124, 58, 237, 0.12) !important;
-      font-weight: 700;
-    }
-    .nav-btn-card.active .nav-icon-badge {
-      background: #FFFFFF !important;
-      color: var(--pastel-lavender-text) !important;
-      box-shadow: 0 2px 6px rgba(124, 58, 237, 0.12);
-    }
-
-    .nav-icon-badge {
-      width: 34px;
-      height: 34px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1rem;
-      flex-shrink: 0;
-    }
-
-    .bento-card {
-      background: var(--card-bg);
-      border-radius: 20px;
-      padding: 20px;
-      box-shadow: 0 10px 30px -10px rgba(100, 116, 139, 0.06);
-      border: 1px solid var(--card-border);
-      transition: transform 0.25s ease, box-shadow 0.25s ease;
-    }
-    .bento-card:hover {
-      box-shadow: 0 14px 35px -8px rgba(124, 58, 237, 0.08);
-    }
-
-    .pb-card-item {
-      background: #FFFFFF;
-      border-radius: 16px;
-      padding: 12px;
-      border: 1px solid #F1F5F9;
-      box-shadow: 0 4px 12px rgba(148, 163, 184, 0.03);
-      border-bottom: 3px solid #CBD5E1;
-      text-align: center;
-    }
-    .pb-card-vendas { border-bottom-color: var(--pastel-green); }
-    .pb-card-nps { border-bottom-color: var(--pastel-blue); }
-    .pb-card-bh { border-bottom-color: var(--pastel-peach); }
-    .pb-card-lixo { border-bottom-color: var(--pastel-lavender); }
-    .pb-card-pcd { border-bottom-color: var(--pastel-pink); }
-    .pb-card-txdesl { border-bottom-color: #F87171; }
-
-    .card-governanca {
-      background: var(--pastel-green-bg);
-      border: 1px solid var(--pastel-green-border);
-      border-radius: 22px;
-    }
-
-    .chip-tema, .card-target-chip {
-      cursor: pointer;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      background: #F8FAFC;
-      color: #64748B;
-      border: 1px solid #E2E8F0;
-      transition: all 0.2s ease;
-      display: inline-block;
-      margin: 3px;
-      user-select: none;
-    }
-    .chip-tema.selected, .card-target-chip.selected {
-      background: var(--pastel-lavender-bg);
-      color: var(--pastel-lavender-text);
-      border-color: var(--pastel-lavender-border);
-      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
-      font-weight: 700;
-    }
-
-    .box-calculadora-despesas {
-      background: var(--pastel-peach-bg);
-      border: 1px solid var(--pastel-peach-border);
-      border-radius: 18px;
-      padding: 16px;
-    }
-
-    .dropzone-paste {
-      border: 2px dashed var(--pastel-blue-border);
-      border-radius: 16px;
-      padding: 18px;
-      text-align: center;
-      background: var(--pastel-blue-bg);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .dropzone-paste:hover, .dropzone-paste:focus {
-      border-color: var(--pastel-blue);
-      background: #DBEAFE;
-    }
-
-    .toast-container-custom {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 10000;
-    }
-    .toast-custom {
-      padding: 12px 20px;
-      border-radius: 16px;
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 600;
-      min-width: 270px;
-    }
-
-    .container-iframe-embutido {
-      background: #FFFFFF;
-      border: 1px solid var(--card-border);
-      border-radius: 18px;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-      height: 720px;
-    }
-    .container-iframe-embutido iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-
-    .form-control, .form-select {
-      border-radius: 12px;
-      border: 1px solid #E2E8F0;
-      padding: 8px 14px;
-      font-size: 0.88rem;
-      line-height: 1.4;
-      transition: all 0.2s ease;
-    }
-    .form-control:focus, .form-select:focus {
-      border-color: var(--pastel-lavender-border);
-      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
-    }
-  </style>
+  <?!= HtmlService.createHtmlOutputFromFile('Styles').getContent(); ?>
 </head>
 <body>
 
-  <div class="top-accent-line"></div>
-  <div id="toast-container" class="toast-container-custom"></div>
+  <div id="bloqueio-tela" class="blocked-screen">
+      <i class="fa-solid fa-lock" style="font-size: 60px; margin-bottom: 20px;"></i>
+      <h1 style="margin: 0 0 10px 0; font-size: 28px;">Acesso Negado</h1>
+      <p style="font-size: 16px; opacity: 0.9;" id="txt-motivo-bloqueio">Seu usuário não possui permissões ativas para navegar no Portal.</p>
+  </div>
 
-  <div id="app-container" class="container-fluid p-0">
-    <div class="row g-0">
-      
-      <!-- SIDEBAR LEFT -->
-      <div class="col-md-3 col-lg-2 sidebar p-3 text-center">
-        <div class="mb-3 mt-1">
-          <img id="user-avatar-img" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%23F3E8FF'/><text x='50%' y='55%' font-size='32' font-weight='bold' fill='%236D28D9' text-anchor='middle' dominant-baseline='middle'>GP</text></svg>" class="avatar-profile mb-2" alt="Foto" onerror="this.src=gerarAvatarSVG('GP');">
-          <h6 class="fw-bold mb-0 text-dark" id="user-nome-display">Carregando...</h6>
-          <small class="badge mt-1 shadow-sm" style="background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text); border: 1px solid var(--pastel-lavender-border);" id="user-cargo-display">Coordenador</small>
-          
-          <div class="mt-2" id="box-regional-pills">
-            <div class="regional-pills-container" id="user-regional-display">
-              <span class="regional-pill">Carregando...</span>
-            </div>
-          </div>
+  <div id="loading-splash" class="loading-overlay">
+    <div class="spinner"></div>
+    <h3 style="color:#475569; font-weight:600;" id="loading-text">Sincronizando portal...</h3>
+  </div>
+
+  <div id="app-container" style="display:none; width:100%; height:100%;">
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div style="width:80px;height:80px;margin:0 auto 10px;" id="user-photo-container"></div>
+        <h3 style="margin:0;font-size:16px;color:#1e293b;" id="user-name">Carregando...</h3>
+        <p style="margin:5px 0 0 0;font-size:12px;color:#64748b;" id="user-role">...</p>
+        <p style="margin:2px 0 0 0;font-size:11px;color:var(--main-color);font-weight:bold;" id="user-info2"></p>
+      </div>
+      <div class="sidebar-nav">
+        <a class="nav-item active" onclick="mudarAba('home', this)"><i class="fa-solid fa-house"></i> Início</a>
+        <a class="nav-item" onclick="mudarAba('lancamento', this)"><i class="fa-solid fa-plus-circle"></i> Lançar Atividade</a>
+        <a class="nav-item" onclick="mudarAba('gestao', this)"><i class="fa-solid fa-list-check"></i> Gestão de Atividades</a>
+        <a class="nav-item" onclick="mudarAba('historico', this)"><i class="fa-solid fa-receipt"></i> Extrato e Despesas</a>
+        <a class="nav-item" onclick="mudarAba('consultas', this)"><i class="fa-solid fa-magnifying-glass"></i> Consultas Gerais</a>
+        <a class="nav-item" href="https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw2uNji5U57BZnGUerQ899Syqwjb_JwMV2nQug_yAQqgGH-nlw-i-y-fdzpuoMOi6uEkA/exec" target="_blank" onclick="google.script.run.registrarAuditoria('Painel Externo', 'Visão Geral GP (Sidebar)')"><i class="fa-solid fa-chart-pie"></i> Visão Geral GP</a>
+
+        <div id="menu-admin" style="display:none; border-top:1px solid #e2e8f0; margin-top:10px; padding-top:10px;">
+           <p style="margin:0 0 10px 20px; font-size:11px; color:#94a3b8; font-weight:bold; text-transform:uppercase;">Administração</p>
+           <a class="nav-item" onclick="mudarAba('configuracoes', this)"><i class="fa-solid fa-gear"></i> Configurações</a>
         </div>
+      </div>
+    </div>
 
-        <hr class="my-2 text-muted opacity-25">
-
-        <!-- MENU NAVEGAÇÃO ENXUTO -->
-        <nav class="nav flex-column text-start">
-          <div class="nav-btn-card active" role="button" onclick="mudarAba('aba-home', this)">
-            <div class="nav-icon-badge" style="background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text);"><i class="bi bi-house-door-fill"></i></div>
-            <span>Início</span>
-          </div>
-
-          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-lancamento', this)">
-            <div class="nav-icon-badge" style="background: var(--pastel-green-bg); color: var(--pastel-green-text);"><i class="bi bi-plus-circle-fill"></i></div>
-            <span>Lançar Atividade</span>
-          </div>
-
-          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-historico', this)">
-            <div class="nav-icon-badge" style="background: var(--pastel-pink-bg); color: var(--pastel-pink-text);"><i class="bi bi-receipt"></i></div>
-            <span>Extrato e Despesas</span>
-          </div>
-
-          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-consultas', this)">
-            <div class="nav-icon-badge" style="background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text);"><i class="bi bi-search"></i></div>
-            <span>Consultas Gerais</span>
-          </div>
-
-          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-visao-gp', this)">
-            <div class="nav-icon-badge" style="background: var(--pastel-blue-bg); color: var(--pastel-blue-text);"><i class="bi bi-pie-chart-fill"></i></div>
-            <span>Visão Geral GP</span>
-          </div>
-
-          <div class="nav-btn-card" role="button" onclick="mudarAba('aba-configuracoes', this)" id="menu-admin">
-            <div class="nav-icon-badge" style="background: #F1F5F9; color: #64748B;"><i class="bi bi-gear-fill"></i></div>
-            <span>Configurações</span>
-          </div>
-        </nav>
+    <div class="main-content">
+      <div class="topbar">
+        <i class="fa-solid fa-bars menu-toggle" onclick="toggleMenu()"></i>
+        <h2 style="margin:0; font-size:18px; color:#1e293b; font-weight:700;">Portal GP 360</h2>
+        <div style="display:flex; align-items:center; gap:10px; font-weight:bold; color:#f59e0b;">
+          <i class="fa-solid fa-coins"></i> <span id="user-coins">0</span>
+        </div>
       </div>
 
-      <div class="col-md-9 col-lg-10 p-3 p-md-4">
-        
-        <!-- HEADER TOP BAR -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-stars me-2" style="color: var(--pastel-peach);"></i>Portal GP 360</h5>
-          <div class="d-flex align-items-center gap-2">
-            <select id="seletor-mes" class="form-select form-select-sm fw-semibold shadow-sm" onchange="window.alterarPeriodoGeral()" style="min-width: 120px;">
-              <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
-              <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
-              <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
-              <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
-            </select>
-            <select id="seletor-ano" class="form-select form-select-sm fw-semibold shadow-sm" onchange="window.alterarPeriodoGeral()" style="min-width: 90px;">
-              <option value="2025">2025</option><option value="2026">2026</option>
-            </select>
-          </div>
-        </div>
+      <div class="content-area">
 
-        <div id="banner-pwa-install" class="alert border-0 shadow-sm rounded-4 d-flex align-items-center justify-content-between mb-3 p-3 d-none" style="background: var(--pastel-blue-bg);">
-          <div class="d-flex align-items-center gap-3">
-            <div class="p-2 rounded-circle fs-5 d-flex align-items-center justify-content-center" style="background: var(--pastel-blue); color: white; width:40px; height:40px;">
-              <i class="bi bi-phone-vibrate-fill"></i>
-            </div>
-            <div>
-              <h6 class="fw-bold mb-0 text-dark">Instale o App GP 360º no seu Celular!</h6>
-              <small class="text-secondary">Abra sem barra de endereços: Clique no menu do navegador e selecione <strong>"Adicionar à Tela Inicial"</strong>.</small>
-            </div>
-          </div>
-          <button type="button" class="btn-close" onclick="document.getElementById('banner-pwa-install').classList.add('d-none');"></button>
-        </div>
-
-        <!-- ABA HOME -->
         <div id="aba-home" class="view-aba">
-          <div class="card-governanca p-3 p-md-4 mb-3 d-flex justify-content-between align-items-center shadow-sm">
-            <div>
-              <h6 class="fw-bold mb-1" style="color: var(--pastel-green-text);">
-                <i class="bi bi-mountain me-2 fs-5"></i>Sua Escalada de Governança 
-                <span class="badge ms-2 shadow-sm" style="background: var(--pastel-green); color: white;" id="badge-fase-nome">⛺ Fase 1: Acampamento Base</span>
-              </h6>
-              <p class="mb-0 text-secondary small">Moedas do Mês Vigente: <strong class="text-dark fs-6" id="kpi-moedas-mes">0</strong> | Total Acumulado: <strong class="text-dark fs-6" id="kpi-moedas-totais">0</strong></p>
+
+          <div class="card" style="background: linear-gradient(135deg, #ffffff 0%, #f3e8ff 100%); border: 1px solid #e9d5ff; margin-bottom: 20px;">
+             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                   <div style="display: flex; align-items: center; gap: 10px;">
+                      <h3 style="margin: 0; color: #6b21a8; font-size: 18px;"><i class="fa-solid fa-mountain"></i> Sua Escalada de Governança</h3>
+                      <span id="arvore-fase-badge" style="background: #f3e8ff; color: #6b21a8; font-size: 11px; font-weight: bold; padding: 3px 10px; border-radius: 12px; border: 1px solid #d8b4fe;">Fase 1</span>
+                   </div>
+                   <p style="margin: 5px 0 0 0; font-size: 13px; color: #475569;">
+                      Moedas do Mês Vigente: <strong id="arvore-moedas-mes" style="color: #10b981; font-size: 16px;">0</strong> | Total Acumulado: <strong id="arvore-moedas-total" style="color: #0f172a;">0</strong>
+                   </p>
+                </div>
+                <div id="arvore-visual-box" style="width: 85px; height: 80px; background: white; border-radius: 50%; border: 3px solid #c084fc; display: flex; align-items: center; justify-content: center; font-size: 42px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                   🥾
+                </div>
+             </div>
+          </div>
+
+          <div id="mural-avisos-container" class="mural-avisos" style="display:none;">
+             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h4 style="margin:0; color:#92400e;"><i class="fa-solid fa-bullhorn"></i> Quadro de Avisos</h4>
+                <button id="btn-add-aviso" class="btn-primary" style="width:auto; padding:5px 10px; font-size:12px; display:none;" onclick="abrirModalAviso()">+ Novo</button>
+             </div>
+             <div id="lista-avisos"></div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;">
+             <span style="font-size: 12px; font-weight: bold; color: #64748b;"><i class="fa-solid fa-calendar-check"></i> Ciclo Exibido:</span>
+             <button class="pill-btn filter-pill-active" id="btn-dash-atual" onclick="selecionarCicloDash('atual')">Mês Atual (<span id="lbl-mes-atual-nome">Agosto</span>)</button>
+             <button class="pill-btn" id="btn-dash-anterior" onclick="selecionarCicloDash('anterior')">Mês Anterior (<span id="lbl-mes-anterior-nome">Julho</span>)</button>
+          </div>
+
+          <div class="dash-grid">
+            <div class="stat-card">
+              <div class="stat-icon"><i class="fa-solid fa-store"></i></div>
+              <div class="stat-info"><h4>Lojas na Carteira</h4><h2 id="dash-lojas">0</h2></div>
             </div>
-            <div class="bg-white p-2 rounded-circle border shadow-sm d-flex align-items-center justify-content-center" style="width: 58px; height: 58px;">
-              <span id="icone-fase-visual" style="font-size: 1.7rem;">🥾</span>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#eff6ff; color:#2563eb;"><i class="fa-solid fa-route"></i></div>
+              <div class="stat-info"><h4>Visitas (In Loco)</h4><h2 id="dash-visitas">0</h2></div>
+            </div>
+            <div class="stat-card" style="border-left-color: #f59e0b;">
+              <div class="stat-icon" style="background:#fffbeb; color:#f59e0b;"><i class="fa-solid fa-money-bill-wave"></i></div>
+              <div class="stat-info"><h4>Reembolso Estimado</h4><h2 id="dash-gastos">R$ 0,00</h2></div>
             </div>
           </div>
 
-          <div class="row g-3 mb-3">
-            <div class="col-md-4">
-              <div class="bento-card d-flex align-items-center gap-3">
-                <div class="p-3 rounded-4" style="background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text);"><i class="bi bi-shop fs-3"></i></div>
-                <div>
-                  <small class="text-muted fw-semibold d-block">Lojas na Carteira</small>
-                  <h4 class="fw-bold mb-0 text-dark" id="kpi-lojas-carteira">0</h4>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-md-4">
-              <div class="bento-card d-flex align-items-center gap-3">
-                <div class="p-3 rounded-4" style="background: var(--pastel-blue-bg); color: var(--pastel-blue-text);"><i class="bi bi-geo-alt-fill fs-3"></i></div>
-                <div>
-                  <small class="text-muted fw-semibold d-block">Visitas (In Loco)</small>
-                  <h4 class="fw-bold mb-0 text-dark" id="kpi-visitas-loco">0</h4>
-                </div>
-              </div>
-            </div>
-
-            <div class="col-md-4">
-              <div class="bento-card d-flex align-items-center gap-3">
-                <div class="p-3 rounded-4" style="background: var(--pastel-peach-bg); color: var(--pastel-peach-text);"><i class="bi bi-cash-stack fs-3"></i></div>
-                <div>
-                  <small class="text-muted fw-semibold d-block">Reembolso Estimado (Mês)</small>
-                  <h4 class="fw-bold mb-0 text-dark" id="kpi-reembolso-mes">R$ 0,00</h4>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="row g-3 mb-3">
-            <div class="col-md-6">
-              <div class="bento-card h-100">
-                <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-trophy-fill me-2" style="color: var(--pastel-peach);"></i>Top Engajamento (Top 5)</h6>
-                <ul class="list-group list-group-flush" id="lista-ranking">
-                  <li class="list-group-item text-muted border-0">Carregando pódio...</li>
-                </ul>
-              </div>
-            </div>
-
-            <div class="col-md-6">
-              <div class="bento-card h-100">
-                <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-pie-chart-fill me-2" style="color: var(--pastel-lavender);"></i>Distribuição de Atividades do Período</h6>
-                <div style="max-height: 220px;" class="d-flex justify-content-center">
-                  <canvas id="chart-atividades"></canvas>
-                </div>
-              </div>
-            </div>
+          <div class="dash-grid">
+             <div class="card" style="margin-bottom:0;">
+                <h3 style="margin-top:0; border-bottom:1px solid #e2e8f0; padding-bottom:10px; color:#1e293b;"><i class="fa-solid fa-trophy" style="color:#f59e0b;"></i> Top Engajamento (Top 5)</h3>
+                <ul class="ranking-list" id="lista-ranking"></ul>
+             </div>
+             <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+                <i class="fa-solid fa-rocket" style="font-size:40px; color:var(--main-color); margin-bottom:15px;"></i>
+                <h3 style="margin:0 0 10px 0; color:#1e293b;">Bora pro Campo!</h3>
+                <p style="color:#64748b; font-size:14px; margin-bottom:20px;">Lembre-se de registrar suas visitas e interações para manter a operação na mesma página e acumular moedas.</p>
+                <button class="btn-primary" onclick="mudarAba('lancamento', document.querySelectorAll('.nav-item')[1])">Registrar Agora</button>
+             </div>
           </div>
         </div>
 
-        <!-- ABA LANÇAMENTO -->
-        <div id="aba-lancamento" class="view-aba d-none">
-          <div class="bento-card" style="max-width: 900px; margin: 0 auto;">
-            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-plus-square-fill me-2" style="color: var(--pastel-lavender);"></i> Nova Atividade</h6>
-            
-            <form id="form-lancamento" onsubmit="event.preventDefault(); salvarAtividade();">
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label small fw-semibold">Data da Atividade/Viagem</label>
-                  <input type="date" id="input-data-atividade" class="form-control form-control-sm" required>
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label small fw-semibold">Este atendimento foi para:</label>
-                  <select id="select-escopo-atendimento" class="form-select form-select-sm" onchange="alternarEscopoAtendimento()" required>
-                    <option value="FILIAL" selected>Uma Filial Específica</option>
-                    <option value="REGIONAL">Regional</option>
-                    <option value="DIRETORIA">Diretoria</option>
+        <div id="aba-lancamento" class="view-aba" style="display:none;">
+          <div class="card" style="max-width: 650px; margin: 0 auto;">
+            <h2 style="margin-top:0; color:var(--main-color);"><i class="fa-solid fa-file-pen"></i> Nova Atividade</h2>
+            <p style="color:#64748b; font-size:14px; margin-bottom:20px;">Preencha os detalhes do seu roteiro ou interação.</p>
+            <div class="form-group">
+              <label>Data da Atividade/Viagem</label>
+              <input type="date" id="lanc-data" class="form-control">
+            </div>
+            <div style="display:flex; gap:15px; margin-bottom:15px;">
+               <div class="form-group" style="flex:1; margin-bottom:0;">
+                  <label>Este atendimento foi para:</label>
+                  <select id="lanc-escopo" class="form-control" onchange="alternarEscopo(this.value)">
+                    <option value="filial">Uma Filial Específica</option>
+                    <option value="regional">Regional</option>
+                    <option value="diretoria">Diretoria</option>
                   </select>
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label small fw-semibold">Tipo de Roteiro:</label>
-                  <select id="select-tipo-roteiro" class="form-select form-select-sm" required>
-                    <option value="Presencial (Visita in loco)" selected>Presencial (Visita in loco)</option>
+               </div>
+               <div class="form-group" style="flex:1; margin-bottom:0;">
+                  <label>Tipo de Roteiro:</label>
+                  <select id="lanc-roteiro" class="form-control" onchange="verificarCamposDinamicos()">
+                    <option value="Presencial (Visita in loco)">Presencial (Visita in loco)</option>
                     <option value="Online">Online</option>
                     <option value="Presencial (evento/reuniões)">Presencial (evento/reuniões)</option>
-                    <option value="Híbrido">Híbrido</option>
+                    <option value="Hibrido">Híbrido</option>
                   </select>
-                </div>
-
-                <!-- DESTINO SELEÇÃO SE FILIAL -->
-                <div class="col-md-6" id="box-destino-filial">
-                  <label class="form-label small fw-semibold">Destino (Filial)</label>
-                  <select id="select-filial" class="form-select form-select-sm" onchange="exibirIndicadoresFilialSelecionada()">
-                    <option value="">Selecione a loja...</option>
-                  </select>
-                </div>
-
-                <!-- CARDS CLICÁVEIS RESTAURADOS PARA REGIONAL / DIRETORIA -->
-                <div class="col-12 d-none" id="box-destino-regional-diretoria">
-                  <div class="p-3 bg-light rounded-4 border">
-                    <label class="form-label fw-bold text-dark mb-2 small"><i class="bi bi-grid-1x2-fill me-1" style="color: var(--pastel-blue);"></i> Selecione a <span id="label-target-escopo">Regional/Diretoria</span> (Clique em um card):</label>
-                    <div id="chips-container-target" class="d-flex flex-wrap gap-1"></div>
-                  </div>
-                </div>
-
-                <!-- PAINEL DE BORDO DA FILIAL -->
-                <div class="col-12 d-none" id="box-indicadores-filial">
-                  <div class="p-3 bg-light rounded-4 border">
-                    <h6 class="fw-bold text-dark mb-2 small"><i class="bi bi-speedometer2 me-1" style="color: var(--pastel-blue);"></i>Painel de Bordo da Filial:</h6>
-                    
-                    <div class="row g-2">
-                      <div class="col-6 col-md-4 col-lg-2">
-                        <div class="pb-card-item pb-card-vendas">
-                          <small class="text-muted fw-semibold d-block">💰 Vendas %</small>
-                          <span class="fw-bold fs-6 text-dark" id="ind-val-vendas">0,0%</span>
-                        </div>
-                      </div>
-
-                      <div class="col-6 col-md-4 col-lg-2">
-                        <div class="pb-card-item pb-card-nps">
-                          <small class="text-muted fw-semibold d-block">⭐ NPS</small>
-                          <span class="fw-bold fs-6 text-dark" id="ind-val-nps">0,0</span>
-                        </div>
-                      </div>
-
-                      <div class="col-6 col-md-4 col-lg-2">
-                        <div class="pb-card-item pb-card-bh">
-                          <small class="text-muted fw-semibold d-block">⏰ B. Horas</small>
-                          <span class="fw-bold fs-6 text-dark" id="ind-val-bh">0,0 h</span>
-                        </div>
-                      </div>
-
-                      <div class="col-6 col-md-4 col-lg-2">
-                        <div class="pb-card-item pb-card-lixo">
-                          <small class="text-muted fw-semibold d-block">🗑️ Coleta Lixo</small>
-                          <span class="fw-bold fs-6 text-dark" id="ind-val-lixo">0 coletas</span>
-                        </div>
-                      </div>
-
-                      <div class="col-6 col-md-4 col-lg-2">
-                        <div class="pb-card-item pb-card-pcd">
-                          <small class="text-muted fw-semibold d-block">♿ PCD (Gap)</small>
-                          <span class="fw-bold fs-6 text-dark" id="ind-val-pcd">0 vaga(s)</span>
-                        </div>
-                      </div>
-
-                      <div class="col-6 col-md-4 col-lg-2">
-                        <div class="pb-card-item pb-card-txdesl">
-                          <small class="text-muted fw-semibold d-block">📉 Tx Deslig.</small>
-                          <span class="fw-bold fs-6 text-dark" id="ind-val-txdesl">0,0%</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="col-md-12">
-                  <label class="form-label small fw-semibold">Qual a natureza deste atendimento?</label>
-                  <select id="select-natureza" class="form-select form-select-sm" required onchange="verificarCamposDinamicos()">
-                    <option value="">Selecione a natureza...</option>
-                  </select>
-                </div>
-
-                <div class="col-12 d-none" id="box-temas-reuniao">
-                  <div class="p-3 bg-light rounded-4 border">
-                    <label class="form-label fw-bold text-dark mb-2 small"><i class="bi bi-tags-fill me-1" style="color: var(--pastel-lavender);"></i> Temas da Reunião (Múltipla Escolha):</label>
-                    <div id="chips-container-reuniao" class="d-flex flex-wrap"></div>
-                  </div>
-                </div>
-
-                <div class="col-12 d-none" id="box-tema-treinamento">
-                  <div class="p-3 bg-light rounded-4 border">
-                    <label class="form-label fw-bold text-dark mb-2 small"><i class="bi bi-easel-fill me-1" style="color: var(--pastel-green);"></i> Tema do Treinamento:</label>
-                    <select id="select-tema-treinamento" class="form-select form-select-sm">
-                      <option value="">Selecione o tema...</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label small fw-semibold">Pessoas Impactadas</label>
-                  <input type="number" id="input-pessoas-impactadas" class="form-control form-control-sm" placeholder="Ex: 15">
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label small fw-semibold">Tempo Gasto (Horas)</label>
-                  <input type="number" step="0.1" id="input-tempo-gasto" class="form-control form-control-sm" placeholder="Ex: 2 ou 1.5">
-                </div>
-
-                <div class="col-12">
-                  <div class="box-calculadora-despesas">
-                    <h6 class="fw-bold mb-2 text-dark small"><i class="bi bi-car-front-fill me-1"></i>Deslocamento e Despesas da Visita</h6>
-                    <div class="row g-2 mb-2">
-                      <div class="col-md-4">
-                        <label class="small text-secondary">Valor KM (R$)</label>
-                        <input type="number" step="0.01" id="input-rate-km" class="form-control form-control-sm" value="1.20" oninput="calcularDespesas()">
-                      </div>
-                      <div class="col-md-4">
-                        <label class="small text-secondary">Qtd KM</label>
-                        <input type="number" id="input-km" class="form-control form-control-sm" placeholder="0" oninput="calcularDespesas()">
-                      </div>
-                      <div class="col-md-4">
-                        <label class="small text-secondary">Custo KM (R$)</label>
-                        <input type="text" id="display-custo-km" class="form-control form-control-sm bg-light" value="0.00" readonly>
-                      </div>
-                    </div>
-
-                    <hr class="my-2 border-warning">
-
-                    <h6 class="fw-bold mb-2 text-dark small"><i class="bi bi-receipt me-1"></i>Outros Gastos (Opcional)</h6>
-                    <div class="row g-2">
-                      <div class="col-md-4"><label class="small text-secondary">Alimentação (R$)</label><input type="number" step="0.01" id="input-alimentacao" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
-                      <div class="col-md-4"><label class="small text-secondary">Hospedagem (R$)</label><input type="number" step="0.01" id="input-hospedagem" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
-                      <div class="col-md-4"><label class="small text-secondary">Aéreo (R$)</label><input type="number" step="0.01" id="input-aereo" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
-                      <div class="col-md-6"><label class="small text-secondary">Pedágio (R$)</label><input type="number" step="0.01" id="input-pedagio" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
-                      <div class="col-md-6"><label class="small text-secondary">Estacion. (R$)</label><input type="number" step="0.01" id="input-estacionamento" class="form-control form-control-sm" placeholder="0.00" oninput="calcularDespesas()"></div>
-                    </div>
-
-                    <div class="mt-2 text-end fw-bold text-dark fs-6" id="display-gasto-total">Gasto Total: R$ 0,00</div>
-                  </div>
-                </div>
-
-                <div class="col-12">
-                  <label class="form-label small fw-semibold"><i class="bi bi-paperclip"></i> Evidência da Atividade</label>
-                  <div class="p-3 bg-light rounded-4 border">
-                    <small class="d-block text-muted mb-1">Opção 1: Enviar Arquivo (PC/Celular)</small>
-                    <input type="file" id="input-evidencia-file" class="form-control form-control-sm mb-2" accept="image/*" onchange="limparOutrasEvidencias('file')">
-
-                    <small class="d-block text-muted mb-1">Opção 2: Colar Imagem (Ctrl+V)</small>
-                    <div class="dropzone-paste mb-2" id="dropzone-ctrlv" tabIndex="0" onclick="ativarDropzoneClipboard(this)">
-                      <i class="bi bi-clipboard-plus fs-4" style="color: var(--pastel-blue);"></i>
-                      <p class="mb-0 small text-dark fw-bold" id="txt-dropzone">Clique aqui e aperte Ctrl+V</p>
-                    </div>
-
-                    <small class="d-block text-muted mb-1">Opção 3: Link do Google Drive</small>
-                    <input type="url" id="input-evidencia-url" class="form-control form-control-sm" placeholder="Cole o link da imagem aqui" oninput="limparOutrasEvidencias('url')">
-                  </div>
-                </div>
-
-                <div class="col-md-12">
-                  <label class="form-label small fw-semibold">Observações</label>
-                  <textarea id="input-observacao" class="form-control form-control-sm" rows="2" placeholder="Descreva as ações realizadas..."></textarea>
-                </div>
-
-                <div class="col-12 mt-3 text-end">
-                  <button type="submit" class="btn text-white px-4 fw-bold py-2 w-100 fs-6 shadow-sm rounded-4" style="background: var(--pastel-lavender);" id="btn-salvar-lancamento">
-                    <i class="bi bi-coin me-1"></i> Salvar e Ganhar Moeda
-                  </button>
-                </div>
+               </div>
+            </div>
+            <div class="form-group" id="grupo-filial">
+              <label>Destino (Filial)</label>
+              <select id="lanc-destino" class="form-control" onchange="mostrarIndicadoresLancamento(this.value)">
+                <option value="">Selecione...</option>
+              </select>
+            </div>
+            <div class="form-group" id="grupo-abrangencia-lancamento" style="display: none; background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0;">
+              <label style="color:#0f172a;" id="lbl-abrangencia"><i class="fa-solid fa-map-location-dot"></i> Selecione:</label>
+              <div style="margin-bottom: 10px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
+                 <label style="display:flex; align-items:center; gap:5px; font-size:13px; font-weight:bold; color:var(--main-color); cursor:pointer;">
+                    <input type="checkbox" id="check-todas-abrangencia" onchange="toggleTodasAbrangencias(this)">
+                    Selecionar Todas as Opções Abaixo
+                 </label>
               </div>
-            </form>
+              <div id="container-pilulas-abrangencia" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+            </div>
+            <div id="painel-indicadores-lancamento" style="display: none; margin-top: 15px; margin-bottom: 15px;">
+               <label style="color: var(--main-color);"><i class="fa-solid fa-bolt"></i> Painel de Bordo Rápido:</label>
+               <div id="loading-indicadores-lanc" class="loading-ind" style="display:none;">Buscando indicadores da loja...</div>
+               <div class="indicadores-mini-grid" id="grid-indicadores-lanc">
+                  <div class="ind-card" style="border-bottom:4px solid #10b981;"><h5>💰 Vendas</h5><div class="valor" id="ind-rec-val">-</div></div>
+                  <div class="ind-card" style="border-bottom:4px solid #2563eb;"><h5>⭐ NPS Atual</h5><div class="valor" id="ind-nps-val">-</div></div>
+                  <div class="ind-card" style="border-bottom:4px solid #f59e0b;"><h5>⏰ B. Horas</h5><div class="valor" id="ind-bh-val">-</div></div>
+                  <div class="ind-card" style="border-bottom:4px solid #64748b;"><h5>👥 Vagas</h5><div class="valor" id="ind-quadro-val">-</div></div>
+                  <div class="ind-card" style="border-bottom:4px solid #f43f5e;"><h5>📉 Tx Deslig.</h5><div class="valor" id="ind-txdes-val">-</div></div>
+               </div>
+            </div>
+            <div class="form-group">
+              <label>Qual a natureza deste atendimento?</label>
+              <select id="lanc-motivo" class="form-control" onchange="verificarCamposDinamicos()">
+                 <optgroup label="Reuniões e Treinamentos">
+                   <option value="Reunião regional">Reunião regional</option>
+                   <option value="Treinamentos">Treinamentos</option>
+                 </optgroup>
+                 <optgroup label="Seleção e Celebração">
+                   <option value="Celebrações/Ritão/Reconhecimento">Celebrações/Ritão/Reconhecimento</option>
+                   <option value="Recrutamento e seleção - 1º liderança">Recrutamento e seleção - 1º liderança</option>
+                   <option value="Recrutamento e seleção - Processo Externo">Recrutamento e seleção - Processo Externo</option>
+                 </optgroup>
+                 <optgroup label="Conselhos">
+                   <option value="Reunião Conselho E Conselho consultivo">Reunião Conselho E Conselho consultivo</option>
+                 </optgroup>
+                 <optgroup label="Metas e Indicadores">
+                   <option value="NPS - Lojas">NPS - Lojas</option>
+                   <option value="Receita de Mercadoria">Receita (Vendas)</option>
+                   <option value="GMD - Operações de Loja">GMD - Operações de Loja</option>
+                 </optgroup>
+                 <optgroup label="⚖️ Apurações e Feedback">
+                   <option value="Relatorios/Feedback/Acompanhamento">Relatórios/Feedback/Acompanhamento</option>
+                   <option value="Atendimento Social">Atendimento Social</option>
+                 </optgroup>
+                 <optgroup id="optgroup-dinamico" label="🌟 Outras Atividades" style="display:none;"></optgroup>
+              </select>
+            </div>
+            <div id="sub-reuniao" class="form-group" style="display:none; background:#f3e8ff; padding:15px; border-radius:10px; border:1px solid #d8b4fe;">
+              <label style="color:#6b21a8; margin-bottom:10px;"><i class="fa-solid fa-tags"></i> Temas da Reunião (Múltipla Escolha):</label>
+              <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                <label class="check-label"><input type="checkbox" value="NPS" class="chk-tema"><span class="pill-btn">NPS</span></label>
+                <label class="check-label"><input type="checkbox" value="GMD" class="chk-tema"><span class="pill-btn">GMD</span></label>
+                <label class="check-label"><input type="checkbox" value="Banco de Horas" class="chk-tema"><span class="pill-btn">Banco de Horas</span></label>
+                <label class="check-label"><input type="checkbox" value="PCD" class="chk-tema"><span class="pill-btn">PCD</span></label>
+                <label class="check-label"><input type="checkbox" value="Quadro" class="chk-tema"><span class="pill-btn">Quadro</span></label>
+                <label class="check-label"><input type="checkbox" value="Lixo Eletrônico" class="chk-tema"><span class="pill-btn">Lixo Eletrônico</span></label>
+                <label class="check-label"><input type="checkbox" value="Campanha Sazonais" class="chk-tema"><span class="pill-btn">Campanha Sazonais</span></label>
+                <label class="check-label"><input type="checkbox" value="Agente Integrador" class="chk-tema"><span class="pill-btn">Agente Integrador</span></label>
+              </div>
+            </div>
+            <div id="sub-treinamento" class="form-group" style="display:none; background:#f3e8ff; padding:15px; border-radius:10px; border:1px solid #d8b4fe;">
+              <label style="color:#6b21a8;"><i class="fa-solid fa-chalkboard-user"></i> Tema do Treinamento:</label>
+              <select id="treinamento-tema" class="form-control">
+                <option value="Liderança">Liderança</option>
+                <option value="Assedio">Assédio</option>
+                <option value="Juridico">Jurídico</option>
+                <option value="Auditoria">Auditoria</option>
+                <option value="Integração">Integração</option>
+                <option value="Atendimento 10 estrelas">Atendimento 10 estrelas</option>
+                <option value="Motivacional">Motivacional</option>
+                <option value="Feedback">Feedback</option>
+                <option value="Inegociaveis">Inegociáveis</option>
+                <option value="Apontamento">Apontamento</option>
+              </select>
+            </div>
+            <div id="grupo-metricas-impacto" style="display:block;">
+                <div style="display:flex; gap:15px; margin-bottom:15px;">
+                  <div class="form-group" style="flex:1; margin-bottom:0;">
+                    <label>Pessoas Impactadas</label>
+                    <input type="number" id="lanc-pessoas" class="form-control" min="0" step="1" placeholder="Ex: 15">
+                  </div>
+                  <div class="form-group" style="flex:1; margin-bottom:0;">
+                    <label>Tempo Gasto (Horas)</label>
+                    <input type="number" id="lanc-tempo" class="form-control" min="0" step="0.5" placeholder="Ex: 2 ou 1.5">
+                  </div>
+                </div>
+            </div>
+
+            <div id="grupo-km" style="display:block; background:#fffbeb; padding:15px; border-radius:10px; margin-bottom:15px; border:1px solid #fef08a;">
+              <h4 style="color:#b45309; margin-top:0; margin-bottom:15px; font-size:15px;"><i class="fa-solid fa-car"></i> Deslocamento e Despesas da Visita</h4>
+              <div style="display:flex; gap:10px; margin-bottom:10px;">
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#b45309;">Valor do KM (R$)</label>
+                    <input type="number" id="km-valor" class="form-control" value="1.20" step="0.01" oninput="calcularDespesas()">
+                 </div>
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#b45309;">Qtd de KM</label>
+                    <input type="number" id="km-qtd" class="form-control" value="0" step="1" oninput="calcularDespesas()">
+                 </div>
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#b45309;">Custo KM (R$)</label>
+                    <input type="number" id="km-custo-display" class="form-control" readonly placeholder="0.00" style="background:#f1f5f9; font-weight:bold;">
+                 </div>
+              </div>
+              <h5 style="font-size:13px; color:#b45309; border-top:1px dashed #fcd34d; padding-top:10px; margin-top:10px;"><i class="fa-solid fa-receipt"></i> Outros Gastos (Opcional)</h5>
+              <div style="display:flex; gap:10px; margin-bottom:10px;">
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#b45309;">Alimentação (R$)</label>
+                    <input type="number" id="gasto-alimentacao" class="form-control" min="0" step="0.01" oninput="calcularDespesas()">
+                 </div>
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#b45309;">Hospedagem (R$)</label>
+                    <input type="number" id="gasto-hospedagem" class="form-control" min="0" step="0.01" oninput="calcularDespesas()">
+                 </div>
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#b45309;">Aéreo (R$)</label>
+                    <input type="number" id="gasto-aereo" class="form-control" min="0" step="0.01" oninput="calcularDespesas()">
+                 </div>
+              </div>
+              <div style="display:flex; gap:10px;">
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#b45309;">Pedágio (R$)</label>
+                    <input type="number" id="gasto-pedagio" class="form-control" min="0" step="0.01" oninput="calcularDespesas()">
+                 </div>
+                 <div style="flex:1;">
+                    <label style="font-size:11px; color:#b45309;">Estacion. (R$)</label>
+                    <input type="number" id="gasto-estacionamento" class="form-control" min="0" step="0.01" oninput="calcularDespesas()">
+                 </div>
+              </div>
+              <div style="text-align:right; font-weight:bold; color:#b45309; font-size:16px; margin-top:15px; border-top:1px solid #fcd34d; padding-top:10px;">
+                 Gasto Total: R$ <span id="gasto-total-display">0,00</span>
+              </div>
+            </div>
+
+            <div class="form-group" id="grupo-evidencia" style="background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:15px;">
+              <label style="color:#0f172a; margin-bottom:10px;"><i class="fa-solid fa-link"></i> Link do Comprovante/Evidência (Google Drive)</label>
+              <input type="text" id="lanc-link-drive" class="form-control" placeholder="Cole o link do Google Drive aqui (Opcional)">
+            </div>
+
+            <div class="form-group" id="grupo-obs">
+              <label>Observações</label>
+              <textarea id="lanc-obs" class="form-control" rows="3"></textarea>
+            </div>
+
+            <button class="btn-primary" onclick="salvarAtividade()" id="btn-salvar"><i class="fa-solid fa-coins"></i> Salvar e Ganhar Moeda</button>
           </div>
         </div>
 
-        <!-- ABA CONSULTAS (7 CARDS) -->
-        <div id="aba-consultas" class="view-aba d-none">
-          <div class="bento-card mb-3">
-            <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-search me-2" style="color: var(--pastel-lavender);"></i>Consultas Gerais</h6>
-            <p class="text-muted small mb-3">Acesse rapidamente todos os 7 painéis e recursos corporativos do ecossistema sem sair do portal.</p>
-            
-            <div class="row g-3">
-              <div class="col-md-6 col-lg-4">
-                <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-person-badge display-6 mb-2" style="color: var(--pastel-blue);"></i>
-                  <h6 class="fw-bold text-dark">Perfil do Gerente</h6>
-                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzqQNOM7dAJb4o2Q9Wp5OPcNEcRrh8J1N74-L_NSagvRF1XdfRrOvRk1yFpIoI8ePZt/exec', 'Perfil do Gerente')" class="btn btn-sm text-white w-100 fw-bold mt-2 rounded-3" style="background: var(--pastel-blue);">Acessar Painel</button>
-                </div>
-              </div>
-
-              <div class="col-md-6 col-lg-4">
-                <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-heart-pulse display-6 mb-2" style="color: var(--pastel-pink);"></i>
-                  <h6 class="fw-bold text-dark">Atendimento Social</h6>
-                  <button type="button" onclick="window.open('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', '_blank')" class="btn btn-sm text-white w-100 fw-bold mt-2 rounded-3" style="background: var(--pastel-pink);">Acessar Painel</button>
-                </div>
-              </div>
-
-              <div class="col-md-6 col-lg-4">
-                <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-shield-check display-6 mb-2" style="color: var(--pastel-peach);"></i>
-                  <h6 class="fw-bold text-dark">Apurações / Feedback</h6>
-                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback')" class="btn btn-sm text-dark w-100 fw-bold mt-2 rounded-3" style="background: var(--pastel-peach-bg); border: 1px solid var(--pastel-peach-border);">Acessar Painel</button>
-                </div>
-              </div>
-
-              <div class="col-md-6 col-lg-4">
-                <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-people display-6 mb-2" style="color: var(--pastel-green);"></i>
-                  <h6 class="fw-bold text-dark">Agente Integrador</h6>
-                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbySeCo0Pao_eydyF9ZZfetcSf6Rc-kgmdCiXjJkhf4O1r0jnQI6yRCWG_tGkIgwBzXY2A/exec', 'Agente Integrador')" class="btn btn-sm text-white w-100 fw-bold mt-2 rounded-3" style="background: var(--pastel-green);">Acessar Painel</button>
-                </div>
-              </div>
-
-              <div class="col-md-6 col-lg-4">
-                <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-clock-history display-6 mb-2" style="color: var(--pastel-lavender-text);"></i>
-                  <h6 class="fw-bold text-dark">Banco de Horas</h6>
-                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzWpN0-LZa_Lvd6VugBL5k3tWbHa5jdwKhJyD4UCH4Ml00BeNzved493zspKCgZAmz5Vg/exec', 'Banco de Horas')" class="btn btn-sm text-dark w-100 fw-bold mt-2 rounded-3" style="background: var(--pastel-lavender-bg); border: 1px solid var(--pastel-lavender-border);">Acessar Painel</button>
-                </div>
-              </div>
-
-              <div class="col-md-6 col-lg-4">
-                <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-database display-6 mb-2" style="color: var(--pastel-blue);"></i>
-                  <h6 class="fw-bold text-dark">Base Rol</h6>
-                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbx8faffOLaa2D34yPcmyCTh1k4twGCvH-8GoUaKqOMejk9n6CBJbYA0khBu4Yd2WCai/exec', 'Base Rol')" class="btn btn-sm text-white w-100 fw-bold mt-2 rounded-3" style="background: var(--pastel-blue);">Acessar Painel</button>
-                </div>
-              </div>
-
-              <div class="col-md-6 col-lg-4">
-                <div class="bento-card border p-3 text-center bg-light">
-                  <i class="bi bi-recycle display-6 mb-2" style="color: var(--pastel-green);"></i>
-                  <h6 class="fw-bold text-dark">Lixo Eletrônico</h6>
-                  <button type="button" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbybafdaQteFy4FuWwPxIQLGJDGWUsac8jo_agut6PlF42-1ta3mW8uyyjdbtLYGsgWn/exec', 'Lixo Eletrônico')" class="btn btn-sm text-dark w-100 fw-bold mt-2 rounded-3" style="background: var(--pastel-green-bg); border: 1px solid var(--pastel-green-border);">Acessar Painel</button>
-                </div>
-              </div>
-            </div>
-
-            <div id="container-embutido-painel" class="mt-3 d-none">
-              <div class="d-flex justify-content-between align-items-center bg-light p-2 border rounded-top">
-                <h6 class="fw-bold mb-0 text-dark small"><i class="bi bi-window-stack me-2 text-primary"></i><span id="titulo-painel-embutido">Painel Corporativo</span></h6>
-                <button type="button" class="btn btn-sm btn-secondary fw-bold rounded-3" onclick="fecharPainelEmbutido()"><i class="bi bi-x-lg me-1"></i> Fechar</button>
-              </div>
-              <div class="container-iframe-embutido">
-                <iframe id="iframe-painel-embutido-src" src="about:blank"></iframe>
-              </div>
-            </div>
-          </div>
+        <div id="aba-gestao" class="view-aba" style="display:none;">
+           <h2 style="margin-top:0; color:#1e293b;">Gestão de Atividades</h2>
+           <p style="color:#64748b; font-size:14px; margin-bottom:20px;">Linha do tempo operacional e controle de envios (Visitas, Online e Portais Externos).</p>
+           <ul class="history-list" id="lista-gestao"></ul>
         </div>
 
-        <!-- ABA HISTÓRICO / EXTRATO COM SUPORTE A EXCLUSÃO DE LANÇAMENTOS PRÓPRIOS -->
-        <div id="aba-historico" class="view-aba d-none">
-          <div class="bento-card">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <h6 class="fw-bold mb-0 text-dark">Extrato de Reembolso e Despesas</h6>
-              <div class="d-flex gap-2">
-                <button type="button" onclick="alternarFormularioKMAvulso()" class="btn btn-sm fw-bold shadow-sm rounded-3" style="background: var(--pastel-peach-bg); border: 1px solid var(--pastel-peach-border); color: var(--pastel-peach-text);"><i class="bi bi-car-front-fill me-1"></i> + KM Avulso</button>
+        <div id="aba-historico" class="view-aba" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap: wrap; gap:10px;">
+             <h2 style="margin:0; color:#1e293b;">Extrato de Reembolso e Despesas</h2>
+             <div style="display:flex; gap:10px;">
+                <button class="btn-secondary" style="background-color: #f59e0b; color: white; border-color: #d97706;" onclick="abrirModalAvulso()"><i class="fa-solid fa-car-side"></i> KM Avulso</button>
+                <button class="btn-secondary" onclick="imprimirRelatorioKM()"><i class="fa-solid fa-print"></i> Imprimir Extrato</button>
+             </div>
+          </div>
+          <div id="modal-km-avulso" style="display: none; background: #fffbeb; border: 2px solid #f59e0b; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+             <h4 style="margin-top:0; color:#b45309;"><i class="fa-solid fa-route"></i> Lançamento de KM Avulso (Sede/Eventos)</h4>
+             <div style="display:flex; gap:15px; margin-bottom:15px;">
+                <div class="form-group" style="flex:1; margin-bottom:0;"><label>Data da Viagem:</label><input type="date" id="avulso-data" class="form-control"></div>
+                <div class="form-group" style="flex:2; margin-bottom:0;"><label>Destino (Livre):</label><input type="text" id="avulso-destino" class="form-control" placeholder="Ex: Reunião na Sede Franca"></div>
+             </div>
+
+             <div style="display:flex; gap:15px; margin-bottom:15px;">
+                <div class="form-group" style="flex:1; margin-bottom:0;"><label>Valor KM:</label><input type="number" id="avulso-valor" class="form-control" step="0.01" value="1.20" oninput="calcularDespesasAvulso()"></div>
+                <div class="form-group" style="flex:1; margin-bottom:0;"><label>Qtd (KM):</label><input type="number" id="avulso-qtd" class="form-control" min="0" step="0.1" oninput="calcularDespesasAvulso()"></div>
+             </div>
+             <h5 style="font-size:13px; color:#b45309; border-top:1px dashed #fcd34d; padding-top:10px; margin-top:10px;"><i class="fa-solid fa-receipt"></i> Outros Gastos (Opcional)</h5>
+             <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <div style="flex:1;"><label style="font-size:11px; color:#b45309;">Alimentação (R$)</label><input type="number" id="avulso-alimentacao" class="form-control" min="0" step="0.01" oninput="calcularDespesasAvulso()"></div>
+                <div style="flex:1;"><label style="font-size:11px; color:#b45309;">Hospedagem (R$)</label><input type="number" id="avulso-hospedagem" class="form-control" min="0" step="0.01" oninput="calcularDespesasAvulso()"></div>
+                <div style="flex:1;"><label style="font-size:11px; color:#b45309;">Aéreo (R$)</label><input type="number" id="avulso-aereo" class="form-control" min="0" step="0.01" oninput="calcularDespesasAvulso()"></div>
+             </div>
+             <div style="display:flex; gap:10px;">
+                <div style="flex:1;"><label style="font-size:11px; color:#b45309;">Pedágio (R$)</label><input type="number" id="avulso-pedagio" class="form-control" min="0" step="0.01" oninput="calcularDespesasAvulso()"></div>
+                <div style="flex:1;"><label style="font-size:11px; color:#b45309;">Estacion. (R$)</label><input type="number" id="avulso-estacionamento" class="form-control" min="0" step="0.01" oninput="calcularDespesasAvulso()"></div>
+             </div>
+             <div style="text-align:right; font-weight:bold; color:#b45309; font-size:16px; margin-top:15px; border-top:1px solid #fcd34d; padding-top:10px;">
+                Gasto Total: R$ <span id="avulso-total-display">0,00</span>
+             </div>
+
+             <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+                <button class="btn-secondary" style="width:auto;" onclick="document.getElementById('modal-km-avulso').style.display='none'">Cancelar</button>
+                <button class="btn-primary" style="width:auto; background-color:#f59e0b;" onclick="salvarKMAvulso()">Salvar KM Avulso</button>
+             </div>
+          </div>
+
+          <div style="background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+             <div style="display:flex; gap:10px; margin-bottom:12px; align-items:center; flex-wrap:wrap;">
+                <span style="font-size:12px; font-weight:bold; color:#64748b;"><i class="fa-solid fa-filter"></i> Atalho por Ciclo:</span>
+                <button class="pill-btn" onclick="filtrarCicloRapido('julho')">Julho/2026</button>
+                <button class="pill-btn" onclick="filtrarCicloRapido('agosto')">Agosto/2026</button>
+                <button class="pill-btn" onclick="limparFiltroDatas()">Ver Todo o Histórico</button>
+             </div>
+             <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                <div class="form-group" style="margin-bottom:0; flex:1; min-width: 140px;">
+                   <label>Data Início:</label>
+                   <input type="date" id="filtro-dt-inicio" class="form-control" onchange="renderizarHistoricos()">
+                </div>
+                <div class="form-group" style="margin-bottom:0; flex:1; min-width: 140px;">
+                   <label>Data Fim:</label>
+                   <input type="date" id="filtro-dt-fim" class="form-control" onchange="renderizarHistoricos()">
+                </div>
+                <button class="btn-secondary" onclick="limparFiltroDatas()"><i class="fa-solid fa-eraser"></i> Limpar</button>
+             </div>
+          </div>
+
+          <ul class="history-list" id="lista-historico"></ul>
+        </div>
+
+        <div id="aba-consultas" class="view-aba" style="display:none;">
+           <h2 style="margin-top:0; color:#1e293b;">Consultas Gerais</h2>
+           <p style="color:#64748b; margin-bottom:20px;">Acesse rapidamente todos os 7 painéis e recursos corporativos do ecossistema sem sair do portal.</p>
+
+           <div class="dash-grid">
+              <div class="card" style="text-align:center; cursor:pointer; transition:transform 0.2s;" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzqQNOM7dAJb4o2Q9Wp5OPcNEcRrh8J1N74-L_NSagvRF1XdfRrOvRk1yFpIoI8ePZt/exec', 'Perfil do Gerente')">
+                 <i class="fa-solid fa-id-card-clip" style="font-size:40px; color:#2563eb; margin-bottom:15px;"></i>
+                 <h3 style="margin:0 0 5px 0; color:#1e293b;">Perfil do Gerente</h3>
+                 <p style="font-size:12px; color:#64748b;">Acessar painel interno</p>
               </div>
-            </div>
 
-            <div id="tabela-extrato-container" class="d-flex flex-column gap-2">
-              <div class="text-muted p-2 small">Carregando extrato de lançamentos...</div>
-            </div>
-          </div>
+              <div class="card" style="text-align:center; cursor:pointer; transition:transform 0.2s;" onclick="window.open('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec', '_blank'); google.script.run.registrarAuditoria('Painel Externo', 'Atendimento Social');">
+                 <i class="fa-solid fa-heart-pulse" style="font-size:40px; color:#f43f5e; margin-bottom:15px;"></i>
+                 <h3 style="margin:0 0 5px 0; color:#1e293b;">Atendimento Social</h3>
+                 <p style="font-size:12px; color:#64748b;">Abrir na Web (Nova Guia)</p>
+              </div>
+
+              <div class="card" style="text-align:center; cursor:pointer; transition:transform 0.2s;" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec', 'Apurações e Feedback')">
+                 <i class="fa-solid fa-shield-halved" style="font-size:40px; color:#f59e0b; margin-bottom:15px;"></i>
+                 <h3 style="margin:0 0 5px 0; color:#1e293b;">Apurações / Feedback</h3>
+                 <p style="font-size:12px; color:#64748b;">Acessar painel interno</p>
+              </div>
+
+              <div class="card" style="text-align:center; cursor:pointer; transition:transform 0.2s;" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbySeCo0Pao_eydyF9ZZfetcSf6Rc-kgmdCiXjJkhf4O1r0jnQI6yRCWG_tGkIgwBzXY2A/exec', 'Agente Integrador')">
+                 <i class="fa-solid fa-users-gear" style="font-size:40px; color:#10b981; margin-bottom:15px;"></i>
+                 <h3 style="margin:0 0 5px 0; color:#1e293b;">Agente Integrador</h3>
+                 <p style="font-size:12px; color:#64748b;">Acessar painel interno</p>
+              </div>
+
+              <div class="card" style="text-align:center; cursor:pointer; transition:transform 0.2s;" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzWpN0-LZa_Lvd6VugBL5k3tWbHa5jdwKhJyD4UCH4Ml00BeNzved493zspKCgZAmz5Vg/exec', 'Banco de Horas')">
+                 <i class="fa-solid fa-clock-rotate-left" style="font-size:40px; color:#7c3aed; margin-bottom:15px;"></i>
+                 <h3 style="margin:0 0 5px 0; color:#1e293b;">Banco de Horas</h3>
+                 <p style="font-size:12px; color:#64748b;">Acessar painel interno</p>
+              </div>
+
+              <div class="card" style="text-align:center; cursor:pointer; transition:transform 0.2s;" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbx8faffOLaa2D34yPcmyCTh1k4twGCvH-8GoUaKqOMejk9n6CBJbYA0khBu4Yd2WCai/exec', 'Base Rol')">
+                 <i class="fa-solid fa-database" style="font-size:40px; color:#2563eb; margin-bottom:15px;"></i>
+                 <h3 style="margin:0 0 5px 0; color:#1e293b;">Base Rol</h3>
+                 <p style="font-size:12px; color:#64748b;">Acessar painel interno</p>
+              </div>
+
+              <div class="card" style="text-align:center; cursor:pointer; transition:transform 0.2s;" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbybafdaQteFy4FuWwPxIQLGJDGWUsac8jo_agut6PlF42-1ta3mW8uyyjdbtLYGsgWn/exec', 'Lixo Eletrônico')">
+                 <i class="fa-solid fa-recycle" style="font-size:40px; color:#10b981; margin-bottom:15px;"></i>
+                 <h3 style="margin:0 0 5px 0; color:#1e293b;">Lixo Eletrônico</h3>
+                 <p style="font-size:12px; color:#64748b;">Acessar painel interno</p>
+              </div>
+           </div>
+
+           <div id="container-embutido-painel" style="display:none; margin-top:20px; width:100%; height:800px; border-radius:12px; overflow:hidden; border:1px solid #cbd5e1; box-shadow: 0 4px 15px -2px rgba(0,0,0,0.05);">
+               <div style="background:#f8fafc; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0;">
+                  <h3 style="margin:0; font-size:15px; color:#1e293b; font-weight:700;"><i class="fa-solid fa-window-restore" style="color:var(--main-color); margin-right:8px;"></i> <span id="titulo-painel-embutido">Painel Corporativo</span></h3>
+                  <button class="btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="fecharPainelEmbutido()"><i class="fa-solid fa-xmark"></i> Fechar Painel</button>
+               </div>
+               <iframe id="iframe-painel-embutido-src" src="about:blank" style="width:100%; height:calc(100% - 50px); border:none;"></iframe>
+           </div>
         </div>
 
-        <!-- ABA CONFIGURAÇÕES -->
-        <div id="aba-configuracoes" class="view-aba d-none">
-          <div class="bento-card">
-            <h6 class="fw-bold mb-1 text-dark">Configurações do Sistema</h6>
-            <p class="text-muted small mb-3">Gerencie as naturezas extras de atividade e os temas operacionais.</p>
+        <div id="aba-configuracoes" class="view-aba" style="display:none;">
+           <h2 style="margin-top:0; color:#1e293b;">Configurações do Sistema</h2>
+           <p style="color:#64748b; font-size:14px; margin-bottom:20px;">Gerencie as naturezas extras de atividade do sistema.</p>
 
-            <div id="container-lista-naturezas" class="d-flex flex-column gap-2 mt-2">
-              <div class="text-muted small">Carregando naturezas...</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ABA VISÃO GP -->
-        <div id="aba-visao-gp" class="view-aba d-none">
-          <div class="bento-card">
-            <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-pie-chart-fill me-2" style="color: var(--pastel-lavender);"></i>Visão Geral GP</h6>
-            <p class="text-muted small mb-3">Acesse a visão unificada e consolidados do ecossistema.</p>
-            <a href="https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw2uNji5U57BZnGUerQ899Syqwjb_JwMV2nQug_yAQqgGH-nlw-i-y-fdzpuoMOi6uEkA/exec" target="_blank" class="btn text-white fw-bold px-3 py-2 shadow-sm btn-sm rounded-3" style="background: var(--pastel-lavender);">
-              <i class="bi bi-box-arrow-up-right me-2"></i> Abrir Visão Geral GP
-            </a>
-          </div>
+           <div class="card" style="max-width: 600px;">
+              <h3 style="margin-top:0; font-size:16px; color:#1e293b;"><i class="fa-solid fa-tags"></i> Naturezas Extras Customizadas</h3>
+              <div style="display:flex; gap:10px; margin-bottom:15px;">
+                 <input type="text" id="nova-natureza" class="form-control" placeholder="Nova natureza (Ex: Integração RH)">
+                 <button class="btn-primary" style="width:auto;" onclick="addNatureza()">Adicionar</button>
+              </div>
+              <ul id="lista-naturezas-admin" class="history-list"></ul>
+           </div>
         </div>
 
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <div id="toast" class="toast">Mensagem salva com sucesso!</div>
 
-  <script>
-    window.addEventListener('DOMContentLoaded', function() {
-      var isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-      var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (isMobile && !isStandalone) {
-        var banner = document.getElementById('banner-pwa-install');
-        if (banner) banner.classList.remove('d-none');
-      }
-    });
-  </script>
+  <div id="modal-novo-aviso" class="modal-overlay" style="display:none;">
+      <div class="modal-content">
+          <h3 style="margin-top:0; color:var(--main-color);">Novo Recado</h3>
+          <p style="font-size:12px; color:#64748b; margin-bottom:15px;">Escreva uma mensagem para fixar no mural e notificar por e-mail.</p>
+          <div class="form-group">
+              <label>Público Alvo (Diretoria):</label>
+              <select id="aviso-diretoria" class="form-control"></select>
+          </div>
+          <div class="form-group">
+             <label>Mensagem:</label>
+             <textarea id="texto-novo-aviso" class="form-control" rows="4" placeholder="Digite o recado..."></textarea>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+              <button class="btn-secondary" style="width:auto;" onclick="fecharModalAviso()">Cancelar</button>
+              <button class="btn-primary" style="width:auto;" onclick="salvarNovoAviso()" id="btn-salvar-aviso">Publicar Aviso</button>
+          </div>
+      </div>
+  </div>
 
-  <?!= include('Scripts_Core'); ?>
-  <?!= include('Scripts_UI'); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('Scripts_Core').getContent(); ?>
+  <?!= HtmlService.createHtmlOutputFromFile('Scripts_UI').getContent(); ?>
 </body>
 </html>

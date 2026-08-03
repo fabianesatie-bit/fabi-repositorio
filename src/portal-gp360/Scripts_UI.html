@@ -1,538 +1,825 @@
 <script>
-  /**
-   * ECOSSISTEMA GP360 - PORTAL GP 360
-   * Arquivo: Scripts_UI.html
-   * Subpasta Monorepo: src/portal-gp360/
-   */
+  window.onload = function() {
+    document.getElementById('lanc-data').valueAsDate = new Date(); 
+    let h = new Date().getHours();
+    let saudacao = h < 12 ? "Bom dia" : (h < 18 ? "Boa tarde" : "Boa noite");
 
-  var dadosGlobais = {};
-  var meuGraficoAtividades = null;
-  var temasReuniaoSelecionados = [];
-  window.targetRegionalDiretoriaSelecionada = '';
+    google.script.run.withSuccessHandler(function(res) {
+       document.getElementById('loading-splash').style.display = 'none';
 
-  // Inicialização Automática assim que a página é aberta no navegador/celular
-  window.addEventListener('DOMContentLoaded', function() {
-    var mesSel = document.getElementById('seletor-mes');
-    var anoSel = document.getElementById('seletor-ano');
-    var agora = new Date();
-    
-    if (mesSel) mesSel.value = String(agora.getMonth() + 1);
-    if (anoSel) anoSel.value = String(agora.getFullYear());
+       if(res.bloqueado) {
+          document.getElementById('bloqueio-tela').style.display = 'flex';
+          if(res.mensagem) document.getElementById('txt-motivo-bloqueio').innerText = res.mensagem;
+          return;
+       }
 
-    carregarDadosIniciais();
-  });
+       if(res.erro) {
+          mostrarToast(res.erro);
+          document.getElementById('app-container').style.display = 'flex';
+          document.getElementById('user-name').innerText = "Erro no Login";
+          return;
+       }
+       document.getElementById('app-container').style.display = 'flex';
+       dadosGlobais = res;
 
-  function carregarDadosIniciais() {
-    var mes = document.getElementById('seletor-mes') ? document.getElementById('seletor-mes').value : (new Date().getMonth() + 1);
-    var ano = document.getElementById('seletor-ano') ? document.getElementById('seletor-ano').value : new Date().getFullYear();
+       document.getElementById('user-name').innerText = saudacao + ", " + res.usuario.nome.split(' ')[0];
+       document.getElementById('user-role').innerText = res.usuario.cargo;
+       document.getElementById('user-info2').innerText = res.usuario.infoLinha2;
+       document.getElementById('user-coins').innerText = res.moedas;
+       let divFoto = document.getElementById('user-photo-container');
+       if (res.usuario.foto) {
+           divFoto.innerHTML = '<img src="' + res.usuario.foto + '" alt="Foto" data-nome="' + res.usuario.nome + '" onerror="usarIniciaisComoFallback(this)">';
+       } else {
+           divFoto.innerHTML = usarIniciais(res.usuario.nome);
+       }
+       if (res.usuario.isAdmin || res.usuario.isSuperAdmin) {
+           document.getElementById('btn-add-aviso').style.display = 'block';
+       }
+       if (res.usuario.isConfigAdmin || res.usuario.isGerenteGP) {
+           document.getElementById('menu-admin').style.display = 'block';
+       }
 
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (!res || !res.temAcesso) {
-            mostrarToast(res ? res.motivo : 'Acesso não autorizado', 'danger');
-            return;
-          }
-          dadosGlobais = res;
-          renderizarInterfaceCompleta();
+       if (typeof res.mesAtualNum === 'number') {
+           document.getElementById('lbl-mes-atual-nome').innerText = nomesMesesMap[res.mesAtualNum];
+           document.getElementById('lbl-mes-anterior-nome').innerText = nomesMesesMap[res.mesAnteriorNum];
+       }
 
-          // Carregamento assíncrono secundário das listas de lojas, regionais e diretorias
-          google.script.run
-            .withSuccessHandler(function(comp) {
-              if (comp) {
-                dadosGlobais.lojas = comp.lojas || [];
-                dadosGlobais.lojasCarteiraTotal = comp.lojasCarteiraTotal || 0;
-                dadosGlobais.regionaisLista = comp.regionaisLista || [];
-                dadosGlobais.diretoriasLista = comp.diretoriasLista || [];
-                dadosGlobais.indicadoresLojas = comp.indicadoresLojas || {};
-                dadosGlobais.naturezas = comp.naturezas || [];
-                dadosGlobais.temas = comp.temas || {};
-                povoarDropdownsFormulario();
-              }
-            })
-            .obterDadosComplementares();
-        })
-        .withFailureHandler(function(err) {
-          mostrarToast('Erro ao carregar dados do servidor: ' + (err.message || err), 'danger');
-        })
-        .obterDadosIniciais(mes, ano);
-    }
-  }
+       renderizarGamificacaoVisual(res);
+       atualizarCardsDashboard();
 
-  function alterarPeriodoGeral() {
-    carregarDadosIniciais();
-  }
+       document.getElementById('dash-lojas').innerText = res.qtdLojasCarteira || res.lojas.length;
+       let selectDestino = document.getElementById('lanc-destino');
+       res.lojas.forEach(loja => {
+          let opt = document.createElement('option');
+          opt.value = loja.id;
+          opt.text = loja.id + ' - ' + loja.nome;
+          selectDestino.add(opt);
+       });
+       
+       atualizarSelectNaturezas(res.naturezas);
+       renderizarRanking(res.ranking);
+       renderizarAvisos(res.avisos);
+       renderizarHistoricos();
+       renderizarListaAdmin(res.naturezas);
+    }).obterDadosIniciais();
+  };
 
-  function obterDataRawSegura(dataValor) {
-    if (!dataValor) return 0;
-    try {
-      if (dataValor instanceof Date) return dataValor.getTime();
-      var parts = String(dataValor).split('/');
-      if (parts.length === 3) {
-        var d = new Date(parts[2], parts[1] - 1, parts[0]);
-        return d.getTime();
-      }
-      var d2 = new Date(dataValor);
-      return isNaN(d2.getTime()) ? 0 : d2.getTime();
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  function gerarAvatarSVG(nome) {
-    var inis = 'GP';
-    if (nome) {
-      var partes = String(nome).trim().split(' ');
-      inis = partes[0].charAt(0).toUpperCase();
-      if (partes.length > 1) inis += partes[partes.length - 1].charAt(0).toUpperCase();
-    }
-    return "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><rect width='80' height='80' fill='%23F3E8FF'/><text x='50%' y='55%' font-size='30' font-weight='bold' fill='%236D28D9' text-anchor='middle' dominant-baseline='middle'>" + inis + "</text></svg>";
-  }
-
-  function mostrarToast(mensagem, tipo) {
-    var container = document.getElementById('toast-container');
-    if (!container) return;
-
-    var bgClass = 'bg-dark text-white';
-    var icon = 'bi-info-circle-fill text-info';
-    if (tipo === 'success') { bgClass = 'bg-success text-white'; icon = 'bi-check-circle-fill text-white'; }
-    if (tipo === 'danger') { bgClass = 'bg-danger text-white'; icon = 'bi-exclamation-triangle-fill text-white'; }
-
-    var toastHtml = '<div class="toast-custom ' + bgClass + '">' +
-      '<i class="bi ' + icon + ' fs-6"></i>' +
-      '<span class="small">' + mensagem + '</span>' +
-    '</div>';
-
-    var elem = document.createElement('div');
-    elem.innerHTML = toastHtml;
-    var toastNode = elem.firstChild;
-    container.appendChild(toastNode);
-
-    setTimeout(function() {
-      if (toastNode && toastNode.parentNode) {
-        toastNode.parentNode.removeChild(toastNode);
-      }
-    }, 4000);
-  }
-
-  function ativarDropzoneClipboard(elem) {
-    elem.focus();
-    var txt = document.getElementById('txt-dropzone');
-    if (txt) txt.innerText = 'Pronto! Aperte Ctrl+V para colar sua imagem agora';
-
-    if (navigator.clipboard && navigator.clipboard.read) {
-      navigator.clipboard.read().then(function(items) {
-        for (var i = 0; i < items.length; i++) {
-          for (var j = 0; j < items[i].types.length; j++) {
-            if (items[i].types[j].indexOf('image') !== -1) {
-              items[i].getType(items[i].types[j]).then(function(blob) {
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                  document.getElementById('input-evidencia-url').value = e.target.result;
-                  if (txt) txt.innerText = '✓ Imagem colada com sucesso!';
-                  mostrarToast('Imagem capturada do Clipboard!', 'success');
-                };
-                reader.readAsDataURL(blob);
-              });
-            }
-          }
-        }
-      }).catch(function(e) {});
-    }
-  }
-
-  document.addEventListener('paste', function(e) {
-    var items = (e.clipboardData || e.originalEvent.clipboardData).items;
-    for (var index in items) {
-      var item = items[index];
-      if (item.kind === 'file') {
-        var blob = item.getAsFile();
-        var reader = new FileReader();
-        reader.onload = function(event) {
-          document.getElementById('input-evidencia-url').value = event.target.result;
-          var txt = document.getElementById('txt-dropzone');
-          if (txt) txt.innerText = '✓ Imagem colada com sucesso via Ctrl+V!';
-          mostrarToast('Imagem colada com sucesso!', 'success');
-        };
-        reader.readAsDataURL(blob);
-      }
-    }
-  });
-
-  function mudarAba(abaId, element) {
-    var abas = document.querySelectorAll('.view-aba');
-    abas.forEach(function(a) { a.classList.add('d-none'); });
-
-    var links = document.querySelectorAll('.nav-btn-card');
-    links.forEach(function(l) { l.classList.remove('active'); });
-
-    var targetAba = document.getElementById(abaId);
-    if (targetAba) targetAba.classList.remove('d-none');
-    if (element) element.classList.add('active');
-
-    if (abaId === 'aba-historico') renderizarHistoricos();
-  }
-
-  function abrirPainelInternoEmbutido(url, titulo) {
-    var titleElem = document.getElementById('titulo-painel-embutido');
-    if (titleElem) titleElem.innerText = titulo;
-    var iframe = document.getElementById('iframe-painel-embutido-src');
-    if (iframe) iframe.src = url;
-    var container = document.getElementById('container-embutido-painel');
-    if (container) {
-      container.classList.remove('d-none');
-      container.scrollIntoView({ behavior: 'smooth' });
-    }
-  }
-
-  function fecharPainelEmbutido() {
-    var iframe = document.getElementById('iframe-painel-embutido-src');
-    if (iframe) iframe.src = 'about:blank';
-    var container = document.getElementById('container-embutido-painel');
-    if (container) container.classList.add('d-none');
-  }
-
-  function renderizarInterfaceCompleta() {
-    var u = dadosGlobais.usuario || {};
-    var nameElem = document.getElementById('user-nome-display');
-    if (nameElem) nameElem.innerText = u.nome || 'Usuário GP';
-    var cargoElem = document.getElementById('user-cargo-display');
-    if (cargoElem) cargoElem.innerText = (u.cargo || 'Colaborador') + ' (' + (u.nivelAcesso || '') + ')';
-
-    var boxRegionais = document.getElementById('user-regional-display');
-    if (boxRegionais) {
-      boxRegionais.innerHTML = '';
-      if (u.regionais && u.regionais.length > 0) {
-        u.regionais.forEach(function(reg) {
-          boxRegionais.innerHTML += '<span class="regional-pill">' + reg + '</span>';
-        });
+  function selecionarCicloDash(modo) {
+      modoCicloDash = modo;
+      if (modo === 'atual') {
+          document.getElementById('btn-dash-atual').classList.add('filter-pill-active');
+          document.getElementById('btn-dash-anterior').classList.remove('filter-pill-active');
       } else {
-        boxRegionais.innerHTML = '<span class="regional-pill" style="background: var(--pastel-green-bg); color: var(--pastel-green-text);">Visão Nacional</span>';
+          document.getElementById('btn-dash-anterior').classList.add('filter-pill-active');
+          document.getElementById('btn-dash-atual').classList.remove('filter-pill-active');
       }
-    }
+      atualizarCardsDashboard();
+  }
 
-    var imgUser = document.getElementById('user-avatar-img');
-    if (imgUser) {
-      if (u.fotoUrl && u.fotoUrl.length > 20) {
-        imgUser.src = u.fotoUrl;
+  function atualizarCardsDashboard() {
+      if (!dadosGlobais) return;
+      if (modoCicloDash === 'atual') {
+          document.getElementById('arvore-moedas-mes').innerText = dadosGlobais.moedasMes || 0;
+          document.getElementById('dash-gastos').innerText = 'R$ ' + (dadosGlobais.gastos || 0).toFixed(2).replace('.', ',');
+          document.getElementById('dash-visitas').innerText = dadosGlobais.qtdVisitas || 0;
       } else {
-        imgUser.src = gerarAvatarSVG(u.nome);
+          document.getElementById('arvore-moedas-mes').innerText = dadosGlobais.moedasMesAnterior || 0;
+          document.getElementById('dash-gastos').innerText = 'R$ ' + (dadosGlobais.gastosMesAnterior || 0).toFixed(2).replace('.', ',');
+          document.getElementById('dash-visitas').innerText = dadosGlobais.qtdVisitasAnterior || 0;
       }
-    }
+      renderizarRanking(dadosGlobais.ranking);
+  }
 
-    if (!u.isAdmin) {
-      var btnAdmin = document.getElementById('menu-admin');
-      if (btnAdmin) btnAdmin.classList.add('d-none');
-    }
+  function renderizarGamificacaoVisual(res) {
+      document.getElementById('arvore-moedas-mes').innerText = res.moedasMes || 0;
+      document.getElementById('arvore-moedas-total').innerText = res.moedas || 0;
 
-    var kpiLojas = document.getElementById('kpi-lojas-carteira');
-    if (kpiLojas) kpiLojas.innerText = dadosGlobais.lojasCarteiraTotal || 0;
-    var kpiVisitas = document.getElementById('kpi-visitas-loco');
-    if (kpiVisitas) kpiVisitas.innerText = dadosGlobais.visitasInLocoMes || 0;
+      let emoji = '🥾';
+      let nomeFase = 'Fase 1: Acampamento Base';
+      if (res.faseMontanha === 2) { emoji = '🧗'; nomeFase = 'Fase 2: Subida da Montanha'; }
+      else if (res.faseMontanha === 3) { emoji = '🏔️'; nomeFase = 'Fase 3: Cume Alcançado'; }
+      else if (res.faseMontanha === 4) { emoji = '🏔️⚡'; nomeFase = 'Fase Final: Bandeira no Everest'; }
+
+      document.getElementById('arvore-visual-box').innerText = emoji;
+      document.getElementById('arvore-fase-badge').innerText = nomeFase;
+  }
+
+  function renderizarRanking(ranking) {
+      const ul = document.getElementById('lista-ranking');
+      if(!ul) return;
+      ul.innerHTML = '';
+      if (!ranking || ranking.length === 0) {
+          ul.innerHTML = '<li style="padding:10px;text-align:center;color:#64748b;">Nenhum engajamento registrado.</li>';
+          return;
+      }
+
+      // Ordenar cópia do ranking com base no ciclo ativo selecionado
+      let rankingCiclo = [...ranking];
+      if (modoCicloDash === 'atual') {
+          rankingCiclo.sort((a, b) => (b.moedasMes || 0) - (a.moedasMes || 0));
+      } else {
+          rankingCiclo.sort((a, b) => (b.moedasMesAnterior || 0) - (a.moedasMesAnterior || 0));
+      }
+
+      const top5 = rankingCiclo.filter(u => {
+          let m = modoCicloDash === 'atual' ? u.moedasMes : u.moedasMesAnterior;
+          return m > 0;
+      }).slice(0, 5);
+
+      if (top5.length === 0) {
+          ul.innerHTML = '<li style="padding:10px;text-align:center;color:#64748b;">Nenhum engajamento registrado neste ciclo.</li>';
+          return;
+      }
+
+      const nomesFaseMontanha = { 
+        1: '🥾 Acampamento Base', 
+        2: '🧗 Subida da Montanha', 
+        3: '🏔️ Cume Alcançado', 
+        4: '🏔️⚡ Bandeira no Everest' 
+      };
+
+      top5.forEach((user, index) => {
+          let pos = index + 1;
+          let posHtml = `<div class="ranking-pos">${pos}º</div>`;
+          let fotoHtml = user.foto ? `<img src="${user.foto}" class="ranking-img" onerror="usarIniciaisComoFallback(this)" data-nome="${user.nome}">` : `<div class="ranking-img">${usarIniciais(user.nome)}</div>`;
+
+          let statusTag = `<span style="font-size:10px; font-weight:bold; background:#f3e8ff; color:#6b21a8; padding:2px 8px; border-radius:10px; display:inline-block;">${nomesFaseMontanha[user.fase || 1]}</span>`;
+
+          let moedasExibidas = modoCicloDash === 'atual' ? user.moedasMes : user.moedasMesAnterior;
+
+          let li = document.createElement('li');
+          li.className = 'ranking-item';
+          li.innerHTML = posHtml + fotoHtml +
+                         `<div class="ranking-info">
+                            <div class="ranking-nome">${user.nome}</div>
+                            <div style="display:flex; align-items:center; gap:6px; margin-top:3px; flex-wrap:wrap;">
+                              ${statusTag}
+                            </div>
+                          </div>
+                          <div class="ranking-moedas"><i class="fa-solid fa-coins" style="color:#f59e0b;"></i> ${moedasExibidas}</div>`;
+          ul.appendChild(li);
+      });
+  }
+
+  function renderizarAvisos(avisos) {
+      const container = document.getElementById('mural-avisos-container');
+      const lista = document.getElementById('lista-avisos');
+      if (!container || !lista) return;
+      lista.innerHTML = '';
+      if (!avisos || avisos.length === 0) {
+          container.style.display = 'none';
+          return;
+      }
+      container.style.display = 'block';
+      avisos.forEach(a => {
+          let btnDel = (dadosGlobais && dadosGlobais.usuario && (dadosGlobais.usuario.isAdmin || dadosGlobais.usuario.isSuperAdmin)) 
+                       ? `<i class="fa-solid fa-xmark btn-del-aviso" onclick="deletarAviso('${a.data}', '${a.mensagem}')" title="Excluir Aviso"></i>` : '';
+          let div = document.createElement('div');
+          div.className = 'aviso-item';
+          div.innerHTML = `<div class="aviso-meta"><i class="fa-regular fa-clock"></i> ${a.data} • ${a.autor}</div>
+                           <div style="font-size:13px; color:#1e293b;">${a.mensagem}</div>
+                           ${btnDel}`;
+          lista.appendChild(div);
+      });
+  }
+
+  function abrirModalAviso() {
+      let selectDir = document.getElementById('aviso-diretoria');
+      selectDir.innerHTML = '<option value="Todos">Todas as Diretorias</option>';
+      if (dadosGlobais && dadosGlobais.diretorias) {
+          dadosGlobais.diretorias.forEach(d => {
+              selectDir.add(new Option(d, d));
+          });
+      }
+      document.getElementById('texto-novo-aviso').value = '';
+      document.getElementById('modal-novo-aviso').style.display = 'flex';
+  }
+
+  function fecharModalAviso() {
+      document.getElementById('modal-novo-aviso').style.display = 'none';
+  }
+
+  function salvarNovoAviso() {
+      let msg = document.getElementById('texto-novo-aviso').value.trim();
+      let dir = document.getElementById('aviso-diretoria').value;
+      if (!msg) return mostrarToast('Digite a mensagem!');
+      let btn = document.getElementById('btn-salvar-aviso');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
+
+      google.script.run.withSuccessHandler(function(res){
+          btn.disabled = false;
+          btn.innerHTML = 'Publicar Aviso';
+          if (res.erro) { mostrarToast(res.erro); return; }
+          mostrarToast('Recado publicado!');
+          fecharModalAviso();
+          google.script.run.withSuccessHandler(function(newData){
+              dadosGlobais = newData;
+              renderizarAvisos(newData.avisos);
+          }).obterDadosIniciais();
+      }).publicarAviso(msg, dir);
+  }
+
+  function deletarAviso(data, msg) {
+      customConfirm("Tem certeza que deseja apagar este recado?", function() {
+          google.script.run.withSuccessHandler(function(res){
+              if (res.erro) { mostrarToast(res.erro); return; }
+              mostrarToast('Recado excluído!');
+              google.script.run.withSuccessHandler(function(newData){
+                  dadosGlobais = newData;
+                  renderizarAvisos(newData.avisos);
+              }).obterDadosIniciais();
+          }).excluirAvisoPlanilha(data, msg);
+      });
+  }
+
+  function toggleTodasAbrangencias(checkbox) {
+     document.querySelectorAll('.chk-abrangencia').forEach(chk => chk.checked = checkbox.checked);
+  }
+
+  function alternarEscopo(valor) {
+    document.getElementById('grupo-filial').style.display = valor === 'filial' ? 'block' : 'none';
+    document.getElementById('grupo-abrangencia-lancamento').style.display = (valor === 'regional' || valor === 'diretoria') ? 'block' : 'none';
+    if(valor !== 'filial') document.getElementById('painel-indicadores-lancamento').style.display = 'none';
     
-    var valReembolso = dadosGlobais.reembolsoEstimadoMes || 0;
-    var kpiReembolso = document.getElementById('kpi-reembolso-mes');
-    if (kpiReembolso) kpiReembolso.innerText = 'R$ ' + valReembolso.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    let containerPils = document.getElementById('container-pilulas-abrangencia');
+    let lblAbrangencia = document.getElementById('lbl-abrangencia');
+    
+    if (containerPils && dadosGlobais) {
+        containerPils.innerHTML = '';
+        let checkTodas = document.getElementById('check-todas-abrangencia');
+        if(checkTodas) checkTodas.checked = false;
 
-    atualizarCardsGamificacao();
-    renderizarRankingTop5();
-    renderizarGraficoAtividades();
-  }
-
-  function renderizarGraficoAtividades() {
-    var ctx = document.getElementById('chart-atividades');
-    if (!ctx) return;
-
-    var mapa = dadosGlobais.distribuicaoAtividades || {};
-    var labels = Object.keys(mapa);
-    var valores = Object.values(mapa);
-
-    if (labels.length === 0) {
-      labels = ['Sem registros no período'];
-      valores = [1];
-    }
-
-    if (meuGraficoAtividades) meuGraficoAtividades.destroy();
-
-    meuGraficoAtividades = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: valores,
-          backgroundColor: ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#F43F5E', '#06B6D4', '#C4B5FD']
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } }
-      }
-    });
-  }
-
-  function povoarDropdownsFormulario() {
-    var selFilial = document.getElementById('select-filial');
-    if (selFilial) {
-      selFilial.innerHTML = '<option value="">Selecione a loja...</option>';
-      (dadosGlobais.lojas || []).forEach(function(l) {
-        selFilial.innerHTML += '<option value="' + l.id + '">' + l.id + ' - ' + l.nome + ' (' + l.regional + ')</option>';
-      });
-    }
-
-    var selNat = document.getElementById('select-natureza');
-    if (selNat) {
-      selNat.innerHTML = '<option value="">Selecione a natureza...</option>';
-      var listaNat = (dadosGlobais.naturezas && dadosGlobais.naturezas.length > 0) ? 
-        dadosGlobais.naturezas : 
-        ['Apurações e Feedback', 'Atendimento Social', 'Checklist de Loja', 'Reunião Regional', 'Roteiro Regional', 'Treinamento', 'Visita Presencial'];
-      
-      var naturezasOrdenadas = listaNat.slice().sort(function(a, b) {
-        return a.localeCompare(b, 'pt-BR');
-      });
-      naturezasOrdenadas.forEach(function(n) {
-        selNat.innerHTML += '<option value="' + n + '">' + n + '</option>';
-      });
-    }
-
-    var containerChips = document.getElementById('chips-container-reuniao');
-    if (containerChips) {
-      containerChips.innerHTML = '';
-      var listaReuniao = (dadosGlobais.temas && dadosGlobais.temas.reuniao && dadosGlobais.temas.reuniao.length > 0) ? 
-        dadosGlobais.temas.reuniao : 
-        ['NPS', 'GMD', 'Banco de Horas', 'PCD', 'Quadro', 'Lixo Eletrônico', 'Campanha Sazonais', 'Agente Integrador'];
-      listaReuniao.forEach(function(t) {
-        containerChips.innerHTML += '<span class="chip-tema" onclick="toggleChipTema(this, \'' + t + '\')">' + t + '</span>';
-      });
-    }
-
-    var selTreinamento = document.getElementById('select-tema-treinamento');
-    if (selTreinamento) {
-      selTreinamento.innerHTML = '<option value="">Selecione o tema...</option>';
-      var listaTreinamento = (dadosGlobais.temas && dadosGlobais.temas.treinamento && dadosGlobais.temas.treinamento.length > 0) ? 
-        dadosGlobais.temas.treinamento : 
-        ['Liderança', 'Assédio', 'Jurídico', 'Auditoria', 'Integração', 'Atendimento 10 estrelas', 'Motivacional', 'Feedback', 'Inegociáveis', 'Apontamento'];
-      listaTreinamento.forEach(function(t) {
-        selTreinamento.innerHTML += '<option value="' + t + '">' + t + '</option>';
-      });
-    }
-
-    alternarEscopoAtendimento();
-  }
-
-  function toggleChipTema(elem, tema) {
-    elem.classList.toggle('selected');
-    var idx = temasReuniaoSelecionados.indexOf(tema);
-    if (idx > -1) temasReuniaoSelecionados.splice(idx, 1);
-    else temasReuniaoSelecionados.push(tema);
-  }
-
-  function alternarEscopoAtendimento() {
-    var escopo = document.getElementById('select-escopo-atendimento').value;
-    var boxFilial = document.getElementById('box-destino-filial');
-    var boxInd = document.getElementById('box-indicadores-filial');
-    var boxRegDir = document.getElementById('box-destino-regional-diretoria');
-    var containerTargetChips = document.getElementById('chips-container-target');
-    var labelEscopo = document.getElementById('label-target-escopo');
-
-    window.targetRegionalDiretoriaSelecionada = '';
-
-    if (escopo === 'FILIAL') {
-      if (boxFilial) boxFilial.classList.remove('d-none');
-      if (boxRegDir) boxRegDir.classList.add('d-none');
-      exibirIndicadoresFilialSelecionada();
-    } else {
-      if (boxFilial) boxFilial.classList.add('d-none');
-      if (boxInd) boxInd.classList.add('d-none');
-      if (boxRegDir) boxRegDir.classList.remove('d-none');
-
-      if (labelEscopo) labelEscopo.innerText = escopo === 'REGIONAL' ? 'Regional' : 'Diretoria';
-
-      var listaItens = (escopo === 'REGIONAL') ? (dadosGlobais.regionaisLista || []) : (dadosGlobais.diretoriasLista || []);
-
-      if (containerTargetChips) {
-        containerTargetChips.innerHTML = '';
-        if (!listaItens || listaItens.length === 0) {
-          listaItens = escopo === 'REGIONAL' ? 
-            ['REGIONAL 01', 'REGIONAL 02', 'REGIONAL 03', 'REGIONAL SP', 'REGIONAL SUL'] : 
-            ['DIRETORIA OPERAÇÕES', 'DIRETORIA RH', 'DIRETORIA COMERCIAL', 'DIRETORIA LOGÍSTICA'];
+        let arrayBase = [];
+        if (valor === 'regional') {
+            lblAbrangencia.innerHTML = '<i class="fa-solid fa-map-location-dot"></i> Selecione as Regionais:';
+            arrayBase = dadosGlobais.usuario.isSuperAdmin ? [...new Set(dadosGlobais.lojas.map(l => l.regional))].sort() : dadosGlobais.usuario.regionais;
+        } else if (valor === 'diretoria') {
+            lblAbrangencia.innerHTML = '<i class="fa-solid fa-sitemap"></i> Selecione as Diretorias:';
+            arrayBase = dadosGlobais.usuario.isSuperAdmin ? dadosGlobais.diretorias : dadosGlobais.usuario.diretoriasAtendidas;
         }
-
-        listaItens.forEach(function(item) {
-          containerTargetChips.innerHTML += '<span class="card-target-chip" onclick="selecionarTargetChip(this, \'' + item + '\')">' +
-            '<i class="bi bi-geo-alt me-1"></i>' + item +
-          '</span>';
-        });
-      }
+        if (arrayBase && arrayBase.length > 0) {
+            arrayBase.forEach(r => {
+                containerPils.innerHTML += `<label class="check-label"><input type="checkbox" value="${r}" class="chk-abrangencia"><span class="pill-btn">${r}</span></label>`;
+            });
+        }
     }
+    verificarCamposDinamicos();
   }
 
-  function selecionarTargetChip(elem, valor) {
-    var chips = document.querySelectorAll('.card-target-chip');
-    chips.forEach(function(c) { c.classList.remove('selected'); });
-    elem.classList.add('selected');
-    window.targetRegionalDiretoriaSelecionada = valor;
-  }
-
-  function exibirIndicadoresFilialSelecionada() {
-    var selFilial = document.getElementById('select-filial');
-    var boxInd = document.getElementById('box-indicadores-filial');
-    if (!selFilial || !boxInd) return;
-
-    var fId = selFilial.value;
-    if (!fId) {
-      boxInd.classList.add('d-none');
-      return;
-    }
-
-    var mapa = dadosGlobais.indicadoresLojas || {};
-    var numOnly = String(parseInt(String(fId).replace(/\D/g, ''), 10) || fId);
-    var padId = ("0000" + numOnly).slice(-4);
-
-    var ind = mapa[padId] || mapa[fId] || mapa[numOnly] || { vendas: 0, bh: 0, nps: 0, txDesligamento: 0, coletaLixo: 0, pcd: 0 };
-
-    document.getElementById('ind-val-vendas').innerText = ind.vendas.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + '%';
-    document.getElementById('ind-val-nps').innerText = ind.nps.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-    document.getElementById('ind-val-bh').innerText = ind.bh.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + ' h';
-    document.getElementById('ind-val-lixo').innerText = ind.coletaLixo + ' coletas';
-    document.getElementById('ind-val-pcd').innerText = ind.pcd + ' vaga(s)';
-    document.getElementById('ind-val-txdesl').innerText = ind.txDesligamento.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + '%';
-
-    boxInd.classList.remove('d-none');
+  function atualizarSelectNaturezas(naturezas) {
+     let optgroup = document.getElementById('optgroup-dinamico');
+     if (!optgroup) return;
+     optgroup.innerHTML = "";
+     if(naturezas && naturezas.length > 0) {
+         optgroup.style.display = 'block';
+         naturezas.forEach(item => { optgroup.innerHTML += `<option value="${item}">${item}</option>`; });
+     } else {
+         optgroup.style.display = 'none';
+     }
   }
 
   function verificarCamposDinamicos() {
-    var nat = document.getElementById('select-natureza').value.toLowerCase();
-    var boxReuniao = document.getElementById('box-temas-reuniao');
-    var boxTreinamento = document.getElementById('box-tema-treinamento');
+     const motivo = document.getElementById('lanc-motivo').value;
+     const roteiro = document.getElementById('lanc-roteiro').value;
+     const isRedirect = motivosRedirecionamento.includes(motivo);
 
-    if (boxReuniao) boxReuniao.classList.add('d-none');
-    if (boxTreinamento) boxTreinamento.classList.add('d-none');
-
-    if (nat.includes('reunião') || nat.includes('reuniao')) {
-      if (boxReuniao) boxReuniao.classList.remove('d-none');
-    } else if (nat.includes('treinamento')) {
-      if (boxTreinamento) boxTreinamento.classList.remove('d-none');
-    }
+     if (motivo === "Reunião regional") {
+         document.getElementById('sub-reuniao').style.display = 'block';
+         document.getElementById('sub-treinamento').style.display = 'none';
+     } else if (motivo === "Treinamentos") {
+         document.getElementById('sub-reuniao').style.display = 'none';
+         document.getElementById('sub-treinamento').style.display = 'block';
+     } else {
+         document.getElementById('sub-reuniao').style.display = 'none';
+         document.getElementById('sub-treinamento').style.display = 'none';
+         document.querySelectorAll('.chk-tema').forEach(chk => chk.checked = false);
+     }
+     
+     if (isRedirect) {
+         document.getElementById('grupo-evidencia').style.display = 'none';
+         document.getElementById('grupo-obs').style.display = 'block';
+         document.getElementById('grupo-metricas-impacto').style.display = 'block';
+     } else {
+         document.getElementById('grupo-evidencia').style.display = 'block';
+         document.getElementById('grupo-obs').style.display = 'block';
+         document.getElementById('grupo-metricas-impacto').style.display = 'block';
+     }
+     
+     if (roteiro && roteiro.includes('Presencial')) {
+         document.getElementById('grupo-km').style.display = 'block';
+     } else {
+         document.getElementById('grupo-km').style.display = 'none';
+         document.getElementById('km-qtd').value = 0;
+         document.getElementById('gasto-alimentacao').value = '';
+         document.getElementById('gasto-hospedagem').value = '';
+         document.getElementById('gasto-aereo').value = '';
+         document.getElementById('gasto-pedagio').value = '';
+         document.getElementById('gasto-estacionamento').value = '';
+         calcularDespesas();
+     }
+     
+     const btnSalvar = document.getElementById('btn-salvar');
+     if (isRedirect) {
+         mostrarToast("Atenção: Ação requer envio via Portal Externo!");
+         btnSalvar.innerHTML = '<i class="fa-solid fa-external-link-alt"></i> Ir para Portal Externo (+1 Moeda)';
+         btnSalvar.style.backgroundColor = "#f43f5e";
+     } else {
+         btnSalvar.innerHTML = '<i class="fa-solid fa-coins"></i> Salvar e Ganhar Moeda';
+         btnSalvar.style.backgroundColor = "var(--main-color)";
+     }
   }
 
   function calcularDespesas() {
-    var rate = parseFloat(document.getElementById('input-rate-km').value) || 1.20;
-    var km = parseFloat(document.getElementById('input-km').value) || 0;
-    var custoKm = km * rate;
-    var displayKm = document.getElementById('display-custo-km');
-    if (displayKm) displayKm.value = custoKm.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+     let kmValor = parseFloat(document.getElementById('km-valor').value) || 0;
+     let kmQtd = parseFloat(document.getElementById('km-qtd').value) || 0;
+     let kmCusto = kmValor * kmQtd;
+     document.getElementById('km-custo-display').value = kmCusto.toFixed(2);
 
-    var ali = parseFloat(document.getElementById('input-alimentacao').value) || 0;
-    var hos = parseFloat(document.getElementById('input-hospedagem').value) || 0;
-    var aer = parseFloat(document.getElementById('input-aereo').value) || 0;
-    var ped = parseFloat(document.getElementById('input-pedagio').value) || 0;
-    var est = parseFloat(document.getElementById('input-estacionamento').value) || 0;
+     let alimentacao = parseFloat(document.getElementById('gasto-alimentacao').value) || 0;
+     let hospedagem = parseFloat(document.getElementById('gasto-hospedagem').value) || 0;
+     let aereo = parseFloat(document.getElementById('gasto-aereo').value) || 0;
+     let pedagio = parseFloat(document.getElementById('gasto-pedagio').value) || 0;
+     let estacionamento = parseFloat(document.getElementById('gasto-estacionamento').value) || 0;
 
-    var total = custoKm + ali + hos + aer + ped + est;
-    var displayTotal = document.getElementById('display-gasto-total');
-    if (displayTotal) displayTotal.innerText = 'Gasto Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+     let total = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
+     document.getElementById('gasto-total-display').innerText = total.toFixed(2).replace('.', ',');
   }
 
-  function limparOutrasEvidencias(origem) {
-    if (origem !== 'file') document.getElementById('input-evidencia-file').value = '';
-    if (origem !== 'url') document.getElementById('input-evidencia-url').value = '';
+  function calcularDespesasAvulso() {
+     let kmValor = parseFloat(document.getElementById('avulso-valor').value) || 0;
+     let kmQtd = parseFloat(document.getElementById('avulso-qtd').value) || 0;
+     let kmCusto = kmValor * kmQtd;
+
+     let alimentacao = parseFloat(document.getElementById('avulso-alimentacao').value) || 0;
+     let hospedagem = parseFloat(document.getElementById('avulso-hospedagem').value) || 0;
+     let aereo = parseFloat(document.getElementById('avulso-aereo').value) || 0;
+     let pedagio = parseFloat(document.getElementById('avulso-pedagio').value) || 0;
+     let estacionamento = parseFloat(document.getElementById('avulso-estacionamento').value) || 0;
+
+     let total = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
+     document.getElementById('avulso-total-display').innerText = total.toFixed(2).replace('.', ',');
   }
 
-  function atualizarCardsGamificacao() {
-    var g = dadosGlobais.gamificacao || {};
-    var moedasMesElem = document.getElementById('kpi-moedas-mes');
-    if (moedasMesElem) moedasMesElem.innerText = g.moedasMes || 0;
-    var moedasTotElem = document.getElementById('kpi-moedas-totais');
-    if (moedasTotElem) moedasTotElem.innerText = g.moedasTotais || 0;
-    var badgeFaseElem = document.getElementById('badge-fase-nome');
-    if (badgeFaseElem) badgeFaseElem.innerText = g.faseNome || '⛺ Fase 1: Acampamento Base';
+  function mostrarIndicadoresLancamento(filialId) {
+      const painel = document.getElementById('painel-indicadores-lancamento');
+      const loading = document.getElementById('loading-indicadores-lanc');
+      const grid = document.getElementById('grid-indicadores-lanc');
+      if (!filialId) { painel.style.display = 'none'; return; }
 
-    var iconeVisual = '🥾';
-    if (g.faseNome && g.faseNome.includes('Fase 4')) iconeVisual = '🚩';
-    else if (g.faseNome && g.faseNome.includes('Fase 3')) iconeVisual = '🏔️';
-    else if (g.faseNome && g.faseNome.includes('Fase 2')) iconeVisual = '🧗';
-    var iconeElem = document.getElementById('icone-fase-visual');
-    if (iconeElem) iconeElem.innerText = iconeVisual;
+      painel.style.display = 'block';
+      loading.style.display = 'block';
+      grid.style.display = 'none';
+
+      document.getElementById('ind-nps-val').innerText = '-';
+      document.getElementById('ind-rec-val').innerText = '-';
+      document.getElementById('ind-bh-val').innerText = '-';
+      document.getElementById('ind-quadro-val').innerText = '-';
+      document.getElementById('ind-txdes-val').innerText = '-';
+      google.script.run.withSuccessHandler(function(res){
+          loading.style.display = 'none';
+          grid.style.display = 'grid'; 
+          if(res.erro || !res.sucesso) return mostrarToast("Erro ao buscar: " + res.erro);
+
+          document.getElementById('ind-nps-val').innerText = res.nps;
+          document.getElementById('ind-rec-val').innerText = res.venda;
+          document.getElementById('ind-bh-val').innerText = res.bancoHoras !== "-" ? res.bancoHoras + " h" : "-";
+          document.getElementById('ind-quadro-val').innerText = res.quadro;
+          document.getElementById('ind-txdes-val').innerText = res.txdes;
+      }).buscarIndicadoresLoja(filialId);
   }
 
-  function renderizarRankingTop5() {
-    var lista = document.getElementById('lista-ranking');
-    if (!lista) return;
-    lista.innerHTML = '';
-    var r = (dadosGlobais.gamificacao && dadosGlobais.gamificacao.ranking) ? dadosGlobais.gamificacao.ranking : [];
+  function salvarAtividade() {
+     let btn = document.getElementById('btn-salvar');
+     const escopo = document.getElementById('lanc-escopo').value;
+     const motivo = document.getElementById('lanc-motivo').value;
+     
+     let destino = "";
+     if (escopo === 'filial') {
+         destino = document.getElementById('lanc-destino').value;
+     } else {
+         let selecionadas = [];
+         document.querySelectorAll('.chk-abrangencia:checked').forEach(cb => selecionadas.push(cb.value));
+         if(selecionadas.length === 0) return mostrarToast("Selecione pelo menos uma opção!");
+         let prefixo = escopo === 'regional' ? 'REGIONAL - ' : 'DIRETORIA - ';
+         destino = prefixo + selecionadas.join(' / ');
+     }
+     
+     let subTema = "";
+     try {
+         if (motivo === "Reunião regional") {
+             let temasR = [];
+             document.querySelectorAll('.chk-tema:checked').forEach(cb => temasR.push(cb.value));
+             subTema = temasR.join(', ');
+         } else if (motivo === "Treinamentos") {
+             let elemTreino = document.getElementById('treinamento-tema');
+             if(elemTreino) subTema = elemTreino.value;
+         }
+     } catch(e) {}
+     
+     let dataAtiv = document.getElementById('lanc-data').value;
+     if(!dataAtiv || !destino || !motivo) {
+         return mostrarToast("Preencha Data, Destino e Motivo!");
+     }
+     
+     let pessoasImpactadas = 0;
+     try { let p = document.getElementById('lanc-pessoas'); if(p && p.value) pessoasImpactadas = parseInt(p.value, 10); } catch(e){}
 
-    r = r.filter(function(item) {
-      return (item.mes || 0) > 0;
-    });
+     let tempoGasto = 0;
+     try { let t = document.getElementById('lanc-tempo'); if(t && t.value) tempoGasto = parseFloat(t.value); } catch(e){}
+     let observacoes = "";
+     try { let o = document.getElementById('lanc-obs'); if(o && o.value) observacoes = o.value; } catch(e){}
+     
+     let gastoTotalFormatado = parseFloat(document.getElementById('gasto-total-display').innerText.replace(',', '.')) || 0;
+     let linkInputDrive = "";
+     try { let ld = document.getElementById('lanc-link-drive'); if(ld && ld.value) linkInputDrive = ld.value; } catch(e){}
 
-    if (!r || r.length === 0) {
-      lista.innerHTML = '<li class="list-group-item text-muted py-3 text-center border-0 small">' +
-        '<i class="bi bi-info-circle me-1 text-primary"></i> Nenhum colaborador possui moedas no período selecionado.' +
-      '</li>';
-      return;
-    }
+     if (motivosRedirecionamento.includes(motivo)) {
+         window.open(urlsRedirecionamento[motivo], "_blank");
+         mostrarToast("Redirecionando para painel externo...");
 
-    r.forEach(function(item, index) {
-      var badgePos = '<span class="fw-bold me-2 fs-6 text-secondary" style="width:20px; display:inline-block;">#' + (index + 1) + '</span>';
-      if (index === 0) badgePos = '<span class="fw-bold text-warning me-2 fs-5">1º</span>';
-      else if (index === 1) badgePos = '<span class="fw-bold text-secondary me-2 fs-5">2º</span>';
-      else if (index === 2) badgePos = '<span class="fw-bold text-danger me-2 fs-5">3º</span>';
+         let dRedir = {
+             dataAtividade: document.getElementById('lanc-data').value || new Date().toISOString().split('T')[0],
+             roteiro: document.getElementById('lanc-roteiro').value || "Não informado",
+             destino: destino,
+             motivo: motivo,
+             observacoes: observacoes ? observacoes + " (Redirecionamento efetuado via formulário do Portal GP 360)" : "Redirecionamento efetuado via formulário do Portal GP 360",
+             notaChecklist: "",
+             moedas: 1, 
+             kmValor: parseFloat(document.getElementById('km-valor').value) || 0,
+             kmQtd: parseFloat(document.getElementById('km-qtd').value) || 0,
+             kmCusto: parseFloat(document.getElementById('km-custo-display').value) || 0,
+             alimentacao: parseFloat(document.getElementById('gasto-alimentacao').value) || 0,
+             hospedagem: parseFloat(document.getElementById('gasto-hospedagem').value) || 0,
+             aereo: parseFloat(document.getElementById('gasto-aereo').value) || 0,
+             pedagio: parseFloat(document.getElementById('gasto-pedagio').value) || 0,
+             estacionamento: parseFloat(document.getElementById('gasto-estacionamento').value) || 0,
+             gastoTotal: gastoTotalFormatado,
+             subTema: subTema, 
+             pessoasImpactadas: isNaN(pessoasImpactadas) ? 0 : pessoasImpactadas, 
+             tempoGasto: isNaN(tempoGasto) ? 0 : tempoGasto, 
+             linkEvidenciaExterna: ""
+         };
+         btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Registrando..."; btn.disabled = true;
+         chamarBackendSalvar(dRedir, btn);
+         document.getElementById('lanc-motivo').value = '';
+         verificarCamposDinamicos();
+         return; 
+     }
+     
+     let d = {
+        dataAtividade: dataAtiv,
+        roteiro: document.getElementById('lanc-roteiro').value || "",
+        destino: destino,
+        motivo: motivo,
+        observacoes: observacoes,
+        notaChecklist: "",
+        moedas: 1, 
+        kmValor: parseFloat(document.getElementById('km-valor').value) || 0,
+        kmQtd: parseFloat(document.getElementById('km-qtd').value) || 0,
+        kmCusto: parseFloat(document.getElementById('km-custo-display').value) || 0,
+        alimentacao: parseFloat(document.getElementById('gasto-alimentacao').value) || 0,
+        hospedagem: parseFloat(document.getElementById('gasto-hospedagem').value) || 0,
+        aereo: parseFloat(document.getElementById('gasto-aereo').value) || 0,
+        pedagio: parseFloat(document.getElementById('gasto-pedagio').value) || 0,
+        estacionamento: parseFloat(document.getElementById('gasto-estacionamento').value) || 0,
+        gastoTotal: gastoTotalFormatado,
+        subTema: subTema,
+        pessoasImpactadas: isNaN(pessoasImpactadas) ? 0 : pessoasImpactadas,
+        tempoGasto: isNaN(tempoGasto) ? 0 : tempoGasto,
+        linkEvidenciaExterna: linkInputDrive
+     };
+     btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Salvando..."; btn.disabled = true;
+     chamarBackendSalvar(d, btn);
+  }
 
-      var faseTag = '<span class="badge" style="background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text);">⛺ Fase 1</span>';
-      if (item.mes >= 100) faseTag = '<span class="badge" style="background: var(--pastel-green-bg); color: var(--pastel-green-text);">🚩 Fase 4</span>';
-      else if (item.mes >= 75) faseTag = '<span class="badge" style="background: var(--pastel-blue-bg); color: var(--pastel-blue-text);">🏔️ Fase 3</span>';
-      else if (item.mes >= 40) faseTag = '<span class="badge" style="background: var(--pastel-peach-bg); color: var(--pastel-peach-text);">🧗 Fase 2</span>';
+  function chamarBackendSalvar(dados, btn) {
+     google.script.run.withSuccessHandler(function(res){
+         if(res.erro) { mostrarToast("Erro: " + res.erro); btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-coins"></i> Salvar e Ganhar Moeda'; return; }
 
-      var nomeExibicao = item.nome || item.email;
-      var avatarSrc = (item.foto && item.foto.length > 20) ? item.foto : gerarAvatarSVG(nomeExibicao);
+         dispararConfetes();
+         mostrarToast("Ação salva com sucesso!");
+         btn.disabled = false;
+         setTimeout(function() {
+             document.getElementById('lanc-data').valueAsDate = new Date();
+             document.getElementById('lanc-destino').value = '';
+             let obsEl = document.getElementById('lanc-obs'); if(obsEl) obsEl.value = '';
+             let pesEl = document.getElementById('lanc-pessoas'); if(pesEl) pesEl.value = '';
+             let tmpEl = document.getElementById('lanc-tempo'); if(tmpEl) tmpEl.value = '';
+             document.getElementById('km-qtd').value = 0;
+             document.getElementById('gasto-alimentacao').value = '';
+             document.getElementById('gasto-hospedagem').value = '';
+             document.getElementById('gasto-aereo').value = '';
+             document.getElementById('gasto-pedagio').value = '';
+             document.getElementById('gasto-estacionamento').value = '';
+             document.querySelectorAll('.chk-abrangencia').forEach(chk => chk.checked = false);
+             let checkTodas = document.getElementById('check-todas-abrangencia'); if(checkTodas) checkTodas.checked = false;
+             calcularDespesas();
+             document.getElementById('painel-indicadores-lancamento').style.display = 'none';
 
-      lista.innerHTML += '<li class="list-group-item d-flex justify-content-between align-items-center py-2 px-0 border-bottom">' +
-        '<div class="d-flex align-items-center" style="min-width: 0;">' +
-          badgePos +
-          '<img src="' + avatarSrc + '" class="rounded-circle me-2 border shadow-sm flex-shrink-0" style="width:38px; height:38px; object-fit:cover;" onerror="this.src=gerarAvatarSVG(\'' + nomeExibicao + '\');">' +
-          '<div style="min-width: 0;">' +
-            '<div class="fw-bold text-dark mb-0 text-truncate small" style="max-width: 140px;" title="' + nomeExibicao + '">' + nomeExibicao + '</div>' +
-            '<div>' + faseTag + '</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="fw-bold fs-6 text-primary text-nowrap ms-2" style="color: var(--pastel-lavender-text) !important;"><i class="bi bi-coin text-warning me-1"></i>' + item.mes + ' <small class="text-muted fs-7">moedas</small></div>' +
-      '</li>';
-    });
+             verificarCamposDinamicos();
+             google.script.run.withSuccessHandler(function(newData){
+                 dadosGlobais = newData;
+                 renderizarGamificacaoVisual(newData);
+                 renderizarHistoricos();
+                 renderizarRanking(newData.ranking);
+
+                 let domMoedas = document.getElementById('user-coins');
+                 if(domMoedas) domMoedas.innerText = newData.moedas;
+
+                 atualizarCardsDashboard();
+                 mudarAba('home', document.querySelector('.nav-item'));
+             }).obterDadosIniciais();
+         }, 1000);
+     }).registrarAtividade(dados);
+  }
+
+  function abrirModalAvulso() {
+      document.getElementById('avulso-data').valueAsDate = new Date();
+      document.getElementById('avulso-destino').value = '';
+      document.getElementById('avulso-qtd').value = '';
+      document.getElementById('avulso-alimentacao').value = '';
+      document.getElementById('avulso-hospedagem').value = '';
+      document.getElementById('avulso-aereo').value = '';
+      document.getElementById('avulso-pedagio').value = '';
+      document.getElementById('avulso-estacionamento').value = '';
+      document.getElementById('avulso-total-display').innerText = '0,00';
+      document.getElementById('modal-km-avulso').style.display='block';
+  }
+
+  function salvarKMAvulso() {
+     const data = document.getElementById('avulso-data').value; 
+     const destino = document.getElementById('avulso-destino').value; 
+     const valor = parseFloat(document.getElementById('avulso-valor').value) || 0; 
+     const qtd = parseFloat(document.getElementById('avulso-qtd').value) || 0;
+     const kmCusto = valor * qtd;
+
+     const alimentacao = parseFloat(document.getElementById('avulso-alimentacao').value) || 0;
+     const hospedagem = parseFloat(document.getElementById('avulso-hospedagem').value) || 0;
+     const aereo = parseFloat(document.getElementById('avulso-aereo').value) || 0;
+     const pedagio = parseFloat(document.getElementById('avulso-pedagio').value) || 0;
+     const estacionamento = parseFloat(document.getElementById('avulso-estacionamento').value) || 0;
+
+     const totalFloat = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
+     if(!data || !destino || totalFloat <= 0) { 
+         mostrarToast("Preencha data, destino e ao menos um gasto válido!"); 
+         return; 
+     }
+     const payload = { 
+       destino: "AVULSO: " + destino, 
+       motivo: "Deslocamento Avulso (Sede/Evento)", 
+       dataViagem: data, 
+       kmValor: valor, 
+       kmQtd: qtd, 
+       kmCusto: kmCusto, 
+       alimentacao: alimentacao,
+       hospedagem: hospedagem,
+       aereo: aereo,
+       pedagio: pedagio,
+       estacionamento: estacionamento,
+       gastoTotal: totalFloat, 
+       moedas: 0,
+       roteiro: "Presencial (KM Avulso)",
+       linkEvidenciaExterna: ""
+     };
+     document.getElementById('modal-km-avulso').style.display='none';
+     mostrarToast("Salvando KM Avulso...");
+     google.script.run.withSuccessHandler(function(res){ 
+         if(res.erro) { mostrarToast(res.erro); return; }
+         dispararConfetes();
+         mostrarToast("KM Avulso registrado!"); 
+         google.script.run.withSuccessHandler(function(newData){
+             dadosGlobais = newData;
+             renderizarHistoricos();
+             atualizarCardsDashboard();
+         }).obterDadosIniciais(); 
+     }).registrarAtividade(payload);
+  }
+
+  function parseDataBR(dataString) {
+      if (!dataString) return 0;
+      if (dataString.includes('-')) return new Date(dataString + "T00:00:00").getTime();
+      let partes = dataString.split('/');
+      if (partes.length === 3) return new Date(partes[2], partes[1] - 1, partes[0]).getTime();
+      return 0;
+  }
+
+  function filtrarCicloRapido(mes) {
+      let ano = new Date().getFullYear();
+      if (mes === 'julho') {
+          document.getElementById('filtro-dt-inicio').value = ano + '-07-01';
+          document.getElementById('filtro-dt-fim').value = ano + '-07-31';
+      } else if (mes === 'agosto') {
+          document.getElementById('filtro-dt-inicio').value = ano + '-08-01';
+          document.getElementById('filtro-dt-fim').value = ano + '-08-31';
+      }
+      renderizarHistoricos();
+  }
+
+  function limparFiltroDatas() {
+      document.getElementById('filtro-dt-inicio').value = '';
+      document.getElementById('filtro-dt-fim').value = '';
+      renderizarHistoricos();
   }
 
   function renderizarHistoricos() {
-    var container = document.getElementById('tabela-extrato-container');
-    if (!container) return;
-    container.innerHTML = '';
-    var l = (dadosGlobais.lancamentos || []).slice();
-    var u = dadosGlobais.usuario || {};
+     const ulHistoricoFinanceiro = document.getElementById('lista-historico');
+     const ulGestao = document.getElementById('lista-gestao');
 
-    l = l.filter(function(item) {
-      return (parseFloat(item.custoTotal) || 0) >= 0;
-    });
+     if(!ulHistoricoFinanceiro || !ulGestao) return;
 
-    if (l.length === 0) {
-      container.innerHTML = '<div class="alert alert-light border small">Nenhum registro localizado no período selecionado.</div>';
-      return;
-    }
+     ulHistoricoFinanceiro.innerHTML = '';
+     ulGestao.innerHTML = '';
+     if (!dadosGlobais || !dadosGlobais.historico) return;
+     let dtInicioInput = document.getElementById('filtro-dt-inicio').value;
+     let dtFimInput = document.getElementById('filtro-dt-fim').value;
+     let dtInicio = parseDataBR(dtInicioInput);
+     let dtFim = parseDataBR(dtFimInput);
+     if (dtFim) dtFim += 86399000; 
+     let temItensFin = false;
+     let temItensGes = false;
 
-    l.forEach(function(item) {
-      var localStr = item.filial ? ('Local: ' + item.filial) : ('Local: AVULSO');
-      var valKmStr = 'R$ ' + (item.custoTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-      var podeExcluir = (u.isSuperAdmin || (item.autor && item.autor.toLowerCase() === (u.email || '').toLowerCase()));
+     dadosGlobais.historico.forEach(h => {
+        let dataTimestamp = parseDataBR(h.dataViagem || h.dataRegistro);
+        let dentroDoFiltro = true;
+        if (dtInicio && dataTimestamp < dtInicio) dentroDoFiltro = false;
+        if (dtFim && dataTimestamp > dtFim) dentroDoFiltro = false;
 
-      var btnExcluir = podeExcluir ? 
-        '<button type="button" class="btn btn-sm text-danger border-0 p-0" onclick="deletarHistorico(\'' + item.id + '\')" title="Excluir Registro"><i class="bi bi-trash fs-6"></i></button>' : '';
+        let badgeGastos = h.gastoTotal > 0 ? "<span style='background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:10px; font-size:11px; margin-left:10px;'><i class='fa-solid fa-receipt'></i> R$ " + h.gastoTotal.toFixed(2).replace('.', ',') + "</span>" : "";
+        let detalhesDespesas = "";
+        if (h.gastoTotal > 0 || h.kmCusto > 0) {
+           detalhesDespesas = `<div style="margin-top: 10px; padding: 10px; background: #fffcf0; border: 1px dashed #fcd34d; border-radius: 6px; font-size: 11px; color: #b45309; display:flex; gap:15px; flex-wrap:wrap;">`;
+           if (h.kmCusto > 0) detalhesDespesas += `<span><i class="fa-solid fa-car"></i> KM: R$ ${h.kmCusto.toFixed(2).replace('.',',')}</span>`;
+           if (h.alimentacao > 0) detalhesDespesas += `<span><i class="fa-solid fa-utensils"></i> Alim: R$ ${h.alimentacao.toFixed(2).replace('.',',')}</span>`;
+           if (h.hospedagem > 0) detalhesDespesas += `<span><i class="fa-solid fa-bed"></i> Hosp: R$ ${h.hospedagem.toFixed(2).replace('.',',')}</span>`;
+           if (h.aereo > 0) detalhesDespesas += `<span><i class="fa-solid fa-plane"></i> Aéreo: R$ ${h.aereo.toFixed(2).replace('.',',')}</span>`;
+           if (h.pedagio > 0) detalhesDespesas += `<span><i class="fa-solid fa-road"></i> Pedágio: R$ ${h.pedagio.toFixed(2).replace('.',',')}</span>`;
+           if (h.estacionamento > 0) detalhesDespesas += `<span><i class="fa-solid fa-square-parking"></i> Estacion.: R$ ${h.estacionamento.toFixed(2).replace('.',',')}</span>`;
+           detalhesDespesas += `</div>`;
+        }
+        let subTemaHtml = h.subTema ? ` - <span style="color:var(--main-color);">${h.subTema}</span>` : '';
+        let linhaHtmlBase = '<div class="history-date">' + (h.dataViagem || h.dataRegistro) + ' • Lançado por: ' + h.autorNome + '</div>' +
+                            '<div class="history-title">Local: ' + h.destino + ' ' + badgeGastos + '</div>' +
+                            '<div class="history-desc"><strong>Motivo:</strong> ' + h.motivo + subTemaHtml + '</div>' +
+                            detalhesDespesas;
 
-      container.innerHTML += '<div class="bento-card p-2 border-start border-3 shadow-sm mb-2" style="border-left-color: var(--pastel-peach) !important;">' +
-        '<div class="d-flex justify-content-between text-muted small mb-1">' +
-          '<span style="font-size:0.75rem;">' + item.data + ' • ' + (item.autor || 'Usuário GP') + '</span>' +
-          btnExcluir +
-        '</div>' +
-        '<h6 class="fw-bold text-dark mb-1 small">' + localStr + ' <span class="badge ms-2" style="background: var(--pastel-peach-bg); color: var(--pastel-peach-text);">' + valKmStr + '</span></h6>' +
-        '<div class="small text-secondary">Motivo: ' + item.motivo + (item.observacao ? ' - ' + item.observacao : '') + '</div>' +
-      '</div>';
-    });
+        let isExternal = motivosRedirecionamento.includes(h.motivo);
+        let btnAcaoGestao = "";
+        if (h.isOwner || dadosGlobais.usuario.isAdmin || dadosGlobais.usuario.isSuperAdmin) {
+            if (isExternal) {
+                btnAcaoGestao = `<i class='fa-solid fa-lock lock-btn' title='Registro Externo: A exclusão deve ser solicitada ao Administrador.'></i>`;
+            } else {
+                btnAcaoGestao = `<i class='fa-solid fa-trash delete-btn' onclick="deletarHistorico('${h.id}')" title='Excluir Lançamento'></i>`;
+            }
+        }
+        let liGes = document.createElement('li');
+        liGes.className = 'history-item';
+        liGes.id = 'linha-gestao-' + h.id;
+        liGes.innerHTML = btnAcaoGestao + linhaHtmlBase;
+        ulGestao.appendChild(liGes);
+        temItensGes = true;
+
+        if (dentroDoFiltro && h.gastoTotal > 0) {
+            temItensFin = true;
+            let liFin = document.createElement('li');
+            liFin.className = 'history-item';
+            liFin.id = 'linha-fin-' + h.id;
+            liFin.innerHTML = linhaHtmlBase;
+            ulHistoricoFinanceiro.appendChild(liFin);
+        }
+     });
+
+     if (!temItensFin) ulHistoricoFinanceiro.innerHTML = '<li style="text-align:center;color:#64748b;padding:20px;">Nenhum registro de custo encontrado neste período.</li>';
+     if (!temItensGes) ulGestao.innerHTML = '<li style="text-align:center;color:#64748b;padding:20px;">Nenhuma atividade registrada.</li>';
+  }
+
+  function deletarHistorico(id) {
+     customConfirm("Excluir este lançamento permanentemente?", function() {
+         let linhaG = document.getElementById('linha-gestao-' + id);
+         let linhaF = document.getElementById('linha-fin-' + id);
+         if (linhaG) linhaG.style.opacity = '0.5';
+         if (linhaF) linhaF.style.opacity = '0.5';
+
+         google.script.run.withSuccessHandler(function(res){
+             if(res.erro) { mostrarToast(res.erro); return; }
+             mostrarToast("Excluído com sucesso!");
+             dadosGlobais.historico = dadosGlobais.historico.filter(h => h.id !== id);
+             renderizarHistoricos();
+
+             google.script.run.withSuccessHandler(function(newData){
+                 dadosGlobais = newData;
+                 atualizarCardsDashboard();
+             }).obterDadosIniciais();
+
+         }).excluirLancamento(id);
+     });
+  }
+
+  function imprimirRelatorioKM() {
+     if (!dadosGlobais || !dadosGlobais.historico) return mostrarToast("Sem dados para imprimir.");
+
+     let dtInicioInput = document.getElementById('filtro-dt-inicio').value;
+     let dtFimInput = document.getElementById('filtro-dt-fim').value;
+
+     let dtInicio = parseDataBR(dtInicioInput);
+     let dtFim = parseDataBR(dtFimInput);
+     if (dtFim) dtFim += 86399000;
+     let descPeriodo = "Todos os Períodos";
+     if(dtInicioInput && dtFimInput) {
+        descPeriodo = "De " + dtInicioInput.split('-').reverse().join('/') + " até " + dtFimInput.split('-').reverse().join('/');
+     } else if (dtInicioInput) {
+        descPeriodo = "A partir de " + dtInicioInput.split('-').reverse().join('/');
+     } else if (dtFimInput) {
+        descPeriodo = "Até " + dtFimInput.split('-').reverse().join('/');
+     }
+     let html = '<html><head><title>Relatório de Despesas e KM</title>';
+     html += '<style>body{font-family:Arial,sans-serif;padding:20px;} table{width:100%;border-collapse:collapse;margin-top:20px;} th,td{border:1px solid #ddd;padding:10px;text-align:left;} th{background-color:#f4f4f4;} .header{text-align:center;margin-bottom:30px;} .total{font-size:18px;font-weight:bold;margin-top:20px;text-align:right;} .obs-box{border:1px dashed #777; height: 120px; margin-top: 30px; padding: 15px; border-radius: 8px; color: #555;}</style>';
+     html += '</head><body>';
+     html += '<div class="header"><h2>Relatório de Despesas de Viagem e KM</h2><p>Usuário: ' + dadosGlobais.usuario.nome + '</p><p>Período: ' + descPeriodo + '</p></div>';
+     html += '<table><thead><tr><th>Data Viagem</th><th>Local</th><th>Motivo</th><th>Qtd KM</th><th>Gasto Total (R$)</th></tr></thead><tbody>';
+     
+     let totalGeral = 0;
+     let temDados = false;
+     
+     let arrParaImpressao = [];
+     dadosGlobais.historico.forEach(function(item) {
+         let dataTimestamp = parseDataBR(item.dataViagem || item.dataRegistro);
+         let dentroDoPeriodo = true;
+         if (dtInicio && dataTimestamp < dtInicio) dentroDoPeriodo = false;
+         if (dtFim && dataTimestamp > dtFim) dentroDoPeriodo = false;
+         
+         let gastoLinha = item.gastoTotal;
+         if (dentroDoPeriodo && gastoLinha > 0) {
+             arrParaImpressao.push({ item: item, ts: dataTimestamp });
+         }
+     });
+     
+     arrParaImpressao.sort((a, b) => a.ts - b.ts);
+     
+     arrParaImpressao.forEach(function(d) {
+         let item = d.item;
+         let gastoLinha = item.gastoTotal;
+         temDados = true;
+         totalGeral += gastoLinha;
+         html += '<tr><td>' + (item.dataViagem || item.dataRegistro) + '</td><td>' + item.destino + '</td><td>' + item.motivo + '</td><td>' + item.kmQtd + '</td><td>R$ ' + gastoLinha.toFixed(2).replace('.', ',') + '</td></tr>';
+     });
+     
+     html += '</tbody></table>';
+     if (!temDados) {
+         html += '<p style="text-align:center;margin-top:20px;">Nenhum registro de custo encontrado neste período.</p>';
+     } else {
+         html += '<div class="total">Total a Reembolsar: R$ ' + totalGeral.toFixed(2).replace('.', ',') + '</div>';
+         html += '<div class="obs-box"><strong>Observações Extras:</strong></div>';
+         html += '<br><br><p style="text-align:center;margin-top:50px;">------------------------------------<br>Assinatura Digital</p>';
+     }
+     html += '</body></html>';
+     let win = window.open('', '', 'width=800,height=600');
+     win.document.write(html);
+     win.document.close();
+     win.print();
+     google.script.run.registrarAuditoria("Impressão KM", descPeriodo);
+  }
+
+  function renderizarListaAdmin(naturezas) {
+     let ul = document.getElementById('lista-naturezas-admin');
+     if(!ul) return;
+     ul.innerHTML = '';
+     if(!naturezas || naturezas.length === 0) {
+        ul.innerHTML = '<li style="text-align:center; color:#94a3b8; font-size:12px; padding:10px;">Nenhuma natureza extra.</li>';
+        return;
+     }
+     naturezas.forEach(n => {
+         let li = document.createElement('li');
+         li.className = 'history-item';
+         li.innerHTML = '<span class="history-title">' + n + '</span>' +
+                        '<i class="fa-solid fa-trash delete-btn" onclick="delNatureza(\''+n+'\')" title="Excluir"></i>';
+         ul.appendChild(li);
+     });
+  }
+
+  function addNatureza() {
+     let input = document.getElementById('nova-natureza');
+     let val = input.value.trim();
+     if(!val) return;
+     google.script.run.withSuccessHandler(function(res){
+         if(res.erro) { mostrarToast(res.erro); return; }
+         input.value = '';
+         dadosGlobais.naturezas = res.naturezas;
+         atualizarSelectNaturezas(res.naturezas);
+         renderizarListaAdmin(res.naturezas);
+         mostrarToast("Natureza adicionada!");
+     }).adicionarNatureza(val);
+  }
+
+  function delNatureza(texto) {
+     customConfirm("Tem certeza que deseja excluir a natureza '" + texto + "'?", function() {
+         google.script.run.withSuccessHandler(function(res){
+             if(res.erro) { mostrarToast(res.erro); return; }
+             dadosGlobais.naturezas = res.naturezas;
+             atualizarSelectNaturezas(res.naturezas);
+             renderizarListaAdmin(res.naturezas);
+             mostrarToast("Natureza removida!");
+         }).excluirNatureza(texto);
+     });
   }
 </script>

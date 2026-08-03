@@ -1,50 +1,25 @@
-/**
- * ECOSSISTEMA GP360 - PORTAL GP 360
- * Arquivo: Config.gs
- * Subpasta Monorepo: src/portal-gp360/
- */
+// =============================================================================
+// CONFIGURAÇÕES GLOBAIS DO BANCO DE DADOS GP - VERSÃO OTIMIZADA
+// =============================================================================
 
-// IDs de Planilhas e BDD Master
-var SPREADSHEET_ID = '1Nk0F5_tzevdbfmOTnpmhePdum6N22Ctf7g1N_ojuSjA'; // DB_MASTER
-var SPREADSHEET_DASH = '1FKcQtoGI5Hz8vYefD450EcnO8rW36sTSPIsAQkEIVlc'; // DB_DASH
-var SPREADSHEET_LOG_ID = '1phPQnIBiyVC1OqxooDQhyrR3_aR84jtqYnPJyOij0lY'; // DB_LOG
+const SPREADSHEET_ID = '1Nk0F5_tzevdbfmOTnpmhePdum6N22Ctf7g1N_ojuSjA'; // ID Planilha GP 360 (DB_MASTER)
+const SPREADSHEET_DASH = '1FKcQtoGI5Hz8vYefD450EcnO8rW36sTSPIsAQkEIVlc'; // Base de Indicadores Geral (DB_DASH)
+const SPREADSHEET_LOG_ID = '1phPQnIBiyVC1OqxooDQhyrR3_aR84jtqYnPJyOij0lY'; // ID Planilha Auditoria Exclusiva
 
-// Pastas do Google Drive
-var EVIDENCIAS_FOLDER_ID = '1v28G-ZDd6yQpjTUvBNcODlpxkM5AeaQZ';
-
-// Whitelist de Cargos Autorizados ao Portal GP360
-var PERMITTED_ROLES = ['Administrador', 'GERENTERH', 'Coordenador'];
-
-// Meta de Gamificação - Trilha da Montanha (Everest Reajustada para 100 Moedas)
-var META_EVEREST = 100;
+// Lista de administradores com acesso irrestrito
+const SUPER_ADMINS_EMAILS = [
+  "fabiane.satie@magazineluiza.com.br",
+  "gplojas@magazineluiza.com.br",
+  "tarcisio.maniglia@magazineluiza.com.br"
+];
 
 /**
- * Função Global Obrigatória de Normalização de Filial ID (Middleware > 3000)
- * @param {any} val - Valor do ID da filial
- * @return {string} ID normalizado sem zeros à esquerda e ajustado para série original
- */
-function normalizarFilialId(val) {
-  if (!val && val !== 0) return "";
-  var num = parseInt(String(val).replace(/\D/g, ''), 10);
-  if (isNaN(num)) return String(val).trim();
-  if (num > 3000) { num -= 3000; }
-  return String(num);
-}
-
-/**
- * Ponto de entrada da aplicação Web App com suporte PWA
+ * Renderiza a página principal do Portal GP 360 injetando os componentes HTML.
  */
 function doGet() {
-  var template = HtmlService.createTemplateFromFile('Index');
-  return template.evaluate()
-      .setTitle('Portal GP 360°')
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no, viewport-fit=cover')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
-
-/**
- * Função utilitária para inclusão de arquivos HTML no template
- */
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+  return HtmlService.createTemplateFromFile('Index')
+      .evaluate()
+      .setTitle('Portal GP 360')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
 }

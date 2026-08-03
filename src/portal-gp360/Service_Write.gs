@@ -1,210 +1,97 @@
-/**
- * ECOSSISTEMA GP360 - PORTAL GP 360
- * Arquivo: Service_Write.gs
- * Subpasta Monorepo: src/portal-gp360/
- * Módulo de Gravação Segura no BDD Master com LockService ajustado
- */
+// =============================================================================
+// GRAVAÇÕES E ESCRITAS CORPORATIVAS (LOCKSERVICE BLINDADO E RÁPIDO)
+// =============================================================================
 
-/**
- * Salva arquivo de imagem/evidência na pasta do Google Drive
- */
-function salvarEvidenciaNoDrive(arquivoObj) {
-  if (!arquivoObj || !arquivoObj.base64) return '';
+function registrarAtividade(dados) {
+  const lock = LockService.getScriptLock();
   try {
-    var folder = DriveApp.getFolderById(EVIDENCIAS_FOLDER_ID);
-    var base64Clean = arquivoObj.base64.indexOf(',') > -1 ? arquivoObj.base64.split(',')[1] : arquivoObj.base64;
-    var bytes = Utilities.base64Decode(base64Clean);
-    var blob = Utilities.newBlob(bytes, arquivoObj.mimeType || 'image/jpeg', arquivoObj.nome || ('Evidencia_' + new Date().getTime() + '.jpg'));
-    var file = folder.createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    return 'https://lh3.googleusercontent.com/d/' + file.getId() + '=w1000';
-  } catch (err) {
-    Logger.log('Erro ao salvar evidencia no Drive: ' + err.message);
-    return '';
-  }
-}
-
-/**
- * Salva uma nova atividade no BDD Master (DADOS_LANCAMENTOS)
- */
-function salvarAtividadeServidor(dados) {
-  var lock = LockService.getScriptLock();
-  try {
-    var success = lock.tryLock(30000);
-    if (!success) {
-      return { sucesso: false, mensagem: 'O sistema está processando outro salvamento. Tente novamente em alguns segundos.' };
+    lock.waitLock(10000); 
+    const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
+    const controle = obterControleAcesso(emailLogado);
+    if (!controle.autorizado) {
+      throw new Error("Usuário não autorizado a realizar lançamentos.");
     }
+    registrarAuditoria("Nova Atividade", dados.motivo + " | " + dados.destino);
+    try {
+      const cache = CacheService.getScriptCache();
+      if (dados.destino && !String(dados.destino).startsWith("REGIONAL") && !String(dados.destino).startsWith("DIRETORIA")) {
+          let fId = parseInt(normalizarFilialId(String(dados.destino).split('-')[0].trim()), 10);
+          if (!isNaN(fId)) cache.remove('IND_LOJA_' + fId);
+      }
+    } catch(err) {}
 
-    var controle = obterControleAcesso();
-    if (!controle.temAcesso) {
-      return { sucesso: false, mensagem: 'Acesso negado. Usuário não autorizado.' };
-    }
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('DADOS_LANCAMENTOS');
+    const arrayInsert = new Array(27).fill("");
+    const dHora = new Date();
 
-    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    var abaLanc = ss.getSheetByName('DADOS_LANCAMENTOS');
-    if (!abaLanc) {
-      return { sucesso: false, mensagem: 'Aba DADOS_LANCAMENTOS não encontrada no banco de dados.' };
-    }
-
-    var urlEvidenciaFinal = dados.evidenciaUrl || '';
-    if (dados.arquivoEvidencia && dados.arquivoEvidencia.base64) {
-      urlEvidenciaFinal = salvarEvidenciaNoDrive(dados.arquivoEvidencia);
-    }
-
-    var novoId = 'REG_' + new Date().getTime() + '_' + Math.floor(Math.random() * 1000);
-    
-    var destinoFinal = '';
-    var escopo = dados.escopo || 'FILIAL';
-    
-    if (escopo === 'FILIAL') {
-      var numFilial = normalizarFilialId(dados.filial);
-      destinoFinal = numFilial ? ("0000" + numFilial).slice(-4) : String(dados.filial || '').trim().toUpperCase();
-    } else {
-      destinoFinal = String(dados.destinoRegionalDiretoria || dados.filial || escopo).trim().toUpperCase();
-    }
-
-    var dtData = new Date(dados.dataAtividade + 'T12:00:00');
-    var dtStrFormatted = ("0" + dtData.getDate()).slice(-2) + '/' + ("0" + (dtData.getMonth() + 1)).slice(-2) + '/' + dtData.getFullYear();
-
-    var rateKm = parseFloat(dados.rateKm) || 1.20;
-    var km = parseFloat(dados.km) || 0;
-    var custoKm = km * rateKm;
-    var alimentacao = parseFloat(dados.alimentacao) || 0;
-    var hospedagem = parseFloat(dados.hospedagem) || 0;
-    var aereo = parseFloat(dados.aereo) || 0;
-    var pedagio = parseFloat(dados.pedagio) || 0;
-    var estacionamento = parseFloat(dados.estacionamento) || 0;
-    var custoTotal = custoKm + alimentacao + hospedagem + aereo + pedagio + estacionamento;
-
-    var motivoLower = String(dados.natureza || '').toLowerCase();
-    var ehEspecialista = motivoLower.includes('atendimento social') || 
-                         motivoLower.includes('apuraç') || 
-                         motivoLower.includes('apurac') || 
-                         motivoLower.includes('feedback') || 
-                         motivoLower.includes('acompanhamento');
-
-    var statusInicial = ehEspecialista ? 'PENDENTE' : 'VALIDADO';
-
-    var novaLinha = [
-      novoId,                          // Coluna A: ID Registro
-      dtStrFormatted,                   // Coluna B: Data Formatada
-      controle.email,                   // Coluna C: Autor Email
-      destinoFinal,                     // Coluna D: Filial/Regional/Diretoria Destino
-      dados.natureza || '',             // Coluna E: Motivo / Natureza
-      '', '', '',                      // Colunas F, G, H: Reservado
-      custoTotal,                       // Coluna I: Custo Total
-      1,                                // Coluna J: Pontos/Moeda Padrão
-      dados.observacao || '',           // Coluna K: Observações
-      urlEvidenciaFinal,                // Coluna L: URL Evidência
-      dados.dataAtividade,              // Coluna M: Data ISO (YYYY-MM-DD)
-      escopo,                           // Coluna N: Escopo
-      '',                               // Coluna O: Reservado
-      km, custoKm,                      // Colunas P, Q: KM e Custo KM
-      dados.tipoRoteiro || 'Presencial',// Coluna R: Tipo Roteiro
-      (dados.temasReuniao || []).join(', ') || dados.temaTreinamento || '', // Coluna S: Temas
-      parseFloat(dados.pessoasImpactadas) || 0, // Coluna T: Pessoas
-      parseFloat(dados.tempoGasto) || 0,         // Coluna U: Tempo
-      custoTotal,                       // Coluna V: Total Reembolso
-      alimentacao, hospedagem, aereo, pedagio, estacionamento, // Colunas W, X, Y, Z, AA
-      statusInicial                     // Coluna AB: Status
-    ];
-
-    abaLanc.appendRow(novaLinha);
-
-    var cache = CacheService.getScriptCache();
-    cache.remove('GP360_MAPA_INDICADORES_SLIM_V7');
-
-    return { sucesso: true, mensagem: 'Atividade salva com sucesso! +1 Moeda na sua jornada.' };
-
-  } catch (err) {
-    Logger.log('Erro ao salvar atividade: ' + err.message);
-    return { sucesso: false, mensagem: 'Erro ao salvar atividade: ' + err.message };
+    arrayInsert[0] = "ACT-" + dHora.getTime();
+    arrayInsert[1] = dHora;
+    arrayInsert[2] = emailLogado;
+    arrayInsert[3] = dados.destino;
+    arrayInsert[4] = dados.motivo;
+    arrayInsert[5] = "";
+    arrayInsert[6] = "";
+    arrayInsert[7] = ""; 
+    arrayInsert[8] = "";
+    arrayInsert[9] = (dados.moedas !== undefined) ? dados.moedas : 1;
+    arrayInsert[10] = dados.observacoes || "";
+    arrayInsert[11] = dados.linkEvidenciaExterna || "";
+    arrayInsert[12] = dados.dataViagem || dados.dataAtividade || "";
+    arrayInsert[13] = "";
+    arrayInsert[14] = dados.kmValor || "";
+    arrayInsert[15] = dados.kmQtd || "";
+    arrayInsert[16] = dados.kmCusto || "";
+    arrayInsert[17] = dados.roteiro || "";
+    arrayInsert[18] = dados.subTema || "";
+    arrayInsert[19] = dados.pessoasImpactadas || 0;
+    arrayInsert[20] = dados.tempoGasto || 0;
+    arrayInsert[21] = dados.gastoTotal || 0;
+    arrayInsert[22] = dados.alimentacao || 0;
+    arrayInsert[23] = dados.hospedagem || 0;
+    arrayInsert[24] = dados.aereo || 0;
+    arrayInsert[25] = dados.pedagio || 0;
+    arrayInsert[26] = dados.estacionamento || 0;
+    sheet.appendRow(arrayInsert);
+    return { sucesso: true };
+  } catch (e) { 
+    return { erro: e.message }; 
   } finally {
-    try { lock.releaseLock(); } catch (e) {}
+    lock.releaseLock();
   }
 }
 
-/**
- * Salva lançamento de KM Avulso
- */
-function salvarKMAvulsoServidor(dados) {
-  var lock = LockService.getScriptLock();
+function excluirLancamento(idLancamento) {
+  const lock = LockService.getScriptLock();
   try {
-    var success = lock.tryLock(30000);
-    if (!success) {
-      return { sucesso: false, mensagem: 'Sistema ocupado. Tente novamente em alguns segundos.' };
+    lock.waitLock(10000);
+    const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
+    const controle = obterControleAcesso(emailLogado);
+    if (!controle.autorizado) {
+      throw new Error("Operação não autorizada.");
     }
-
-    var controle = obterControleAcesso();
-    if (!controle.temAcesso) return { sucesso: false, mensagem: 'Acesso negado.' };
-
-    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    var abaLanc = ss.getSheetByName('DADOS_LANCAMENTOS');
-    if (!abaLanc) return { sucesso: false, mensagem: 'Aba DADOS_LANCAMENTOS não encontrada.' };
-
-    var novoId = 'REG_AVULSO_' + new Date().getTime();
-    var dtData = new Date(dados.data + 'T12:00:00');
-    var dtStrFormatted = ("0" + dtData.getDate()).slice(-2) + '/' + ("0" + (dtData.getMonth() + 1)).slice(-2) + '/' + dtData.getFullYear();
-
-    var rateKm = parseFloat(dados.rate) || 1.20;
-    var km = parseFloat(dados.km) || 0;
-    var custoKm = km * rateKm;
-    var alimentacao = parseFloat(dados.alimentacao) || 0;
-    var hospedagem = parseFloat(dados.hospedagem) || 0;
-    var aereo = parseFloat(dados.aereo) || 0;
-    var pedagio = parseFloat(dados.pedagio) || 0;
-    var estacionamento = parseFloat(dados.estacionamento) || 0;
-    var custoTotal = custoKm + alimentacao + hospedagem + aereo + pedagio + estacionamento;
-
-    var novaLinha = [
-      novoId, dtStrFormatted, controle.email, 'AVULSO - ' + (dados.destino || 'SEDE'),
-      'Deslocamento KM Avulso', '', '', '', custoTotal, 0,
-      'KM Avulso com destino a: ' + dados.destino, '', dados.data, 'REGIONAL',
-      '', km, custoKm, 'Presencial', 'KM Avulso', 1, 1, custoTotal,
-      alimentacao, hospedagem, aereo, pedagio, estacionamento, 'VALIDADO'
-    ];
-
-    abaLanc.appendRow(novaLinha);
-    return { sucesso: true, mensagem: 'Lançamento de KM Avulso registrado com sucesso!' };
-  } catch (e) {
-    return { sucesso: false, mensagem: 'Erro ao salvar KM Avulso: ' + e.message };
-  } finally {
-    try { lock.releaseLock(); } catch (e) {}
-  }
-}
-
-/**
- * Exclui um lançamento pelo ID
- */
-function deletarLancamento(idRegistro) {
-  var lock = LockService.getScriptLock();
-  try {
-    var success = lock.tryLock(30000);
-    if (!success) return { sucesso: false, mensagem: 'Servidor ocupado.' };
-
-    var controle = obterControleAcesso();
-    if (!controle.temAcesso) return { sucesso: false, mensagem: 'Sem permissão.' };
-
-    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    var abaLanc = ss.getSheetByName('DADOS_LANCAMENTOS');
-    if (!abaLanc) return { sucesso: false, mensagem: 'Tabela não encontrada.' };
-
-    var dados = abaLanc.getDataRange().getValues();
-    for (var i = 1; i < dados.length; i++) {
-      if (String(dados[i][0]).trim() === String(idRegistro).trim()) {
-        var emailAutor = String(dados[i][2] || '').toLowerCase();
-        if (controle.isSuperAdmin || emailAutor === controle.email.toLowerCase()) {
-          abaLanc.deleteRow(i + 1);
-          return { sucesso: true, mensagem: 'Atividade excluída com sucesso!' };
-        } else {
-          return { sucesso: false, mensagem: 'Você só pode excluir seus próprios lançamentos.' };
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('DADOS_LANCAMENTOS');
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (data[i][0] === idLancamento) {
+        if (String(data[i][2]).toLowerCase().trim() === emailLogado || controle.isSuperAdmin) {
+            try {
+                const destinoStr = String(data[i][3]).trim();
+                const cache = CacheService.getScriptCache();
+                if (!destinoStr.startsWith("REGIONAL") && !destinoStr.startsWith("DIRETORIA")) {
+                    let fId = parseInt(normalizarFilialId(destinoStr.split('-')[0].trim()), 10);
+                    if (!isNaN(fId)) cache.remove('IND_LOJA_' + fId);
+                }
+            } catch(e) {}
+            sheet.deleteRow(i + 1); 
+            return { sucesso: true };
         }
       }
     }
-    return { sucesso: false, mensagem: 'Registro não localizado.' };
-  } catch (e) {
-    return { sucesso: false, mensagem: 'Erro ao excluir: ' + e.message };
+    return { erro: "Documento não localizado ou permissões insuficientes." };
+  } catch (e) { 
+    return { erro: e.message }; 
   } finally {
-    try { lock.releaseLock(); } catch (e) {}
+    lock.releaseLock();
   }
 }

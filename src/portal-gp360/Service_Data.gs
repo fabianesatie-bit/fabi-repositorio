@@ -1,524 +1,388 @@
-/**
- * ECOSSISTEMA GP360 - PORTAL GP 360
- * Arquivo: Service_Data.gs
- * Subpasta Monorepo: src/portal-gp360/
- * Otimizado com Leitura Seletiva de Colunas e Povoamento Garantido de Lojas, Regionais e Diretorias
- */
+// =============================================================================
+// CARREGAMENTO DE DADOS E CONSULTAS DE INDICADORES (OPTIMIZADO E RÁPIDO)
+// =============================================================================
 
-/**
- * Normalização de Filiais (Série > 3000)
- */
-function normalizarFilialId(val) {
-  if (!val && val !== 0) return "";
-  var num = parseInt(String(val).replace(/\D/g, ''), 10);
-  if (isNaN(num)) return String(val).trim();
-  if (num > 3000) { num -= 3000; }
-  return String(num);
-}
-
-/**
- * Extrai ID de um link do Google Drive
- */
-function extrairIdDrive(url) {
-  if (!url) return '';
-  var match = String(url).match(/[-\w]{25,}/);
-  return match ? match[0] : '';
-}
-
-/**
- * Normaliza e extrai dia, mês e ano com alta performance
- */
-function extrairMesAnoData(val) {
-  var d = new Date();
-  if (!val) return { dia: d.getDate(), mes: d.getMonth() + 1, ano: d.getFullYear() };
-  if (val instanceof Date) {
-    return { dia: val.getDate(), mes: val.getMonth() + 1, ano: val.getFullYear() };
-  }
-  var str = String(val).trim();
-  var parts = str.split('/');
-  if (parts.length === 3) {
-    var dia = parseInt(parts[0], 10) || 1;
-    var mes = parseInt(parts[1], 10) || 1;
-    var ano = parseInt(parts[2], 10) || d.getFullYear();
-    return { dia: dia, mes: mes, ano: ano };
-  }
-  var d2 = new Date(str);
-  if (!isNaN(d2.getTime())) {
-    return { dia: d2.getDate(), mes: d2.getMonth() + 1, ano: d2.getFullYear() };
-  }
-  return { dia: d.getDate(), mes: d.getMonth() + 1, ano: d.getFullYear() };
-}
-
-/**
- * Retorna o perfil de controle de acesso do usuário ativo
- */
-function obterControleAcesso() {
-  if (typeof obterControleAcessoSeguro === 'function') {
-    return obterControleAcessoSeguro();
-  }
-  var email = Session.getActiveUser().getEmail() || Session.getEffectiveUser().getEmail();
-  return {
-    temAcesso: true,
-    email: email,
-    nome: email.split('@')[0],
-    cargo: 'Coordenador',
-    nivelAcesso: 'Acesso Liberado',
-    isSuperAdmin: true,
-    isAdmin: true,
-    regionais: []
-  };
-}
-
-/**
- * Converte com segurança valores numéricos
- */
-function parseNumPtBr(val) {
-  if (val === undefined || val === null || val === '') return 0;
-  if (typeof val === 'number') return val;
-  var str = String(val).replace(/%/g, '').replace(/\./g, '').replace(',', '.').trim();
-  var num = parseFloat(str);
-  return isNaN(num) ? 0 : num;
-}
-
-/**
- * Carrega e mapeia a aba DADOS_USUARIOS com suporte a Cache
- */
-function obterMapaUsuarios(ss) {
-  var cache = CacheService.getScriptCache();
-  var cachedUsers = cache.get('GP360_MAPA_USUARIOS_SLIM_V7');
-  if (cachedUsers) {
-    try {
-      var rawUsers = JSON.parse(cachedUsers);
-      var mapaResult = {};
-      Object.keys(rawUsers).forEach(function(email) {
-        var u = rawUsers[email];
-        mapaResult[email] = { nome: u[0], cargo: u[1], regional: u[2], foto: u[3] };
-      });
-      return mapaResult;
-    } catch (e) {
-      Logger.log('Recarregando mapa de usuarios...');
+function obterDadosIniciais(mesAlvo, anoAlvo) {
+  try {
+    const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
+    const controle = obterControleAcesso(emailLogado);
+    if (!controle.autorizado) {
+      return { bloqueado: true, mensagem: controle.erro };
     }
-  }
-
-  var mapa = {};
-  var rawSlim = {};
-  var abaUser = ss.getSheetByName('DADOS_USUARIOS');
-  if (!abaUser) return mapa;
-
-  var dados = abaUser.getDataRange().getValues();
-  for (var i = 1; i < dados.length; i++) {
-    var email = String(dados[i][0] || '').toLowerCase().trim();
-    if (!email) continue;
-
-    var rawFoto = String(dados[i][6] || '').trim();
-    var driveId = extrairIdDrive(rawFoto);
-    var fotoUrl = driveId ? ('https://lh3.googleusercontent.com/d/' + driveId + '=w400') : '';
-
-    var nome = dados[i][1] || email;
-    var cargo = dados[i][2] || 'Colaborador';
-    var regional = dados[i][4] || '';
-
-    mapa[email] = { nome: nome, cargo: cargo, regional: regional, foto: fotoUrl };
-    rawSlim[email] = [nome, cargo, regional, fotoUrl];
-  }
-
-  try { cache.put('GP360_MAPA_USUARIOS_SLIM_V7', JSON.stringify(rawSlim), 900); } catch (e) {}
-  return mapa;
-}
-
-/**
- * Carrega a aba DADOS_INDICADORES
- */
-function obterMapaIndicadoresLojas(ss) {
-  var cache = CacheService.getScriptCache();
-  var cachedInd = cache.get('GP360_MAPA_INDICADORES_SLIM_V7');
-  if (cachedInd) {
-    try {
-      var rawMap = JSON.parse(cachedInd);
-      var mapaResult = {};
-      Object.keys(rawMap).forEach(function(fId) {
-        var arr = rawMap[fId];
-        var item = { vendas: arr[0], bh: arr[1], nps: arr[2], txDesligamento: arr[3], coletaLixo: arr[4], pcd: arr[5] };
-        mapaResult[fId] = item;
-        var numOnly = String(parseInt(fId, 10));
-        if (numOnly && numOnly !== 'NaN') mapaResult[numOnly] = item;
-      });
-      return mapaResult;
-    } catch (e) {
-      Logger.log('Recarregando mapa de indicadores...');
-    }
-  }
-
-  var mapa = {};
-  var rawSlim = {};
-  var abaInd = ss.getSheetByName('DADOS_INDICADORES');
-  if (!abaInd) return mapa;
-
-  var dados = abaInd.getDataRange().getValues();
-  for (var i = 1; i < dados.length; i++) {
-    var rawId = dados[i][0];
-    var numFilial = normalizarFilialId(rawId);
-    if (!numFilial) continue;
-
-    var fId = ("0000" + numFilial).slice(-4);
-    var rawNumStr = String(numFilial);
-
-    var item = {
-      vendas: parseNumPtBr(dados[i][3]),
-      bh: parseNumPtBr(dados[i][4]),
-      nps: parseNumPtBr(dados[i][5]),
-      txDesligamento: parseNumPtBr(dados[i][6]),
-      coletaLixo: Math.round(parseNumPtBr(dados[i][7])),
-      pcd: Math.round(parseNumPtBr(dados[i][8]))
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    let usuario = { 
+      email: controle.email, 
+      nome: controle.nome, 
+      cargo: controle.cargo, 
+      infoLinha2: controle.isSuperAdmin ? "Visão Nacional" : controle.regionais.join(', '), 
+      regionais: controle.regionais, 
+      diretoriasAtendidas: controle.diretoriasAtendidas || [],
+      isAdmin: controle.isAdmin, 
+      isSuperAdmin: controle.isSuperAdmin, 
+      isConfigAdmin: controle.isConfigAdmin, 
+      isGerenteGP: controle.isGerenteGP,
+      foto: "" 
     };
 
-    mapa[fId] = item;
-    mapa[rawNumStr] = item;
-    rawSlim[fId] = [item.vendas, item.bh, item.nps, item.txDesligamento, item.coletaLixo, item.pcd];
-  }
+    let mapaUsuarios = {}; 
+    const sheetUsuarios = ss.getSheetByName('DADOS_USUARIOS');
+    let listaDiretoriasUnicas = new Set();
+    if (sheetUsuarios) {
+      const dadosUsuarios = sheetUsuarios.getDataRange().getValues();
+      for (let i = 1; i < dadosUsuarios.length; i++) {
+        const emailLinha = dadosUsuarios[i][0] ? String(dadosUsuarios[i][0]).toLowerCase().trim() : "";
+        if (emailLinha) {
+           let dirRaw = dadosUsuarios[i][3] ? String(dadosUsuarios[i][3]).trim() : "";
+           if (dirRaw) {
+              dirRaw.split(',').forEach(d => listaDiretoriasUnicas.add(d.trim()));
+           }
+           let fotoRaw = (dadosUsuarios[i].length > 6 && dadosUsuarios[i][6]) ? String(dadosUsuarios[i][6]).trim() : "";
+           let fotoId = extrairIdDrive(fotoRaw);
+           let fotoPronta = fotoId ? (fotoId.startsWith("http") ? fotoId : "https://lh3.googleusercontent.com/d/" + fotoId) : "";
 
-  try { cache.put('GP360_MAPA_INDICADORES_SLIM_V7', JSON.stringify(rawSlim), 900); } catch (e) {}
-  return mapa;
-}
-
-/**
- * ETAPA 1 (CARREGAMENTO ULTRA-RÁPIDO SUB-1S):
- * Lê estritamente as colunas A-N necessárias para a abertura da UI
- */
-function obterDadosIniciais(filtroMes, filtroAno) {
-  var controle = obterControleAcesso();
-  if (!controle.temAcesso) {
-    return { temAcesso: false, motivo: controle.motivo };
-  }
-
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var agora = new Date();
-  var mesAlvo = (filtroMes !== undefined && filtroMes !== null && filtroMes !== '') ? parseInt(filtroMes, 10) : agora.getMonth() + 1;
-  var anoAlvo = (filtroAno !== undefined && filtroAno !== null && filtroAno !== '') ? parseInt(filtroAno, 10) : agora.getFullYear();
-
-  var mapaUsuarios = obterMapaUsuarios(ss);
-
-  var dicionarioPremios = {};
-  var abaPremios = ss.getSheetByName('DICIONARIO_PREMIOS');
-  if (abaPremios) {
-    var dadosP = abaPremios.getDataRange().getValues();
-    for (var i = 1; i < dadosP.length; i++) {
-      var natKey = String(dadosP[i][0]).trim().toUpperCase();
-      var pts = parseFloat(dadosP[i][1]) || 0;
-      dicionarioPremios[natKey] = pts;
-    }
-  }
-
-  if (!dicionarioPremios['INTERNA']) dicionarioPremios['INTERNA'] = 4;
-  if (!dicionarioPremios['CANAL']) dicionarioPremios['CANAL'] = 2;
-
-  var chavesValidadasEspecialista = {};
-
-  // Validação rápida e seletiva via DADOS_SOCIAL
-  var abaSocCons = ss.getSheetByName('DADOS_SOCIAL');
-  if (abaSocCons && abaSocCons.getLastRow() > 1) {
-    var dSoc = abaSocCons.getRange(1, 1, abaSocCons.getLastRow(), 2).getValues();
-    for (var s = 1; s < dSoc.length; s++) {
-      var rawRegSoc = dSoc[s][0];
-      var numFilSoc = normalizarFilialId(rawRegSoc);
-      var regSocPad = numFilSoc ? ("0000" + numFilSoc).slice(-4) : String(rawRegSoc || '').trim().toUpperCase();
-      var mesSocStr = String(dSoc[s][1] || '').trim();
-      if (regSocPad && mesSocStr) {
-        chavesValidadasEspecialista['SOCIAL_' + regSocPad + '_' + mesSocStr] = true;
+           mapaUsuarios[emailLinha] = { 
+               nome: dadosUsuarios[i][1] || 'GP', 
+               foto: fotoPronta,
+               regionais: dadosUsuarios[i][4] ? String(dadosUsuarios[i][4]).split(',').map(r => r.trim()) : []
+           };
+        }
+        if (emailLinha === emailLogado) {
+          usuario.foto = mapaUsuarios[emailLinha].foto;
+        }
       }
     }
-  }
+    registrarAuditoria("Login", "Acesso ao Portal Concluído");
 
-  // Validação rápida e seletiva via DADOS_APUR
-  var abaApurCons = ss.getSheetByName('DADOS_APUR');
-  if (abaApurCons && abaApurCons.getLastRow() > 1) {
-    var dApur = abaApurCons.getRange(1, 1, abaApurCons.getLastRow(), 3).getValues();
-    for (var a = 1; a < dApur.length; a++) {
-      var rawRegApur = dApur[a][0];
-      var numFilApur = normalizarFilialId(rawRegApur);
-      var regApurPad = numFilApur ? ("0000" + numFilApur).slice(-4) : String(rawRegApur || '').trim().toUpperCase();
-      var mesApurStr = String(dApur[a][1] || '').trim();
-      var classifApur = String(dApur[a][2] || '').trim().toUpperCase();
+    let placarMoedasTotal = {};
+    let placarMoedasMes = {};
+    let placarMoedasMesAnterior = {};
+    let gastoTotalAcumulado = 0;
+    let gastoMesAnterior = 0;
+    let setVisitasFisicasMes = new Set();
+    let setVisitasFisicasMesAnterior = new Set();
 
-      if (regApurPad && mesApurStr) {
-        chavesValidadasEspecialista['APUR_' + regApurPad + '_' + mesApurStr] = classifApur || 'VALIDADO';
-      }
-    }
-  }
+    const dHoje = new Date();
+    const mesAtual = typeof mesAlvo === 'number' ? mesAlvo : dHoje.getMonth();
+    const anoAtual = typeof anoAlvo === 'number' ? anoAlvo : dHoje.getFullYear();
+    
+    // Suporte retroativo (Mês Vigente vs Mês Anterior)
+    const mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1;
+    const anoAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
 
-  var lancamentos = [];
-  var moedasMesUser = 0;
-  var reembolsoEstimadoMes = 0;
-  var filiaisVisitadasSet = {};
-  var pontuacaoPorUsuario = {};
-  var distribuicaoAtividadesMap = {};
+    const meusLancamentos = []; 
+    const sheetLancamentos = ss.getSheetByName('DADOS_LANCAMENTOS'); 
 
-  var mesAnoStrRef = ("0" + mesAlvo).slice(-2) + '/' + anoAlvo;
+    if (sheetLancamentos && sheetLancamentos.getLastRow() > 1) {
+      const dadosLancamentos = sheetLancamentos.getDataRange().getValues();
+      for (let i = 1; i < dadosLancamentos.length; i++) {
+        const emailAutor = dadosLancamentos[i][2] ? String(dadosLancamentos[i][2]).toLowerCase().trim() : "";
+        if (emailAutor) {
+           if (!placarMoedasTotal[emailAutor]) placarMoedasTotal[emailAutor] = 0;
+           if (!placarMoedasMes[emailAutor]) placarMoedasMes[emailAutor] = 0;
+           if (!placarMoedasMesAnterior[emailAutor]) placarMoedasMesAnterior[emailAutor] = 0;
 
-  var abaLanc = ss.getSheetByName('DADOS_LANCAMENTOS');
-  if (abaLanc && abaLanc.getLastRow() > 1) {
-    var dLanc = abaLanc.getRange(1, 1, abaLanc.getLastRow(), 14).getValues();
-    var totalRows = dLanc.length;
+           let valorMoedaRaw = String(dadosLancamentos[i][9] || "0").replace(',', '.').trim();
+           let moedasParse = parseFloat(valorMoedaRaw);
+           if (!isNaN(moedasParse)) {
+               placarMoedasTotal[emailAutor] += moedasParse;
 
-    for (var k = 1; k < totalRows; k++) {
-      var row = dLanc[k];
-      var idReg = row[0];
-      var emailAutor = String(row[2] || '').toLowerCase().trim();
-      if (!emailAutor) continue;
-
-      var dataBrutaColunaM = row[12] || row[1];
-      var infoDt = extrairMesAnoData(dataBrutaColunaM);
-      var mReg = infoDt.mes;
-      var aReg = infoDt.ano;
-
-      // Filtro estrito de Ano para performance
-      if (aReg !== anoAlvo) continue;
-
-      var dtStr = ("0" + infoDt.dia).slice(-2) + '/' + ("0" + infoDt.mes).slice(-2) + '/' + infoDt.ano;
-      var rawFilialLanc = row[3];
-      var numFilialLanc = normalizarFilialId(rawFilialLanc);
-      var fIdLanc = numFilialLanc ? ("0000" + numFilialLanc).slice(-4) : String(rawFilialLanc || '');
-      var motivoLanc = String(row[4] || '').trim();
-      var motivoLancUpper = motivoLanc.toUpperCase();
-      var custoTotalItem = parseFloat(row[8]) || 0;
-
-      var statusSalvoCol = String(row[13] || '').trim().toUpperCase();
-      var motivoLower = motivoLanc.toLowerCase();
-      var ehEspecialista = motivoLower.includes('atendimento social') || 
-                           motivoLower.includes('apuraç') || 
-                           motivoLower.includes('apurac') || 
-                           motivoLower.includes('feedback') || 
-                           motivoLower.includes('acompanhamento');
-
-      var ehMesAtual = (mReg === mesAlvo);
-      var statusFinal = statusSalvoCol;
-
-      var encSoc = !!chavesValidadasEspecialista['SOCIAL_' + fIdLanc + '_' + mesAnoStrRef];
-      var encApur = chavesValidadasEspecialista['APUR_' + fIdLanc + '_' + mesAnoStrRef];
-
-      if (ehEspecialista && (encSoc || encApur)) {
-        statusFinal = 'VALIDADO';
-      }
-
-      if (!statusFinal) {
-        statusFinal = (!ehMesAtual) ? 'VALIDADO' : (ehEspecialista ? 'PENDENTE' : 'VALIDADO');
-      }
-
-      var estaValidadoEspecialista = (statusFinal === 'VALIDADO');
-
-      var ehKmAvulso = motivoLower.includes('km avulso') || 
-                       motivoLower.includes('deslocamento avulso') || 
-                       String(fIdLanc).toUpperCase().includes('AVULSO');
-
-      var ptsItem = 0;
-      if (!ehKmAvulso) {
-        if (ehEspecialista) {
-          var classifApurEspec = chavesValidadasEspecialista['APUR_' + fIdLanc + '_' + mesAnoStrRef] || '';
-          if (classifApurEspec === 'INTERNA') ptsItem = 4;
-          else if (classifApurEspec === 'CANAL') ptsItem = 2;
-          else ptsItem = dicionarioPremios[motivoLancUpper] || parseFloat(row[9]) || 1;
+               let dtAcaoRaw = obterDataRawSegura(dadosLancamentos[i][12] || dadosLancamentos[i][1]);
+               if (dtAcaoRaw > 0) {
+                 let dtObj = new Date(dtAcaoRaw);
+                 if (!isNaN(dtObj.getTime())) {
+                   if (dtObj.getMonth() === mesAtual && dtObj.getFullYear() === anoAtual) {
+                     placarMoedasMes[emailAutor] += moedasParse;
+                   }
+                   if (dtObj.getMonth() === mesAnterior && dtObj.getFullYear() === anoAnterior) {
+                     placarMoedasMesAnterior[emailAutor] += moedasParse;
+                   }
+                 }
+               }
+           }
+        }
+        let visivelNoHistorico = false;
+        if (usuario.isSuperAdmin) {
+          visivelNoHistorico = true;
+        } else if (usuario.isAdmin) {
+          let regAutor = mapaUsuarios[emailAutor] ? mapaUsuarios[emailAutor].regionais : [];
+          let overlap = regAutor.some(r => usuario.regionais.includes(r));
+          if (overlap || emailAutor === emailLogado) visivelNoHistorico = true;
         } else {
-          ptsItem = parseFloat(row[9]) || dicionarioPremios[motivoLancUpper] || 1;
+          if (emailAutor === emailLogado) visivelNoHistorico = true;
         }
-      }
+        if (visivelNoHistorico) {
+          let kmCusto = Number(dadosLancamentos[i][16]) || 0;
+          let alimentacao = Number(dadosLancamentos[i][22]) || 0;
+          let hospedagem = Number(dadosLancamentos[i][23]) || 0;
+          let aereo = Number(dadosLancamentos[i][24]) || 0;
+          let pedagio = Number(dadosLancamentos[i][25]) || 0;
+          let estacionamento = Number(dadosLancamentos[i][26]) || 0;
+          let gastoSomaReal = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
 
-      var usrInfo = mapaUsuarios[emailAutor] || { nome: emailAutor, foto: '' };
+          let dtViagemReal = obterDataRawSegura(dadosLancamentos[i][12] || dadosLancamentos[i][1]);
+          if (emailAutor === emailLogado) {
+              let dtObj = new Date(dtViagemReal);
+              if (!isNaN(dtObj.getTime())) {
+                  let isAtual = (dtObj.getMonth() === mesAtual && dtObj.getFullYear() === anoAtual);
+                  let isAnterior = (dtObj.getMonth() === mesAnterior && dtObj.getFullYear() === anoAnterior);
 
-      if (!pontuacaoPorUsuario[emailAutor]) {
-        pontuacaoPorUsuario[emailAutor] = { 
-          mes: 0, 
-          total: 0, 
-          email: emailAutor, 
-          nome: usrInfo.nome, 
-          foto: usrInfo.foto 
-        };
-      }
+                  if (isAtual) gastoTotalAcumulado += gastoSomaReal;
+                  if (isAnterior) gastoMesAnterior += gastoSomaReal;
 
-      if (estaValidadoEspecialista && ehMesAtual) {
-        pontuacaoPorUsuario[emailAutor].mes += ptsItem;
-        pontuacaoPorUsuario[emailAutor].total += ptsItem;
-      }
-
-      if (emailAutor === controle.email.toLowerCase() && ehMesAtual) {
-        if (estaValidadoEspecialista) {
-          moedasMesUser += ptsItem;
-          if (fIdLanc && !ehKmAvulso) filiaisVisitadasSet[fIdLanc] = true;
-        }
-
-        reembolsoEstimadoMes += custoTotalItem;
-
-        if (motivoLanc) {
-          distribuicaoAtividadesMap[motivoLanc] = (distribuicaoAtividadesMap[motivoLanc] || 0) + 1;
-        }
-
-        lancamentos.push({
-          id: idReg,
-          data: dtStr,
-          filial: fIdLanc,
-          motivo: motivoLanc,
-          observacao: row[10] || '',
-          evidenciaUrl: row[11] || '',
-          custoTotal: custoTotalItem,
-          statusValidacao: statusFinal,
-          validadoEspecialista: estaValidadoEspecialista,
-          autor: row[2]
-        });
-      }
-    }
-  }
-
-  var rankingArray = [];
-  Object.keys(pontuacaoPorUsuario).forEach(function(em) {
-    if (pontuacaoPorUsuario[em].mes > 0) {
-      rankingArray.push(pontuacaoPorUsuario[em]);
-    }
-  });
-
-  rankingArray.sort(function(a, b) { return b.mes - a.mes; });
-  var rankingTop5 = rankingArray.slice(0, 5);
-
-  var pctEverest = Math.min(100, Math.round((moedasMesUser / META_EVEREST) * 100));
-  var faseNome = "⛺ Fase 1: Acampamento Base";
-  if (pctEverest >= 100) faseNome = "🚩 ⚡ Fase 4: Bandeira no Everest!";
-  else if (pctEverest >= 75) faseNome = "🏔️ Fase 3: Cume Alcançado";
-  else if (pctEverest >= 40) faseNome = "🧗 Fase 2: Subida da Montanha";
-
-  return {
-    temAcesso: true,
-    usuario: controle,
-    visitasInLocoMes: Object.keys(filiaisVisitadasSet).length,
-    reembolsoEstimadoMes: reembolsoEstimadoMes,
-    distribuicaoAtividades: distribuicaoAtividadesMap,
-    lancamentos: lancamentos,
-    dicionarioPremios: dicionarioPremios,
-    gamificacao: {
-      moedasTotais: moedasMesUser,
-      moedasMes: moedasMesUser,
-      metaEverest: META_EVEREST,
-      percentualEverest: pctEverest,
-      faseNome: faseNome,
-      filiaisVisitadas: Object.keys(filiaisVisitadasSet).length,
-      ranking: rankingTop5,
-      mesAlvo: mesAlvo,
-      anoAlvo: anoAlvo
-    }
-  };
-}
-
-/**
- * ETAPA 2: Retorna em segundo plano lojas, indicadores e listas de Regionais e Diretorias para os cards
- */
-function obterDadosComplementares() {
-  var controle = obterControleAcesso();
-  if (!controle.temAcesso) return {};
-
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var mapaIndicadores = obterMapaIndicadoresLojas(ss);
-
-  var lojas = [];
-  var filiaisUnicasContadas = {};
-  var regionaisSet = {};
-  var diretoriasSet = {};
-
-  var abaLojas = ss.getSheetByName('DADOS_LOJAS');
-  if (abaLojas) {
-    var dadosLojas = abaLojas.getDataRange().getValues();
-    for (var j = 1; j < dadosLojas.length; j++) {
-      var rawId = dadosLojas[j][0];
-      var numFilial = normalizarFilialId(rawId);
-      if (!numFilial) continue;
-
-      var fId = ("0000" + numFilial).slice(-4);
-      var nomeLoja = String(dadosLojas[j][1] || '').trim();
-      var reg = String(dadosLojas[j][2] || '').trim().toUpperCase();
-      var dir = String(dadosLojas[j][3] || '').trim().toUpperCase();
-
-      if (reg) regionaisSet[reg] = true;
-      if (dir) diretoriasSet[dir] = true;
-
-      if (!filiaisUnicasContadas[fId]) {
-        var temPermissao = controle.isSuperAdmin || controle.isAdmin || 
-                           !controle.regionais || controle.regionais.length === 0 || 
-                           controle.regionais.indexOf(reg) > -1;
-
-        if (temPermissao) {
-          filiaisUnicasContadas[fId] = true;
-          lojas.push({
-            id: fId,
-            nome: nomeLoja || ('Loja ' + fId),
-            regional: reg,
-            diretoria: dir
+                  let rot = String(dadosLancamentos[i][17] || "").trim();
+                  if (rot.includes("Visita in loco")) {
+                      let dtVFormat = formatarDataSegura(dadosLancamentos[i][12] || dadosLancamentos[i][1]);
+                      let dst = String(dadosLancamentos[i][3]).trim();
+                      if (isAtual) setVisitasFisicasMes.add(emailAutor + "|" + dtVFormat + "|" + dst);
+                      if (isAnterior) setVisitasFisicasMesAnterior.add(emailAutor + "|" + dtVFormat + "|" + dst);
+                  }
+              }
+          }
+          meusLancamentos.push({
+            id: dadosLancamentos[i][0], 
+            dataRegistro: formatarDataSegura(dadosLancamentos[i][1]), 
+            autorNome: mapaUsuarios[emailAutor] ? mapaUsuarios[emailAutor].nome : emailAutor,
+            isOwner: (emailAutor === emailLogado), 
+            destino: dadosLancamentos[i][3], 
+            motivo: dadosLancamentos[i][4], 
+            gastoTotal: gastoSomaReal, 
+            dataViagem: formatarDataSegura(dadosLancamentos[i][12]), 
+            dataViagemRaw: dtViagemReal, 
+            kmValor: Number(dadosLancamentos[i][14]) || 0, 
+            kmQtd: Number(dadosLancamentos[i][15]) || 0, 
+            kmCusto: kmCusto, 
+            alimentacao: alimentacao,
+            hospedagem: hospedagem,
+            aereo: aereo,
+            pedagio: pedagio,
+            estacionamento: estacionamento,
+            observacoes: String(dadosLancamentos[i][10] || "").trim(), 
+            roteiro: String(dadosLancamentos[i][17] || "").trim(), 
+            subTema: String(dadosLancamentos[i][18] || "").trim(), 
+            pessoasImpactadas: Number(dadosLancamentos[i][19]) || 0, 
+            tempoGasto: Number(dadosLancamentos[i][20]) || 0,
+            linkEvidencia: String(dadosLancamentos[i][11] || "").trim()
           });
         }
       }
     }
-  }
 
-  var listaRegionais = Object.keys(regionaisSet).sort();
-  if (listaRegionais.length === 0) {
-    listaRegionais = ['REGIONAL 01', 'REGIONAL 02', 'REGIONAL 03', 'REGIONAL 04', 'REGIONAL SP', 'REGIONAL SUL'];
-  }
+    meusLancamentos.reverse(); 
+    let historicoLimitado = meusLancamentos.slice(0, 400); // Otimizado para performance leve
 
-  var listaDiretorias = Object.keys(diretoriasSet).sort();
-  if (listaDiretorias.length === 0) {
-    listaDiretorias = ['DIRETORIA OPERAÇÕES', 'DIRETORIA RH', 'DIRETORIA COMERCIAL', 'DIRETORIA LOGÍSTICA'];
-  }
+    let userMoedasTotal = placarMoedasTotal[emailLogado] || 0;
+    let userMoedasMes = placarMoedasMes[emailLogado] || 0;
+    let userMoedasMesAnterior = placarMoedasMesAnterior[emailLogado] || 0;
 
-  var naturezas = carregarNaturezasSeguras(ss);
-  var temas = carregarTemasSeguras(ss);
+    let faseMontanha = 1;
+    if (userMoedasTotal >= 120) faseMontanha = 4;
+    else if (userMoedasTotal >= 80) faseMontanha = 3;
+    else if (userMoedasTotal >= 40) faseMontanha = 2;
 
-  return {
-    lojas: lojas,
-    lojasCarteiraTotal: lojas.length,
-    regionaisLista: listaRegionais,
-    diretoriasLista: listaDiretorias,
-    indicadoresLojas: mapaIndicadores,
-    naturezas: naturezas,
-    temas: temas
-  };
+    let ranking = Object.keys(placarMoedasTotal).map(email => {
+        let nomeExibicao = 'GP';
+        let fotoExibicao = '';
+        if (mapaUsuarios[email]) {
+            nomeExibicao = mapaUsuarios[email].nome;
+            fotoExibicao = mapaUsuarios[email].foto;
+        } else {
+            let partesEmail = email.split('@')[0].split('.');
+            nomeExibicao = partesEmail.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+        }
+        let totalU = placarMoedasTotal[email] || 0;
+
+        let faseU = 1;
+        if (totalU >= 120) faseU = 4;
+        else if (totalU >= 80) faseU = 3;
+        else if (totalU >= 40) faseU = 2;
+
+        return { 
+          email: email, 
+          nome: nomeExibicao, 
+          foto: fotoExibicao, 
+          moedas: totalU,
+          moedasMes: placarMoedasMes[email] || 0,
+          moedasMesAnterior: placarMoedasMesAnterior[email] || 0,
+          fase: faseU
+        };
+    });
+
+    const lojasFiltradasMap = new Map();
+    const sheetLojas = ss.getSheetByName('DADOS_LOJAS');
+    if (sheetLojas && sheetLojas.getLastRow() > 1) {
+      const dadosLojas = sheetLojas.getDataRange().getValues();
+      for (let i = 1; i < dadosLojas.length; i++) {
+        const regionalLoja = dadosLojas[i][2] ? String(dadosLojas[i][2]).trim() : "";
+        if (usuario.isSuperAdmin || usuario.regionais.includes(regionalLoja)) {
+          let idLojaClean = normalizarFilialId(dadosLojas[i][0]);
+          let idLojaNum = parseInt(idLojaClean, 10);
+          if (!isNaN(idLojaNum)) {
+              if (!lojasFiltradasMap.has(idLojaNum)) {
+                  lojasFiltradasMap.set(idLojaNum, { id: idLojaNum, nome: dadosLojas[i][1], regional: regionalLoja });
+              }
+          }
+        }
+      }
+    }
+    const lojasFiltradas = Array.from(lojasFiltradasMap.values());
+    let sheetAvisos = ss.getSheetByName('DADOS_AVISOS');
+    const avisos = [];
+    if (sheetAvisos && sheetAvisos.getLastRow() > 1) {
+       const dadosAvisos = sheetAvisos.getDataRange().getValues();
+       for(let i = 1; i < dadosAvisos.length; i++) {
+          avisos.push({ data: formatarDataSegura(dadosAvisos[i][0]), autor: dadosAvisos[i][1], mensagem: dadosAvisos[i][2] });
+       }
+       avisos.reverse(); 
+    }
+    let naturezas = carregarNaturezasSeguras(ss);
+    let diretoriasAr = Array.from(listaDiretoriasUnicas).filter(Boolean).sort();
+
+    return { 
+      bloqueado: false, usuario: usuario, lojas: lojasFiltradas, qtdLojasCarteira: lojasFiltradas.length,
+      qtdVisitas: setVisitasFisicasMes.size,
+      qtdVisitasAnterior: setVisitasFisicasMesAnterior.size,
+      moedas: userMoedasTotal,
+      moedasMes: userMoedasMes,
+      moedasMesAnterior: userMoedasMesAnterior,
+      faseMontanha: faseMontanha,
+      gastos: gastoTotalAcumulado,
+      gastosMesAnterior: gastoMesAnterior,
+      historico: historicoLimitado, 
+      avisos: avisos, ranking: ranking, naturezas: naturezas, diretorias: diretoriasAr,
+      mesAtualNum: mesAtual,
+      anoAtualNum: anoAtual,
+      mesAnteriorNum: mesAnterior,
+      anoAnteriorNum: anoAnterior
+    };
+  } catch (e) { return { erro: e.message }; }
+}
+
+/**
+ * Consulta indicadores de desempenho de filiais na base DB_DASH com cache de 5 minutos.
+ */
+function buscarIndicadoresLoja(filialId) {
+  try {
+    const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
+    const verificacao = validarAcessoFilial(emailLogado, filialId);
+    if (!verificacao.autorizado) {
+      return { erro: "ACESSO NEGADO: Você não tem permissão para ler dados desta filial." };
+    }
+    let targetFilial = parseInt(normalizarFilialId(filialId), 10);
+    const cache = CacheService.getScriptCache();
+    const cacheKey = 'IND_LOJA_' + targetFilial;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) return JSON.parse(cachedData);
+    const ss = SpreadsheetApp.openById(SPREADSHEET_DASH);
+    let nps = "-", venda = "-", bh = "-", quadro = "-", txdes = "-";
+    const abasConsultadas = ['HISTORICO_VENDA_ANO', 'HISTORICO_NPS', 'HISTORICO_BH_ACUMULADO', 'HISTORICO_QUADRO', 'HISTORICO_TXDESL'];
+    const blocosDeDados = {};
+
+    abasConsultadas.forEach(nomeAba => {
+      const sheet = ss.getSheetByName(nomeAba);
+      blocosDeDados[nomeAba] = sheet ? sheet.getDataRange().getValues() : [];
+    });
+
+    const dVendas = blocosDeDados['HISTORICO_VENDA_ANO'];
+    for(let i = 1; i < dVendas.length; i++) {
+      let rowF = parseInt(normalizarFilialId(dVendas[i][0]), 10);
+      if (rowF === targetFilial) {
+        let v = dVendas[i][7];
+        if (typeof v === 'number') venda = (v * 100).toFixed(2);
+        else { 
+          let num = parseFloat(String(v).replace('%', '').replace(',', '.')); 
+          if (!isNaN(num)) venda = (num < 10 ? num * 100 : num).toFixed(2); 
+        }
+        break;
+      }
+    }
+
+    const dNPS = blocosDeDados['HISTORICO_NPS'];
+    let maxDateNPS = 0; 
+    let lastNPS = "-";
+    for(let i = 1; i < dNPS.length; i++) {
+      let rowF = parseInt(normalizarFilialId(dNPS[i][1]), 10);
+      if (rowF === targetFilial) {
+        let currentDt = obterDataRawSegura(dNPS[i][0]);
+        if (currentDt >= maxDateNPS) {
+          maxDateNPS = currentDt;
+          let v = parseFloat(String(dNPS[i][6]).replace(',', '.'));
+          if(!isNaN(v)) lastNPS = v.toFixed(1);
+        }
+      }
+    }
+    nps = lastNPS;
+
+    const dBH = blocosDeDados['HISTORICO_BH_ACUMULADO'];
+    let maxDateBH = 0; 
+    let sumBH = 0; 
+    let matchFoundBH = false;
+    for(let i = 1; i < dBH.length; i++) {
+      let rowF = parseInt(normalizarFilialId(dBH[i][1]), 10);
+      if (rowF === targetFilial) {
+        let currentDt = obterDataRawSegura(dBH[i][0]);
+        if (currentDt > maxDateBH) maxDateBH = currentDt;
+      }
+    }
+    for(let i = 1; i < dBH.length; i++) {
+      let rowF = parseInt(normalizarFilialId(dBH[i][1]), 10);
+      if (rowF === targetFilial) {
+        let currentDt = obterDataRawSegura(dBH[i][0]);
+        if (currentDt === maxDateBH) {
+          let v = parseFloat(String(dBH[i][9]).replace(',', '.'));
+          if(!isNaN(v)) { sumBH += v; matchFoundBH = true; }
+        }
+      }
+    }
+    if(matchFoundBH) bh = sumBH.toFixed(2);
+
+    const dQuadro = blocosDeDados['HISTORICO_QUADRO'];
+    let qContratar = 0; 
+    let matchFoundQ = false;
+    for(let i = 1; i < dQuadro.length; i++) {
+      let rowF = parseInt(normalizarFilialId(dQuadro[i][0]), 10);
+      if (rowF === targetFilial) {
+        let cargo = String(dQuadro[i][7]).trim();
+        if (cargo !== "Intermitente" && cargo !== "Outros - Montagem") {
+          let contratarVal = parseFloat(String(dQuadro[i][12]).replace(',', '.'));
+          if(!isNaN(contratarVal)) { qContratar += contratarVal; matchFoundQ = true; }
+        }
+      }
+    }
+    if(matchFoundQ) quadro = Math.round(qContratar);
+
+    const dTx = blocosDeDados['HISTORICO_TXDESL'];
+    for(let i = 1; i < dTx.length; i++) {
+      let rowF = parseInt(normalizarFilialId(dTx[i][0]), 10);
+      if (rowF === targetFilial) {
+        let v = parseFloat(String(dTx[i][9]).replace('%', '').replace(',', '.'));
+        if(!isNaN(v)) {
+          let perc = (v * 100).toFixed(2);
+          if (txdes === "-" || parseFloat(perc) > parseFloat(txdes)) txdes = perc;
+        }
+      }
+    }
+    let payload = {
+      sucesso: true,
+      venda: venda !== "-" ? String(venda).replace('.', ',') + "%" : "-",
+      nps: nps !== "-" ? String(nps).replace('.', ',') : "-",
+      bancoHoras: bh !== "-" ? String(bh).replace('.', ',') : "-",
+      quadro: quadro !== "-" ? String(quadro) : "-",
+      txdes: txdes !== "-" ? String(txdes).replace('.', ',') + "%" : "-"
+    };
+    cache.put(cacheKey, JSON.stringify(payload), 300);
+    return payload;
+  } catch(e) { return { erro: e.message }; }
 }
 
 function carregarNaturezasSeguras(ss) {
-  var config = ss.getSheetByName('CONFIGURAÇÕES');
-  var naturezas = [];
-  if (config && config.getLastRow() > 1) {
-    var dados = config.getDataRange().getValues();
-    for (var i = 1; i < dados.length; i++) {
-      var val = String(dados[i][0] || '').trim();
-      if (val && !val.toUpperCase().startsWith('TEMA_') && naturezas.indexOf(val) === -1) {
-        naturezas.push(val);
-      }
-    }
+  let sheetConfig = ss.getSheetByName('CONFIGURAÇÕES');
+  if (!sheetConfig) return [];
+  const valores = sheetConfig.getDataRange().getValues();
+  const fixas = ["Reunião regional", "Treinamentos", "Celebrações/Ritão/Reconhecimento", "Recrutamento e seleção - 1º liderança", "Recrutamento e seleção - Processo Externo", "Reunião Conselho E Conselho consultivo", "NPS - Lojas", "Receita de Mercadoria", "GMD - Operações de Loja", "Relatorios/Feedback/Acompanhamento", "Atendimento Social"];
+  let list = [];
+  for (let i = 1; i < valores.length; i++) {
+    let item = valores[i][0] ? String(valores[i][0]).trim() : "";
+    if (item && item !== 'Naturezas_Atividades' && !fixas.includes(item)) list.push(item);
   }
-
-  if (naturezas.length === 0) {
-    naturezas = ['Apurações e Feedback', 'Atendimento Social', 'Checklist de Loja', 'Reunião Regional', 'Roteiro Regional', 'Treinamento', 'Visita Presencial'];
-  }
-
-  naturezas.sort(function(a, b) { return a.localeCompare(b, 'pt-BR'); });
-  return naturezas;
-}
-
-function carregarTemasSeguras(ss) {
-  var config = ss.getSheetByName('CONFIGURAÇÕES');
-  var temas = { reuniao: [], treinamento: [] };
-  if (!config) {
-    return {
-      reuniao: ['NPS', 'GMD', 'Banco de Horas', 'PCD', 'Quadro', 'Lixo Eletrônico', 'Campanha Sazonais', 'Agente Integrador'],
-      treinamento: ['Liderança', 'Assédio', 'Jurídico', 'Auditoria', 'Integração', 'Atendimento 10 estrelas', 'Motivacional', 'Feedback', 'Inegociáveis', 'Apontamento']
-    };
-  }
-
-  var dados = config.getDataRange().getValues();
-  for (var i = 1; i < dados.length; i++) {
-    var cat = String(dados[i][2] || '').trim().toUpperCase();
-    var val = String(dados[i][3] || '').trim();
-    if (cat === 'REUNIAO_REGIONAL' && val) temas.reuniao.push(val);
-    if (cat === 'TREINAMENTO' && val) temas.treinamento.push(val);
-  }
-
-  if (temas.reuniao.length === 0) temas.reuniao = ['NPS', 'GMD', 'Banco de Horas', 'PCD', 'Quadro', 'Lixo Eletrônico', 'Campanha Sazonais', 'Agente Integrador'];
-  if (temas.treinamento.length === 0) temas.treinamento = ['Liderança', 'Assédio', 'Jurídico', 'Auditoria', 'Integração', 'Atendimento 10 estrelas', 'Motivacional', 'Feedback', 'Inegociáveis', 'Apontamento'];
-
-  return temas;
+  return list;
 }
