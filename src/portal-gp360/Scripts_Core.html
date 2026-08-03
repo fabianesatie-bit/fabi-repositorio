@@ -20,6 +20,7 @@
     var tipoRoteiro = document.getElementById('select-tipo-roteiro').value;
     var filial = document.getElementById('select-filial').value;
     var natureza = document.getElementById('select-natureza').value;
+    var destinoRegDir = window.targetRegionalDiretoriaSelecionada || '';
 
     if (!dataAtividade) {
       mostrarToast('Por favor, informe a data da atividade.', 'danger');
@@ -29,6 +30,12 @@
 
     if (escopo === 'FILIAL' && !filial) {
       mostrarToast('Por favor, selecione a filial de destino.', 'danger');
+      restaurarBotaoSalvar();
+      return;
+    }
+
+    if ((escopo === 'REGIONAL' || escopo === 'DIRETORIA') && !destinoRegDir) {
+      mostrarToast('Por favor, clique e selecione qual ' + escopo.toLowerCase() + ' foi atendida.', 'danger');
       restaurarBotaoSalvar();
       return;
     }
@@ -63,6 +70,7 @@
     var payload = {
       dataAtividade: document.getElementById('input-data-atividade').value,
       escopo: document.getElementById('select-escopo-atendimento').value,
+      destinoRegionalDiretoria: window.targetRegionalDiretoriaSelecionada || '',
       tipoRoteiro: document.getElementById('select-tipo-roteiro').value,
       filial: document.getElementById('select-filial').value,
       natureza: document.getElementById('select-natureza').value,
@@ -90,6 +98,7 @@
           dispararConfetesFestao();
           document.getElementById('form-lancamento').reset();
           window.temasReuniaoSelecionados = [];
+          window.targetRegionalDiretoriaSelecionada = '';
           var containerChips = document.getElementById('chips-container-reuniao');
           if (containerChips) {
             var chips = containerChips.querySelectorAll('.chip-tema');

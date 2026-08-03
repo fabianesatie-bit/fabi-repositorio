@@ -2,7 +2,7 @@
  * ECOSSISTEMA GP360 - PORTAL GP 360
  * Arquivo: Service_Data.gs
  * Subpasta Monorepo: src/portal-gp360/
- * Otimizado para abertura sub-3s com validação precisa de Apurações/Social
+ * Otimizado para abertura sub-3s com validação precisa e lista de regionais/diretorias
  */
 
 /**
@@ -26,7 +26,7 @@ function extrairIdDrive(url) {
 }
 
 /**
- * Normaliza e extrai dia, mês e ano com alta velocidade
+ * Normaliza e extrai dia, mês e ano
  */
 function extrairMesAnoData(val) {
   var d = new Date();
@@ -70,7 +70,7 @@ function obterControleAcesso() {
 }
 
 /**
- * Converte com segurança valores numéricos vindos da planilha
+ * Converte com segurança valores numéricos
  */
 function parseNumPtBr(val) {
   if (val === undefined || val === null || val === '') return 0;
@@ -416,7 +416,7 @@ function obterDadosIniciais(filtroMes, filtroAno) {
 }
 
 /**
- * ETAPA 2: Carregamento assíncrono secundário
+ * ETAPA 2: Carregamento assíncrono secundário com Regionais e Diretorias
  */
 function obterDadosComplementares() {
   var controle = obterControleAcesso();
@@ -427,6 +427,8 @@ function obterDadosComplementares() {
 
   var lojas = [];
   var filiaisUnicasContadas = {};
+  var regionaisSet = {};
+  var diretoriasSet = {};
 
   var abaLojas = ss.getSheetByName('DADOS_LOJAS');
   if (abaLojas) {
@@ -438,6 +440,10 @@ function obterDadosComplementares() {
 
       var fId = ("0000" + numFilial).slice(-4);
       var reg = String(dadosLojas[j][2] || '').trim().toUpperCase();
+      var dir = String(dadosLojas[j][3] || '').trim().toUpperCase();
+
+      if (reg) regionaisSet[reg] = true;
+      if (dir) diretoriasSet[dir] = true;
 
       if (!filiaisUnicasContadas[fId]) {
         if (controle.isSuperAdmin || controle.regionais.includes(reg)) {
@@ -446,11 +452,21 @@ function obterDadosComplementares() {
             id: fId,
             nome: dadosLojas[j][1],
             regional: reg,
-            diretoria: dadosLojas[j][3]
+            diretoria: dir
           });
         }
       }
     }
+  }
+
+  var listaRegionais = Object.keys(regionaisSet).sort();
+  if (listaRegionais.length === 0) {
+    listaRegionais = ['REGIONAL 01', 'REGIONAL 02', 'REGIONAL 03', 'REGIONAL 04', 'REGIONAL SP', 'REGIONAL SUL'];
+  }
+
+  var listaDiretorias = Object.keys(diretoriasSet).sort();
+  if (listaDiretorias.length === 0) {
+    listaDiretorias = ['DIRETORIA OPERAÇÕES', 'DIRETORIA RH', 'DIRETORIA COMERCIAL', 'DIRETORIA LOGÍSTICA'];
   }
 
   var naturezas = carregarNaturezasSeguras(ss);
@@ -459,6 +475,8 @@ function obterDadosComplementares() {
   return {
     lojas: lojas,
     lojasCarteiraTotal: lojas.length,
+    regionaisLista: listaRegionais,
+    diretoriasLista: listaDiretorias,
     indicadoresLojas: mapaIndicadores,
     naturezas: naturezas,
     temas: temas

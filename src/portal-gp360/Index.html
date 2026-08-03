@@ -24,37 +24,32 @@
 
   <style>
     :root {
-      /* Soft Lavender - Aveludado e Leve */
+      /* Soft Pastel UI - Cores Aveludadas */
       --pastel-lavender: #8B5CF6;
       --pastel-lavender-bg: #F3E8FF;
       --pastel-lavender-border: #E9D5FF;
       --pastel-lavender-text: #6D28D9;
 
-      /* Soft Powder Blue */
       --pastel-blue: #3B82F6;
       --pastel-blue-bg: #EFF6FF;
       --pastel-blue-border: #BFDBFE;
       --pastel-blue-text: #1E40AF;
 
-      /* Soft Mint Green */
       --pastel-green: #10B981;
       --pastel-green-bg: #ECFDF5;
       --pastel-green-border: #A7F3D0;
       --pastel-green-text: #047857;
 
-      /* Soft Peach */
       --pastel-peach: #F59E0B;
       --pastel-peach-bg: #FFFBEB;
       --pastel-peach-border: #FDE68A;
       --pastel-peach-text: #B45309;
 
-      /* Soft Coral Rose */
       --pastel-pink: #F43F5E;
       --pastel-pink-bg: #FFF1F2;
       --pastel-pink-border: #FECDD3;
       --pastel-pink-text: #BE123C;
 
-      /* Base Neutra Soft */
       --bg-neutral: #FAFBFD;
       --card-bg: #FFFFFF;
       --card-border: #EEF2F6;
@@ -192,11 +187,11 @@
       border-radius: 22px;
     }
 
-    .chip-tema {
+    .chip-tema, .card-target-chip {
       cursor: pointer;
-      padding: 6px 14px;
+      padding: 8px 16px;
       border-radius: 20px;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       font-weight: 600;
       background: #F8FAFC;
       color: #64748B;
@@ -204,12 +199,14 @@
       transition: all 0.2s ease;
       display: inline-block;
       margin: 3px;
+      user-select: none;
     }
-    .chip-tema.selected {
+    .chip-tema.selected, .card-target-chip.selected {
       background: var(--pastel-lavender-bg);
       color: var(--pastel-lavender-text);
       border-color: var(--pastel-lavender-border);
       box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+      font-weight: 700;
     }
 
     .box-calculadora-despesas {
@@ -302,7 +299,7 @@
 
         <hr class="my-2 text-muted opacity-25">
 
-        <!-- MENU NAVEGAÇÃO ENXUTO (SEM GESTÃO E GALERIA) -->
+        <!-- MENU NAVEGAÇÃO ENXUTO -->
         <nav class="nav flex-column text-start">
           <div class="nav-btn-card active" role="button" onclick="mudarAba('aba-home', this)">
             <div class="nav-icon-badge" style="background: var(--pastel-lavender-bg); color: var(--pastel-lavender-text);"><i class="bi bi-house-door-fill"></i></div>
@@ -466,11 +463,20 @@
                   </select>
                 </div>
 
+                <!-- DESTINO SELEÇÃO SE FILIAL -->
                 <div class="col-md-6" id="box-destino-filial">
                   <label class="form-label small fw-semibold">Destino (Filial)</label>
                   <select id="select-filial" class="form-select form-select-sm" onchange="exibirIndicadoresFilialSelecionada()">
                     <option value="">Selecione a loja...</option>
                   </select>
+                </div>
+
+                <!-- CARDS CLICÁVEIS RESTAURADOS PARA REGIONAL / DIRETORIA -->
+                <div class="col-12 d-none" id="box-destino-regional-diretoria">
+                  <div class="p-3 bg-light rounded-4 border">
+                    <label class="form-label fw-bold text-dark mb-2 small"><i class="bi bi-grid-1x2-fill me-1" style="color: var(--pastel-blue);"></i> Selecione a <span id="label-target-escopo">Regional/Diretoria</span> (Clique em um card):</label>
+                    <div id="chips-container-target" class="d-flex flex-wrap gap-1"></div>
+                  </div>
                 </div>
 
                 <!-- PAINEL DE BORDO DA FILIAL -->
@@ -622,14 +628,13 @@
           </div>
         </div>
 
-        <!-- ABA CONSULTAS (7 CARDS REINTEGRADOS) -->
+        <!-- ABA CONSULTAS (7 CARDS) -->
         <div id="aba-consultas" class="view-aba d-none">
           <div class="bento-card mb-3">
             <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-search me-2" style="color: var(--pastel-lavender);"></i>Consultas Gerais</h6>
             <p class="text-muted small mb-3">Acesse rapidamente todos os 7 painéis e recursos corporativos do ecossistema sem sair do portal.</p>
             
             <div class="row g-3">
-              <!-- CARD 1: PERFIL DO GERENTE -->
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-person-badge display-6 mb-2" style="color: var(--pastel-blue);"></i>
@@ -638,7 +643,6 @@
                 </div>
               </div>
 
-              <!-- CARD 2: ATENDIMENTO SOCIAL -->
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-heart-pulse display-6 mb-2" style="color: var(--pastel-pink);"></i>
@@ -647,7 +651,6 @@
                 </div>
               </div>
 
-              <!-- CARD 3: APURAÇÕES / FEEDBACK -->
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-shield-check display-6 mb-2" style="color: var(--pastel-peach);"></i>
@@ -656,7 +659,6 @@
                 </div>
               </div>
 
-              <!-- CARD 4: AGENTE INTEGRADOR -->
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-people display-6 mb-2" style="color: var(--pastel-green);"></i>
@@ -665,7 +667,6 @@
                 </div>
               </div>
 
-              <!-- CARD 5: BANCO DE HORAS -->
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-clock-history display-6 mb-2" style="color: var(--pastel-lavender-text);"></i>
@@ -674,7 +675,6 @@
                 </div>
               </div>
 
-              <!-- CARD 6: BASE ROL -->
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-database display-6 mb-2" style="color: var(--pastel-blue);"></i>
@@ -683,7 +683,6 @@
                 </div>
               </div>
 
-              <!-- CARD 7: LIXO ELETRÔNICO -->
               <div class="col-md-6 col-lg-4">
                 <div class="bento-card border p-3 text-center bg-light">
                   <i class="bi bi-recycle display-6 mb-2" style="color: var(--pastel-green);"></i>

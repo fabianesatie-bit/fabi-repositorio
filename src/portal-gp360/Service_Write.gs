@@ -2,21 +2,8 @@
  * ECOSSISTEMA GP360 - PORTAL GP 360
  * Arquivo: Service_Write.gs
  * Subpasta Monorepo: src/portal-gp360/
- * Módulo de Gravação Segura no BDD Master com suporte a LockService
+ * Módulo de Gravação Segura no BDD Master com LockService otimizado
  */
-
-/**
- * Normalização global de Filial ID
- * @param {any} val - ID da filial
- * @return {string} ID higienizado
- */
-function normalizarFilialId(val) {
-  if (!val && val !== 0) return "";
-  var num = parseInt(String(val).replace(/\D/g, ''), 10);
-  if (isNaN(num)) return String(val).trim();
-  if (num > 3000) { num -= 3000; }
-  return String(num);
-}
 
 /**
  * Salva arquivo de imagem/evidência na pasta do Google Drive
@@ -27,7 +14,8 @@ function salvarEvidenciaNoDrive(arquivoObj) {
   if (!arquivoObj || !arquivoObj.base64) return '';
   try {
     var folder = DriveApp.getFolderById(EVIDENCIAS_FOLDER_ID);
-    var bytes = Utilities.base64Decode(arquivoObj.base64.split(',')[1] || arquivoObj.base64);
+    var base64Clean = arquivoObj.base64.indexOf(',') > -1 ? arquivoObj.base64.split(',')[1] : arquivoObj.base64;
+    var bytes = Utilities.base64Decode(base64Clean);
     var blob = Utilities.newBlob(bytes, arquivoObj.mimeType || 'image/jpeg', arquivoObj.nome || ('Evidencia_' + new Date().getTime() + '.jpg'));
     var file = folder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
@@ -46,9 +34,10 @@ function salvarEvidenciaNoDrive(arquivoObj) {
 function salvarAtividadeServidor(dados) {
   var lock = LockService.getScriptLock();
   try {
-    // Trava de segurança para evitar colisão entre múltiplos usuários simultâneos
-    if (!lock.waitLock(30000)) {
-      return { sucesso: false, mensagem: 'O sistema está sobrecarregado no momento. Tente salvar novamente em alguns segundos.' };
+    // Trava de segurança com janela ampliada para 30 segundos
+    var success = lock.tryLock(30000);
+    if (!success) {
+      return { sucesso: false, mensagem: 'O sistema está processando outro salvamento. Tente novamente em alguns segundos.' };
     }
 
     var controle = obterControleAcesso();
@@ -71,9 +60,16 @@ function salvarAtividadeServidor(dados) {
     // Identificador único de registro
     var novoId = 'REG_' + new Date().getTime() + '_' + Math.floor(Math.random() * 1000);
     
-    // Normalização da Filial
-    var numFilial = normalizarFilialId(dados.filial);
-    var filialPadronizada = numFilial ? ("0000" + numFilial).slice(-4) : String(dados.filial || '').trim().toUpperCase();
+    // Tratamento de destino conforme escopo selecionado (FILIAL / REGIONAL / DIRETORIA)
+    var destinoFinal = '';
+    var escopo = dados.escopo || 'FILIAL';
+    
+    if (escopo === 'FILIAL') {
+      var numFilial = normalizarFilialId(dados.filial);
+      destinoFinal = numFilial ? ("0000" + numFilial).slice(-4) : String(dados.filial || '').trim().toUpperCase();
+    } else {
+      destinoFinal = String(dados.destinoRegionalDiretoria || dados.filial || escopo).trim().toUpperCase();
+    }
 
     // Formatação de data
     var dtData = new Date(dados.dataAtividade + 'T12:00:00');
@@ -105,7 +101,7 @@ function salvarAtividadeServidor(dados) {
       novoId,                          // Coluna A: ID Registro
       dtStrFormatted,                   // Coluna B: Data Formatada (DD/MM/YYYY)
       controle.email,                   // Coluna C: Autor Email
-      filialPadronizada,                // Coluna D: Filial Destino
+      destinoFinal,                     // Coluna D: Filial/Regional/Diretoria Destino
       dados.natureza || '',             // Coluna E: Motivo / Natureza
       '',                               // Coluna F: Reservado
       '',                               // Coluna G: Reservado
@@ -115,7 +111,7 @@ function salvarAtividadeServidor(dados) {
       dados.observacao || '',           // Coluna K: Observações
       urlEvidenciaFinal,                // Coluna L: URL Evidência
       dados.dataAtividade,              // Coluna M: Data Raw ISO (YYYY-MM-DD)
-      dados.escopo || 'FILIAL',         // Coluna N: Escopo (FILIAL/REGIONAL/DIRETORIA)
+      escopo,                           // Coluna N: Escopo (FILIAL/REGIONAL/DIRETORIA)
       '',                               // Coluna O: Reservado
       km,                               // Coluna P: KM Percorrido
       custoKm,                          // Coluna Q: Custo KM
@@ -142,21 +138,22 @@ function salvarAtividadeServidor(dados) {
 
   } catch (err) {
     Logger.log('Erro ao salvar atividade: ' + err.message);
-    return { sucesso: false, mensagem: 'Erro interno no servidor ao salvar: ' + err.message };
+    return { sucesso: false, mensagem: 'Erro ao salvar atividade: ' + err.message };
   } finally {
-    lock.releaseLock();
+    try { lock.releaseLock(); } catch (e) {}
   }
 }
 
 /**
- * Salva lançamento exclusivo de KM Avulso (Viagem à Sede / Eventos)
+ * Salva lançamento exclusivo de KM Avulso
  * @param {Object} dados - Dados do formulário de KM Avulso
  * @return {Object} Resposta da operação
  */
 function salvarKMAvulsoServidor(dados) {
   var lock = LockService.getScriptLock();
   try {
-    if (!lock.waitLock(30000)) {
+    var success = lock.tryLock(30000);
+    if (!success) {
       return { sucesso: false, mensagem: 'Sistema ocupado. Tente novamente em alguns segundos.' };
     }
 
@@ -198,7 +195,7 @@ function salvarKMAvulsoServidor(dados) {
   } catch (e) {
     return { sucesso: false, mensagem: 'Erro ao salvar KM Avulso: ' + e.message };
   } finally {
-    lock.releaseLock();
+    try { lock.releaseLock(); } catch (e) {}
   }
 }
 
@@ -210,7 +207,8 @@ function salvarKMAvulsoServidor(dados) {
 function deletarLancamento(idRegistro) {
   var lock = LockService.getScriptLock();
   try {
-    if (!lock.waitLock(30000)) return { sucesso: false, mensagem: 'Servidor ocupado.' };
+    var success = lock.tryLock(30000);
+    if (!success) return { sucesso: false, mensagem: 'Servidor ocupado.' };
 
     var controle = obterControleAcesso();
     if (!controle.temAcesso) return { sucesso: false, mensagem: 'Sem permissão.' };
@@ -235,50 +233,6 @@ function deletarLancamento(idRegistro) {
   } catch (e) {
     return { sucesso: false, mensagem: 'Erro ao excluir: ' + e.message };
   } finally {
-    lock.releaseLock();
+    try { lock.releaseLock(); } catch (e) {}
   }
-}
-
-/**
- * Retorna as evidências de fotos cadastradas do usuário para a Galeria
- * @param {number|string} mes - Mês filtro
- * @param {number|string} ano - Ano filtro
- * @return {Array} Lista de fotos com links
- */
-function getEvidenciasUsuario(mes, ano) {
-  var controle = obterControleAcesso();
-  if (!controle.temAcesso) return [];
-
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var abaLanc = ss.getSheetByName('DADOS_LANCAMENTOS');
-  if (!abaLanc) return [];
-
-  var mesAlvo = parseInt(mes, 10) || (new Date().getMonth() + 1);
-  var anoAlvo = parseInt(ano, 10) || new Date().getFullYear();
-
-  var fotos = [];
-  var dados = abaLanc.getDataRange().getValues();
-
-  for (var i = 1; i < dados.length; i++) {
-    var row = dados[i];
-    var urlEvidencia = String(row[11] || '').trim();
-    if (!urlEvidencia) continue;
-
-    var dtInfo = extrairMesAnoData(row[12] || row[1]);
-    if (dtInfo.mes === mesAlvo && dtInfo.ano === anoAlvo) {
-      var emailAutor = String(row[2] || '').toLowerCase();
-      if (controle.isSuperAdmin || emailAutor === controle.email.toLowerCase()) {
-        fotos.push({
-          id: row[0],
-          loja: row[3] || 'AVULSO',
-          motivo: row[4] || 'Atividade',
-          data: ("0" + dtInfo.dia).slice(-2) + '/' + ("0" + dtInfo.mes).slice(-2) + '/' + dtInfo.ano,
-          url: urlEvidencia,
-          thumbUrl: urlEvidencia
-        });
-      }
-    }
-  }
-
-  return fotos.reverse();
 }
