@@ -555,13 +555,23 @@
                 </div>
 
                 <div>
-                  <label id="form-obs-label" class="block text-xs font-semibold text-slate-600 uppercase mb-1">Observações / Diagnóstico Preliminar</label>
+                  <label id="form-obs-label" class="block text-xs font-semibold text-slate-600 uppercase mb-1">Observações</label>
                   <textarea id="form-obsSocial" rows="3" placeholder="Detalhes da situação habitacional, dores relatadas, suporte pretendido..." class="w-full text-xs p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white"></textarea>
                 </div>
 
+                <!-- PARECER DE GESTÃO DE PESSOAS (NOVO DROPDOWN OBRIGATÓRIO) -->
                 <div>
-                  <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Anotações Internas de Gestão de Pessoas (GP)</label>
-                  <textarea id="form-parecerGP" rows="3" placeholder="Medidas tomadas localmente pelo GP, contato com gestores, CAT encaminhada, etc..." class="w-full text-xs p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white"></textarea>
+                  <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Parecer de Gestão de Pessoas</label>
+                  <select id="form-parecerGP" class="w-full text-xs px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white font-medium">
+                    <option value="" disabled selected>ESCOLHER PARECER</option>
+                    <option value="FAVORÁVEL">Favorável</option>
+                    <option value="NÃO FAVORÁVEL">Não favorável</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Parecer da Liderança</label>
+                  <textarea id="form-parecerLideranca" rows="2" placeholder="Feedback ou opinião do gerente/coordenador sobre o caso (Obrigatório para fluxo da Equipe Social)..." class="w-full text-xs p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 bg-white"></textarea>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-2">
@@ -645,7 +655,14 @@
           <div>
             <h5 class="font-semibold text-slate-800 mb-1">Parecer de Gestão de Pessoas</h5>
             <div class="bg-slate-50 p-3 rounded-xl text-slate-600 whitespace-pre-line leading-relaxed text-[11px]" id="modal-parecer">
-              Parecer...
+              Parecer GP...
+            </div>
+          </div>
+          <!-- NOVO CAMPO: PARECER DA LIDERANÇA NO MODAL -->
+          <div>
+            <h5 class="font-semibold text-slate-800 mb-1">Parecer da Liderança</h5>
+            <div class="bg-slate-50 p-3 rounded-xl text-slate-600 whitespace-pre-line leading-relaxed text-[11px]" id="modal-parecer-lideranca">
+              Sem parecer da liderança registrado.
             </div>
           </div>
           <div id="modal-retomada-box" class="hidden">
@@ -725,8 +742,8 @@
       },
       classificacoes: ["ACIDENTE TRABALHO", "AFASTAMENTO", "BENEFICIO", "CALAMIDADE"],
       atendimentos: [
-        { dataEntrada: "10/05/2026", id: "103361", colaborador: "ELENYR CHRISTINA COSTA", cargo: "VENDEDOR", regional: "RIBEIRÃO PRETO", diretoria: "SP/RJ", coordenador: "Josiane Emilio", filial: "0124", classificacao: "BENEFICIO", obsSocial: "Auxílio solicitado.", parecerGP: "OK.", fluxo: "SOCIAL", situacaoFuncional: "ATIVO" },
-        { dataEntrada: "12/07/2026", id: "103361", colaborador: "ELENYR CHRISTINA COSTA", cargo: "VENDEDOR", regional: "RIBEIRÃO PRETO", diretoria: "SP/RJ", coordenador: "Josiane Emilio", filial: "0124", classificacao: "SAÚDE", obsSocial: "Acompanhamento Canal da Mulher", parecerGP: "Sigiloso.", fluxo: "MULHER", situacaoFuncional: "ATIVO" }
+        { dataEntrada: "10/05/2026", id: "103361", colaborador: "ELENYR CHRISTINA COSTA", cargo: "VENDEDOR", regional: "RIBEIRÃO PRETO", diretoria: "SP/RJ", coordenador: "Josiane Emilio", filial: "0124", classificacao: "BENEFICIO", obsSocial: "Auxílio solicitado.", parecerGP: "OK.", parecerLideranca: "Concordo com a medida.", fluxo: "SOCIAL", situacaoFuncional: "ATIVO" },
+        { dataEntrada: "12/07/2026", id: "103361", colaborador: "ELENYR CHRISTINA COSTA", cargo: "VENDEDOR", regional: "RIBEIRÃO PRETO", diretoria: "SP/RJ", coordenador: "Josiane Emilio", filial: "0124", classificacao: "SAÚDE", obsSocial: "Acompanhamento Canal da Mulher", parecerGP: "Sigiloso.", parecerLideranca: "", fluxo: "MULHER", situacaoFuncional: "ATIVO" }
       ]
     };
 
@@ -786,7 +803,7 @@
                   manualMode: false,
                   colaborador: { ...mockDb.rol[queryId], situacaoFuncional: "ATIVO" },
                   historico: mockDb.atendimentos.filter(a => a.id === queryId).map(h => ({
-                    data: h.dataEntrada, classificacao: h.classificacao, obsSocial: h.obsSocial, parecerGP: h.parecerGP, dataRetomada: h.dataRetomada || "", fluxo: h.fluxo || "SOCIAL"
+                    data: h.dataEntrada, classificacao: h.classificacao, obsSocial: h.obsSocial, parecerGP: h.parecerGP, parecerLideranca: h.parecerLideranca, dataRetomada: h.dataRetomada || "", fluxo: h.fluxo || "SOCIAL"
                   }))
                 });
               } else {
@@ -995,7 +1012,7 @@
         cardSocial.classList.replace('border-slate-200', 'border-indigo-600');
         cardSocial.classList.replace('bg-white', 'bg-indigo-50/30');
         checkSocial.classList.remove('hidden');
-        labelObs.innerText = "Observações / Diagnóstico Preliminar";
+        labelObs.innerText = "Observações";
         textObs.placeholder = "Detalhes da situação habitacional, dores relatadas, suporte pretendido...";
         btnSubmit.className = "px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-lg hover:scale-[1.02] active:scale-95 cursor-pointer";
         btnSubmit.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Disparar Atendimento';
@@ -1096,6 +1113,7 @@
             classificacao: item.classificacao,
             obsSocial: item.obsSocial,
             parecerGP: item.parecerGP,
+            parecerLideranca: item.parecerLideranca,
             filial: activeColaborador.filial,
             fluxo: item.fluxo || "SOCIAL",
             situacaoFuncional: activeColaborador.situacaoFuncional,
@@ -1143,9 +1161,10 @@
       }
 
       const tel = document.getElementById('form-telefone').value.trim();
-      const classif = document.getElementById('form-classificacao').value; // Retorna null ou "" se a default placeholder estiver ativa
+      const classif = document.getElementById('form-classificacao').value; 
       const obs = document.getElementById('form-obsSocial').value.trim();
-      const parecer = document.getElementById('form-parecerGP').value.trim();
+      const parecer = document.getElementById('form-parecerGP').value; // Agora lê o dropdown
+      const parecerLideranca = document.getElementById('form-parecerLideranca').value.trim();
       const retomada = document.getElementById('form-data-retomada').value;
       
       if (!classif) {
@@ -1153,8 +1172,18 @@
         return;
       }
 
-      if (!tel || !obs || !parecer) {
-        showToast("Preencha o Formulário", "Por favor, digite todos os campos exigidos.", "warning");
+      if (!parecer) {
+        showToast("Parecer GP Obrigatório", "Por favor, selecione se o parecer de GP é favorável ou não.", "warning");
+        return;
+      }
+
+      if (!tel || !obs) {
+        showToast("Preencha o Formulário", "Por favor, preencha o telefone e as observações.", "warning");
+        return;
+      }
+
+      if (selectedFlowType === 'SOCIAL' && !parecerLideranca) {
+        showToast("Parecer Obrigatório", "Para acionar a Equipe Social, o parecer da liderança é obrigatório.", "warning");
         return;
       }
 
@@ -1173,6 +1202,7 @@
         classificacao: classif,
         obsSocial: obs,
         parecerGP: parecer,
+        parecerLideranca: parecerLideranca,
         fluxo: selectedFlowType,
         dataRetomada: selectedNextStep === 'RETORNO' ? retomada : "",
         situacao: selectedNextStep === 'RETORNO' ? "ATIVO" : "FINALIZADO"
@@ -1212,6 +1242,7 @@
       document.getElementById('form-telefone').value = '';
       document.getElementById('form-obsSocial').value = '';
       document.getElementById('form-parecerGP').value = '';
+      document.getElementById('form-parecerLideranca').value = '';
       document.getElementById('form-data-retomada').value = '';
       document.getElementById('manual-colab-nome').value = '';
       document.getElementById('manual-colab-filial').value = '';
@@ -1534,6 +1565,16 @@
       document.getElementById('modal-classificacao').innerText = escapeHTML(item.classificacao);
       document.getElementById('modal-obs').innerText = escapeHTML(item.obsSocial);
       document.getElementById('modal-parecer').innerText = escapeHTML(item.parecerGP);
+      
+      const parecerLiderancaEl = document.getElementById('modal-parecer-lideranca');
+      if(item.parecerLideranca && item.parecerLideranca.trim() !== "") {
+        parecerLiderancaEl.innerText = escapeHTML(item.parecerLideranca);
+        parecerLiderancaEl.classList.remove('text-slate-400', 'italic');
+        parecerLiderancaEl.classList.add('text-slate-600');
+      } else {
+        parecerLiderancaEl.innerText = "Sem parecer da liderança registrado.";
+        parecerLiderancaEl.classList.add('text-slate-400', 'italic');
+      }
 
       const isAtivo = (item.situacaoFuncional === "ATIVO");
       const situacaoEl = document.getElementById('modal-situacao-funcional');

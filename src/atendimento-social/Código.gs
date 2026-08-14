@@ -79,16 +79,25 @@ function normalizeId(id) {
   return cleanStr.replace(/^0+/, "");
 }
 
+// Middleware Obrigatório Global para Lojas > 3000
+function normalizarFilialId(val) {
+  if (!val && val !== 0) return "";
+  var num = parseInt(String(val).replace(/\D/g, ''), 10);
+  if (isNaN(num)) return String(val).trim();
+  if (num > 3000) { num -= 3000; }
+  return String(num);
+}
+
 function getRegionalByFilial(filialId) {
   var ss = getSpreadsheet();
   var sheetLojas = ss.getSheetByName(CONFIG.SHEET_LOJAS);
   if (!sheetLojas) return "SEM REGIONAL";
   
   var data = sheetLojas.getDataRange().getValues();
-  var queryId = normalizeId(filialId);
+  var queryId = normalizarFilialId(filialId);
   
   for (var i = 1; i < data.length; i++) {
-    if (normalizeId(data[i][0]) === queryId) {
+    if (normalizarFilialId(data[i][0]) === queryId) {
       return data[i][2].toString().trim().toUpperCase();
     }
   }
@@ -222,15 +231,22 @@ function searchColabById(colabId) {
         var dataVal = data[j][0];
         var dataStr = dataVal instanceof Date ? Utilities.formatDate(dataVal, Session.getScriptTimeZone(), "dd/MM/yyyy") : dataVal.toString();
         
-        // Identifica subfluxo baseado na observação ou campos se houver (mantendo compatibilidade)
         var fluxoExibicao = abasVarredura[f].fluxo;
-        if (fluxoExibicao === "SOCIAL/MULHER") fluxoExibicao = "SOCIAL"; // Default visual fallback
+        if (fluxoExibicao === "SOCIAL/MULHER") fluxoExibicao = "SOCIAL"; 
+        
+        var parecerLiderancaVal = "";
+        if (abasVarredura[f].nome === CONFIG.SHEET_INTERNOS) {
+            parecerLiderancaVal = data[j][13] ? data[j][13].toString().trim() : "";
+        } else {
+            parecerLiderancaVal = data[j][12] ? data[j][12].toString().trim() : "";
+        }
         
         historico.push({
           data: dataStr,
           classificacao: data[j][8].toString().trim().toUpperCase(), 
           obsSocial: data[j][9].toString().trim(),     
           parecerGP: data[j][10].toString().trim(),
+          parecerLideranca: parecerLiderancaVal,
           telefone: data[j][7] ? data[j][7].toString().trim() : "",
           dataRetomada: data[j][11] ? data[j][11].toString().trim() : "",
           fluxo: fluxoExibicao
@@ -286,7 +302,7 @@ function getAtendimentosData() {
     var dataLojas = sheetLojas.getDataRange().getValues();
     for (var k = 1; k < dataLojas.length; k++) {
       if (dataLojas[k][0]) {
-        lojaMap[normalizeId(dataLojas[k][0])] = {
+        lojaMap[normalizarFilialId(dataLojas[k][0])] = {
           regional: dataLojas[k][2] ? dataLojas[k][2].toString().trim().toUpperCase() : "SEM REGIONAL",
           diretoria: dataLojas[k][3] ? dataLojas[k][3].toString().trim().toUpperCase() : "SEM DIRETORIA"
         };
@@ -311,7 +327,7 @@ function getAtendimentosData() {
       if (!idColab || idColab === "" || idColab === "null") continue; 
       
       var idNormalized = normalizeId(idColab);
-      var filialId = normalizeId(data[i][2]); 
+      var filialId = normalizarFilialId(data[i][2]); 
       var infoLoja = lojaMap[filialId] || { regional: "SEM REGIONAL", diretoria: "SEM DIRETORIA" };
       var situacaoFuncional = ativosMap[idNormalized] ? "ATIVO" : "DESLIGADO";
       
@@ -323,6 +339,13 @@ function getAtendimentosData() {
       if (temPermissao) {
         var dataVal = data[i][0];
         var dataStr = dataVal instanceof Date ? Utilities.formatDate(dataVal, Session.getScriptTimeZone(), "dd/MM/yyyy") : dataVal.toString();
+        
+        var parecerLiderancaVal = "";
+        if (fonte.fluxo === "GP") {
+            parecerLiderancaVal = data[i][13] ? data[i][13].toString().trim() : "";
+        } else {
+            parecerLiderancaVal = data[i][12] ? data[i][12].toString().trim() : "";
+        }
         
         registrosFiltrados.push({
           dataEntrada: dataStr,
@@ -336,6 +359,7 @@ function getAtendimentosData() {
           classificacao: data[i][8] ? data[i][8].toString().trim().toUpperCase() : "OUTROS", 
           obsSocial: data[i][9] ? data[i][9].toString().trim() : "",     
           parecerGP: data[i][10] ? data[i][10].toString().trim() : "",
+          parecerLideranca: parecerLiderancaVal,
           dataRetomada: data[i][11] ? data[i][11].toString().trim() : "",
           fluxo: fonte.fluxo,
           situacaoFuncional: situacaoFuncional
@@ -417,19 +441,20 @@ function saveNewSocialRecord(payload) {
       if (!sheetInt) throw new Error("Aba BASE_INTERNOS não localizada.");
 
       var novaLinhaInt = [
-        new Date(),
-        colaborador.id,
-        colaborador.filial,
-        colaborador.nome,
-        colaborador.cargo,
-        colaborador.tempoEmpresa,
-        situacaoSalvar,
-        payload.telefone,
-        payload.classificacao.toUpperCase(),
-        payload.obsSocial,
-        payload.parecerGP,
-        payload.dataRetomada,
-        emailLogado
+        new Date(),                             // 0
+        colaborador.id,                         // 1
+        colaborador.filial,                     // 2
+        colaborador.nome,                       // 3
+        colaborador.cargo,                      // 4
+        colaborador.tempoEmpresa,               // 5
+        situacaoSalvar,                         // 6
+        payload.telefone,                       // 7
+        payload.classificacao.toUpperCase(),    // 8
+        payload.obsSocial,                      // 9
+        payload.parecerGP,                      // 10
+        payload.dataRetomada,                   // 11
+        emailLogado,                            // 12
+        payload.parecerLideranca || ""          // 13 (NOVO - PARECER LIDERANÇA)
       ];
       sheetInt.appendRow(novaLinhaInt);
 
@@ -455,21 +480,22 @@ function saveNewSocialRecord(payload) {
       if (!sheetReg) throw new Error("Aba BASE_REGISTRO não localizada.");
 
       var novaLinha = [
-        new Date(),
-        colaborador.id,
-        colaborador.filial,
-        colaborador.nome,
-        colaborador.cargo,
-        colaborador.tempoEmpresa,
-        situacaoSalvar,
-        payload.telefone,
-        payload.classificacao.toUpperCase(),
-        payload.obsSocial,
-        payload.parecerGP
+        new Date(),                             // 0
+        colaborador.id,                         // 1
+        colaborador.filial,                     // 2
+        colaborador.nome,                       // 3
+        colaborador.cargo,                      // 4
+        colaborador.tempoEmpresa,               // 5
+        situacaoSalvar,                         // 6
+        payload.telefone,                       // 7
+        payload.classificacao.toUpperCase(),    // 8
+        payload.obsSocial,                      // 9
+        payload.parecerGP,                      // 10
+        payload.dataRetomada || "",             // 11
+        payload.parecerLideranca || ""          // 12
       ];
       sheetReg.appendRow(novaLinha);
       
-      // Roteamento baseado no fluxo escolhido
       if (payload.fluxo === "MULHER") {
         dispararEmailCanalMulher(colaborador, payload);
       } else {
@@ -490,7 +516,8 @@ function dispararEmailsPorRegional(colaborador, payload, historico) {
   if (!sheetUsuarios) return;
   
   var dataUsr = sheetUsuarios.getDataRange().getValues();
-  var destinatarios = [];
+  var destinatariosTo = [];
+  var destinatariosCc = [];
   var regionalColab = colaborador.regional.toUpperCase();
   
   for (var i = 1; i < dataUsr.length; i++) {
@@ -499,37 +526,66 @@ function dispararEmailsPorRegional(colaborador, payload, historico) {
     var regionaisDoUsuario = dataUsr[i][4] ? dataUsr[i][4].toString().toUpperCase().split(",").map(function(r) { return r.trim(); }) : []; 
     
     var atendeRegional = regionaisDoUsuario.indexOf(regionalColab) !== -1 || regionaisDoUsuario.indexOf("TODAS") !== -1;
-    var deveReceber = (cargo === "SOCIAL") || ((cargo === "COORDENADOR" || cargo === "GERENTEGP" || cargo === "ADMINISTRADOR") && atendeRegional);
     
-    if (deveReceber && email && destinatarios.indexOf(email) === -1) {
-      destinatarios.push(email);
+    if (email) {
+      if (cargo === "SOCIAL") {
+        if (destinatariosTo.indexOf(email) === -1) destinatariosTo.push(email);
+      } else if ((cargo === "COORDENADOR" || cargo === "GERENTERH" || cargo === "ADMINISTRADOR") && atendeRegional) {
+        if (destinatariosCc.indexOf(email) === -1) destinatariosCc.push(email);
+      }
     }
   }
   
-  if (destinatarios.length === 0) return;
+  if (destinatariosTo.length === 0 && destinatariosCc.length === 0) return;
+  
+  // Proteção: Se não houver email To, usa os do Cc como To para a API do Gmail não falhar.
+  var toStr = destinatariosTo.length > 0 ? destinatariosTo.join(",") : destinatariosCc.join(",");
+  var ccStr = destinatariosTo.length > 0 ? destinatariosCc.join(",") : "";
   
   var assunto = "[GP360] Notificação Social: Novo Atendimento - " + colaborador.nome + " (" + colaborador.regional + ")";
+  
+  var foneWhats = payload.telefone ? payload.telefone.toString().replace(/\D/g, '') : "";
+  if (foneWhats.length === 10 || foneWhats.length === 11) foneWhats = "55" + foneWhats;
+  var linkWhatsapp = foneWhats ? "<a href='https://wa.me/" + foneWhats + "' target='_blank' style='margin-left: 10px; background-color: #25d366; color: white; padding: 3px 8px; text-decoration: none; border-radius: 4px; font-size: 10px; font-weight: bold;'>💬 WhatsApp</a>" : "";
+
+  var badgeGP = "";
+  if (payload.parecerGP) {
+    var isFavoravel = payload.parecerGP.toUpperCase().indexOf("NÃO") === -1;
+    var styleGP = isFavoravel ? "background-color: #d1fae5; color: #065f46;" : "background-color: #ffe4e6; color: #9f1239;";
+    badgeGP = "<span style='" + styleGP + " padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;'>" + payload.parecerGP.toUpperCase() + "</span>";
+  } else {
+    badgeGP = "Não informado";
+  }
+
   var htmlBody = "<div style='font-family: Arial, sans-serif; max-width: 650px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px; background-color: #ffffff;'>" +
     "<div style='background-color: #1e1b4b; padding: 15px; border-radius: 8px 8px 0 0; text-align: center;'>" +
       "<h2 style='color: #ffffff; margin: 0; font-size: 18px;'>GP360 Atendimento Social</h2>" +
     "</div>" +
     "<div style='padding: 20px; color: #334155; line-height: 1.6;'>" +
-      "<p style='font-size: 14px;'>Um novo atendimento de assistência social foi registrado no sistema.</p>" +
+      "<p style='font-size: 14px;'>Um novo atendimento social foi registrado no sistema.</p>" +
       "<table style='width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px;'>" +
         "<tr><td style='padding: 6px 0; font-weight: bold; width: 35%;'>Colaborador:</td><td style='padding: 6px 0;'>" + colaborador.nome + " (ID: " + colaborador.id + ")</td></tr>" +
         "<tr><td style='padding: 6px 0; font-weight: bold;'>Cargo / Função:</td><td style='padding: 6px 0;'>" + colaborador.cargo + "</td></tr>" +
         "<tr><td style='padding: 6px 0; font-weight: bold;'>Regional de Atendimento:</td><td style='padding: 6px 0;'>" + colaborador.regional + " (Filial: " + colaborador.filial + ")</td></tr>" +
-        "<tr><td style='padding: 6px 0; font-weight: bold;'>Contato Telefônico:</td><td style='padding: 6px 0;'>" + payload.telefone + "</td></tr>" +
+        "<tr><td style='padding: 6px 0; font-weight: bold;'>Contato Telefônico:</td><td style='padding: 6px 0;'>" + payload.telefone + linkWhatsapp + "</td></tr>" +
         "<tr><td style='padding: 6px 0; font-weight: bold;'>Classificação do Caso:</td><td style='padding: 6px 0;'><span style='background-color: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 4px; font-weight: bold;'>" + payload.classificacao.toUpperCase() + "</span></td></tr>" +
+        "<tr><td style='padding: 6px 0; font-weight: bold;'>Parecer de Gestão de Pessoas:</td><td style='padding: 6px 0;'>" + badgeGP + "</td></tr>" +
       "</table>" +
       "<div style='background-color: #f8fafc; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #4f46e5;'>" +
-        "<h4 style='margin: 0 0 6px 0; color: #1e293b; font-size: 13px;'>Observações para o Social:</h4>" +
+        "<h4 style='margin: 0 0 6px 0; color: #1e293b; font-size: 13px;'>Observações:</h4>" +
         "<p style='margin: 0; font-size: 12px; color: #475569; white-space: pre-line;'>" + payload.obsSocial + "</p>" +
-      "</div>" +
-    "</div>" +
-  "</div>";
+      "</div>";
+
+  if (payload.parecerLideranca && payload.parecerLideranca.trim() !== "") {
+    htmlBody += "<div style='background-color: #fffbeb; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #f59e0b;'>" +
+      "<h4 style='margin: 0 0 6px 0; color: #92400e; font-size: 13px;'>Parecer da Liderança:</h4>" +
+      "<p style='margin: 0; font-size: 12px; color: #b45309; white-space: pre-line;'>" + payload.parecerLideranca + "</p>" +
+    "</div>";
+  }
+
+  htmlBody += "</div></div>";
   
-  GmailApp.sendEmail(destinatarios.join(","), assunto, "", { htmlBody: htmlBody });
+  GmailApp.sendEmail(toStr, assunto, "", { htmlBody: htmlBody, cc: ccStr });
 }
 
 function dispararEmailCanalMulher(colaborador, payload) {
