@@ -510,6 +510,7 @@ function saveNewSocialRecord(payload) {
   return true;
 }
 
+
 function dispararEmailsPorRegional(colaborador, payload, historico) {
   var ss = getSpreadsheet();
   var sheetUsuarios = ss.getSheetByName(CONFIG.SHEET_USUARIOS);
@@ -556,16 +557,16 @@ function dispararEmailsPorRegional(colaborador, payload, historico) {
   } else {
     badgeGP = "Não informado";
   }
-
   var htmlBody = "<div style='font-family: Arial, sans-serif; max-width: 650px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px; background-color: #ffffff;'>" +
     "<div style='background-color: #1e1b4b; padding: 15px; border-radius: 8px 8px 0 0; text-align: center;'>" +
       "<h2 style='color: #ffffff; margin: 0; font-size: 18px;'>GP360 Atendimento Social</h2>" +
     "</div>" +
     "<div style='padding: 20px; color: #334155; line-height: 1.6;'>" +
-      "<p style='font-size: 14px;'>Um novo atendimento social foi registrado no sistema.</p>" +
+      "<p style='font-size: 14px;'>Um novo atendimento de assistência social foi registrado no sistema.</p>" +
       "<table style='width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px;'>" +
         "<tr><td style='padding: 6px 0; font-weight: bold; width: 35%;'>Colaborador:</td><td style='padding: 6px 0;'>" + colaborador.nome + " (ID: " + colaborador.id + ")</td></tr>" +
         "<tr><td style='padding: 6px 0; font-weight: bold;'>Cargo / Função:</td><td style='padding: 6px 0;'>" + colaborador.cargo + "</td></tr>" +
+        "<tr><td style='padding: 6px 0; font-weight: bold;'>Tempo de Empresa:</td><td style='padding: 6px 0;'>" + (colaborador.tempoEmpresa || "Não cadastrado") + "</td></tr>" +
         "<tr><td style='padding: 6px 0; font-weight: bold;'>Regional de Atendimento:</td><td style='padding: 6px 0;'>" + colaborador.regional + " (Filial: " + colaborador.filial + ")</td></tr>" +
         "<tr><td style='padding: 6px 0; font-weight: bold;'>Contato Telefônico:</td><td style='padding: 6px 0;'>" + payload.telefone + linkWhatsapp + "</td></tr>" +
         "<tr><td style='padding: 6px 0; font-weight: bold;'>Classificação do Caso:</td><td style='padding: 6px 0;'><span style='background-color: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 4px; font-weight: bold;'>" + payload.classificacao.toUpperCase() + "</span></td></tr>" +
