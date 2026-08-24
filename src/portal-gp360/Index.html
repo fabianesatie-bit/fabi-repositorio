@@ -2,13 +2,131 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Portal GP 360</title>
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <?!= HtmlService.createHtmlOutputFromFile('Styles').getContent(); ?>
+  <style>
+    :root { 
+      --main-color: #7C3AED; 
+      --bg-color: #F8FAFC; 
+      --card-bg: #FFFFFF; 
+      --text-color: #1E293B; 
+      --accent-blue: #2563EB;
+      --accent-green: #10B981;
+      --accent-amber: #F59E0B;
+      --accent-rose: #F43F5E;
+    }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+
+    .sidebar { width: 260px; background: white; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; transition: all 0.3s ease; z-index: 50; }
+    .sidebar-header { padding: 20px; text-align: center; border-bottom: 1px solid #e2e8f0; }
+    .sidebar-header img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 3px solid var(--main-color); background-color: #f1f5f9; }
+    .sidebar-nav { flex: 1; overflow-y: auto; padding: 15px 0; }
+    .nav-item { display: flex; align-items: center; padding: 12px 20px; color: #64748b; text-decoration: none; font-weight: 600; transition: 0.2s; cursor: pointer; border-left: 4px solid transparent; }
+    .nav-item i { width: 24px; text-align: center; margin-right: 10px; font-size: 18px; }
+    .nav-item:hover { background-color: #f3e8ff; color: var(--main-color); }
+    .nav-item.active { background-color: #f3e8ff; color: var(--main-color); border-left-color: var(--main-color); }
+
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    .topbar { background: white; height: 60px; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; border-bottom: 1px solid #e2e8f0; }
+    .menu-toggle { font-size: 24px; cursor: pointer; color: #64748b; display: none; }
+    .content-area { flex: 1; padding: 20px; overflow-y: auto; }
+
+    .card { background: var(--card-bg); border-radius: 14px; padding: 20px; box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; margin-bottom: 20px; }
+
+    .dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px; }
+    .stat-card { background: white; padding: 20px; border-radius: 14px; display: flex; align-items: center; box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03); border-left: 5px solid var(--main-color); border: 1px solid #e2e8f0; border-left-width: 5px; }
+    .stat-icon { width: 50px; height: 50px; border-radius: 12px; background: #f3e8ff; color: var(--main-color); display: flex; align-items: center; justify-content: center; font-size: 24px; margin-right: 15px; }
+    .stat-info h4 { margin: 0; font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase; }
+    .stat-info h2 { margin: 5px 0 0 0; font-size: 24px; color: #0f172a; font-weight: 800; }
+    .indicadores-mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; margin-top: 10px; }
+    .ind-card { background: white; padding: 15px 10px; border-radius: 10px; text-align: center; border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: transform 0.2s;}
+    .ind-card:hover { transform: translateY(-3px); }
+    .ind-card h5 { margin: 0 0 5px 0; color: #64748b; font-size: 12px; font-weight: 600; }
+    .ind-card .valor { font-size: 18px; font-weight: bold; color: var(--text-color); }
+    .loading-ind { text-align: center; font-size: 12px; color: #888; padding: 10px; font-style: italic; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #475569; font-size: 13px;}
+    .form-control { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; outline: none; transition: border 0.3s; box-sizing: border-box; font-size: 14px; }
+    .form-control:focus { border-color: var(--main-color); }
+
+    /* ESTILIZAÇÃO INTERATIVA DA CAIXA DE COLAGEM (CTRL+V) */
+    .paste-zone {
+      border: 2px dashed #cbd5e1;
+      padding: 16px;
+      text-align: center;
+      border-radius: 10px;
+      background: #ffffff;
+      color: #64748b;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s ease-in-out;
+      font-size: 13px;
+      user-select: none;
+    }
+    .paste-zone:focus, .paste-zone:hover {
+      border-color: var(--main-color);
+      background: #f3e8ff;
+      color: var(--main-color);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+    }
+
+    .pill-btn { display: inline-block; padding: 6px 14px; background: white; border: 1px solid #cbd5e1; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold; color: #475569; transition: all 0.2s; user-select: none; }
+    .chk-abrangencia:checked + .pill-btn, .chk-tema:checked + .pill-btn { background-color: var(--main-color); color: white; border-color: #6b21a8; }
+    .check-label input { display: none; }
+    .btn-primary { background-color: var(--main-color); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; display: inline-block; text-align: center;}
+    .btn-primary:hover { background-color: #6b21a8; }
+    .btn-secondary { background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 10px 15px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+    .btn-secondary:hover { background-color: #e2e8f0; }
+    .btn-danger { background-color: var(--accent-rose); color: white; border: none; padding: 10px 15px; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+    .btn-danger:hover { background-color: #9f1239; }
+
+    .history-list { list-style: none; padding: 0; margin: 0; }
+    .history-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--main-color); border: 1px solid #e2e8f0; border-left-width: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); position: relative;}
+    .history-date { font-size: 12px; color: #64748b; margin-bottom: 5px; font-weight: 500; }
+    .history-title { font-weight: bold; color: #1e293b; font-size: 15px;}
+    .history-desc { font-size: 13px; color: #475569; margin-top: 5px;}
+    .delete-btn { position: absolute; right: 15px; top: 15px; color: var(--accent-rose); cursor: pointer; font-size: 18px;}
+    .lock-btn { position: absolute; right: 15px; top: 15px; color: #cbd5e1; cursor: not-allowed; font-size: 18px;}
+
+    .ranking-list { list-style: none; padding: 0; margin: 0; }
+    .ranking-item { display: flex; align-items: center; padding: 14px 0; border-bottom: 1px solid #f1f5f9; }
+    .ranking-item:last-child { border-bottom: none; }
+    .ranking-pos { width: 32px; font-weight: bold; color: #94a3b8; flex-shrink: 0; }
+    .ranking-item:nth-child(1) .ranking-pos { color: #f59e0b; font-size: 18px; }
+    .ranking-item:nth-child(2) .ranking-pos { color: #3b82f6; font-size: 16px; }
+    .ranking-item:nth-child(3) .ranking-pos { color: #10b981; font-size: 16px; }
+    .ranking-img { width: 46px; height: 44px; border-radius: 50%; object-fit: cover; margin-right: 15px; background-color: #f1f5f9; flex-shrink: 0;}
+    .ranking-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .ranking-nome { font-weight: 700; color: #1e293b; font-size: 14px; line-height: 1.2; margin-bottom: 4px; }
+    .ranking-moedas { font-weight: 800; color: var(--main-color); flex-shrink: 0; margin-left: 12px; font-size: 16px; }
+    .mural-avisos { background: #fffbe0; border-left: 5px solid #f59e0b; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #fef08a; }
+    .aviso-item { border-bottom: 1px dashed #fcd34d; padding-bottom: 10px; margin-bottom: 10px; position:relative; }
+    .aviso-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .aviso-meta { font-size: 11px; color: #b45309; margin-bottom: 3px; font-weight: bold; }
+    .btn-del-aviso { position: absolute; right: 0; top: 0; color: #f43f5e; cursor: pointer; font-size: 14px; }
+
+    .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.92); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index: 9999; }
+    .spinner { border: 4px solid #f3e8ff; border-top: 4px solid var(--main-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #0f172a; color: white; padding: 12px 20px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 1000; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); display:flex; align-items:center; justify-content:center; z-index: 1000; backdrop-filter: blur(2px); }
+    .modal-content { background: white; padding: 25px; border-radius: 14px; width: 90%; max-width: 420px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+    .blocked-screen { position: fixed; top:0; left:0; width:100%; height:100%; background-color:#9f1239; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index: 10000; color: white; text-align: center; padding: 20px; display: none; }
+
+    .filter-pill-active { background-color: #7C3AED !important; color: white !important; border-color: #6B21A8 !important; }
+
+    @media (max-width: 768px) {
+      .sidebar { position: fixed; left: -260px; height: 100%; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
+      .sidebar.open { left: 0; }
+      .menu-toggle { display: block; }
+    }
+  </style>
 </head>
 <body>
 
@@ -32,16 +150,16 @@
         <p style="margin:2px 0 0 0;font-size:11px;color:var(--main-color);font-weight:bold;" id="user-info2"></p>
       </div>
       <div class="sidebar-nav">
-        <a class="nav-item active" onclick="mudarAba('home', this)"><i class="fa-solid fa-house"></i> Início</a>
-        <a class="nav-item" onclick="mudarAba('lancamento', this)"><i class="fa-solid fa-plus-circle"></i> Lançar Atividade</a>
-        <a class="nav-item" onclick="mudarAba('gestao', this)"><i class="fa-solid fa-list-check"></i> Gestão de Atividades</a>
-        <a class="nav-item" onclick="mudarAba('historico', this)"><i class="fa-solid fa-receipt"></i> Extrato e Despesas</a>
-        <a class="nav-item" onclick="mudarAba('consultas', this)"><i class="fa-solid fa-magnifying-glass"></i> Consultas Gerais</a>
+        <div role="button" class="nav-item active" onclick="mudarAba('home', this)"><i class="fa-solid fa-house"></i> Início</div>
+        <div role="button" class="nav-item" onclick="mudarAba('lancamento', this)"><i class="fa-solid fa-plus-circle"></i> Lançar Atividade</div>
+        <div role="button" class="nav-item" onclick="mudarAba('gestao', this)"><i class="fa-solid fa-list-check"></i> Gestão de Atividades</div>
+        <div role="button" class="nav-item" onclick="mudarAba('historico', this)"><i class="fa-solid fa-receipt"></i> Extrato e Despesas</div>
+        <div role="button" class="nav-item" onclick="mudarAba('consultas', this)"><i class="fa-solid fa-magnifying-glass"></i> Consultas Gerais</div>
         <a class="nav-item" href="https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw2uNji5U57BZnGUerQ899Syqwjb_JwMV2nQug_yAQqgGH-nlw-i-y-fdzpuoMOi6uEkA/exec" target="_blank" onclick="google.script.run.registrarAuditoria('Painel Externo', 'Visão Geral GP (Sidebar)')"><i class="fa-solid fa-chart-pie"></i> Visão Geral GP</a>
 
         <div id="menu-admin" style="display:none; border-top:1px solid #e2e8f0; margin-top:10px; padding-top:10px;">
            <p style="margin:0 0 10px 20px; font-size:11px; color:#94a3b8; font-weight:bold; text-transform:uppercase;">Administração</p>
-           <a class="nav-item" onclick="mudarAba('configuracoes', this)"><i class="fa-solid fa-gear"></i> Configurações</a>
+           <div role="button" class="nav-item" onclick="mudarAba('configuracoes', this)"><i class="fa-solid fa-gear"></i> Configurações</div>
         </div>
       </div>
     </div>
@@ -57,6 +175,7 @@
 
       <div class="content-area">
 
+        <!-- ABA 1: HOME -->
         <div id="aba-home" class="view-aba">
 
           <div class="card" style="background: linear-gradient(135deg, #ffffff 0%, #f3e8ff 100%); border: 1px solid #e9d5ff; margin-bottom: 20px;">
@@ -119,14 +238,17 @@
           </div>
         </div>
 
+        <!-- ABA 2: LANÇAR ATIVIDADE -->
         <div id="aba-lancamento" class="view-aba" style="display:none;">
           <div class="card" style="max-width: 650px; margin: 0 auto;">
             <h2 style="margin-top:0; color:var(--main-color);"><i class="fa-solid fa-file-pen"></i> Nova Atividade</h2>
             <p style="color:#64748b; font-size:14px; margin-bottom:20px;">Preencha os detalhes do seu roteiro ou interação.</p>
+            
             <div class="form-group">
               <label>Data da Atividade/Viagem</label>
               <input type="date" id="lanc-data" class="form-control">
             </div>
+            
             <div style="display:flex; gap:15px; margin-bottom:15px;">
                <div class="form-group" style="flex:1; margin-bottom:0;">
                   <label>Este atendimento foi para:</label>
@@ -146,12 +268,14 @@
                   </select>
                </div>
             </div>
+
             <div class="form-group" id="grupo-filial">
               <label>Destino (Filial)</label>
               <select id="lanc-destino" class="form-control" onchange="mostrarIndicadoresLancamento(this.value)">
                 <option value="">Selecione...</option>
               </select>
             </div>
+
             <div class="form-group" id="grupo-abrangencia-lancamento" style="display: none; background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0;">
               <label style="color:#0f172a;" id="lbl-abrangencia"><i class="fa-solid fa-map-location-dot"></i> Selecione:</label>
               <div style="margin-bottom: 10px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
@@ -162,6 +286,7 @@
               </div>
               <div id="container-pilulas-abrangencia" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
             </div>
+
             <div id="painel-indicadores-lancamento" style="display: none; margin-top: 15px; margin-bottom: 15px;">
                <label style="color: var(--main-color);"><i class="fa-solid fa-bolt"></i> Painel de Bordo Rápido:</label>
                <div id="loading-indicadores-lanc" class="loading-ind" style="display:none;">Buscando indicadores da loja...</div>
@@ -169,37 +294,40 @@
                   <div class="ind-card" style="border-bottom:4px solid #10b981;"><h5>💰 Vendas</h5><div class="valor" id="ind-rec-val">-</div></div>
                   <div class="ind-card" style="border-bottom:4px solid #2563eb;"><h5>⭐ NPS Atual</h5><div class="valor" id="ind-nps-val">-</div></div>
                   <div class="ind-card" style="border-bottom:4px solid #f59e0b;"><h5>⏰ B. Horas</h5><div class="valor" id="ind-bh-val">-</div></div>
+                  <div class="ind-card" style="border-bottom:4px solid #8000ff;"><h5>🗑️ Coleta Lixo</h5><div class="valor" id="ind-lixo-val">-</div></div>
                   <div class="ind-card" style="border-bottom:4px solid #64748b;"><h5>👥 Vagas</h5><div class="valor" id="ind-quadro-val">-</div></div>
                   <div class="ind-card" style="border-bottom:4px solid #f43f5e;"><h5>📉 Tx Deslig.</h5><div class="valor" id="ind-txdes-val">-</div></div>
                </div>
             </div>
+
             <div class="form-group">
               <label>Qual a natureza deste atendimento?</label>
               <select id="lanc-motivo" class="form-control" onchange="verificarCamposDinamicos()">
                  <optgroup label="Reuniões e Treinamentos">
-                   <option value="Reunião regional">Reunião regional</option>
-                   <option value="Treinamentos">Treinamentos</option>
+                    <option value="Reunião regional">Reunião regional</option>
+                    <option value="Treinamentos">Treinamentos</option>
                  </optgroup>
                  <optgroup label="Seleção e Celebração">
-                   <option value="Celebrações/Ritão/Reconhecimento">Celebrações/Ritão/Reconhecimento</option>
-                   <option value="Recrutamento e seleção - 1º liderança">Recrutamento e seleção - 1º liderança</option>
-                   <option value="Recrutamento e seleção - Processo Externo">Recrutamento e seleção - Processo Externo</option>
+                    <option value="Celebrações/Ritão/Reconhecimento">Celebrações/Ritão/Reconhecimento</option>
+                    <option value="Recrutamento e seleção - 1º liderança">Recrutamento e seleção - 1º liderança</option>
+                    <option value="Recrutamento e seleção - Processo Externo">Recrutamento e seleção - Processo Externo</option>
                  </optgroup>
                  <optgroup label="Conselhos">
-                   <option value="Reunião Conselho E Conselho consultivo">Reunião Conselho E Conselho consultivo</option>
+                    <option value="Reunião Conselho E Conselho consultivo">Reunião Conselho E Conselho consultivo</option>
                  </optgroup>
                  <optgroup label="Metas e Indicadores">
-                   <option value="NPS - Lojas">NPS - Lojas</option>
-                   <option value="Receita de Mercadoria">Receita (Vendas)</option>
-                   <option value="GMD - Operações de Loja">GMD - Operações de Loja</option>
+                    <option value="NPS - Lojas">NPS - Lojas</option>
+                    <option value="Receita de Mercadoria">Receita (Vendas)</option>
+                    <option value="GMD - Operações de Loja">GMD - Operações de Loja</option>
                  </optgroup>
                  <optgroup label="⚖️ Apurações e Feedback">
-                   <option value="Relatorios/Feedback/Acompanhamento">Relatórios/Feedback/Acompanhamento</option>
-                   <option value="Atendimento Social">Atendimento Social</option>
+                    <option value="Relatorios/Feedback/Acompanhamento">Relatórios/Feedback/Acompanhamento</option>
+                    <option value="Atendimento Social">Atendimento Social</option>
                  </optgroup>
                  <optgroup id="optgroup-dinamico" label="🌟 Outras Atividades" style="display:none;"></optgroup>
               </select>
             </div>
+
             <div id="sub-reuniao" class="form-group" style="display:none; background:#f3e8ff; padding:15px; border-radius:10px; border:1px solid #d8b4fe;">
               <label style="color:#6b21a8; margin-bottom:10px;"><i class="fa-solid fa-tags"></i> Temas da Reunião (Múltipla Escolha):</label>
               <div style="display:flex; flex-wrap:wrap; gap:8px;">
@@ -213,6 +341,7 @@
                 <label class="check-label"><input type="checkbox" value="Agente Integrador" class="chk-tema"><span class="pill-btn">Agente Integrador</span></label>
               </div>
             </div>
+
             <div id="sub-treinamento" class="form-group" style="display:none; background:#f3e8ff; padding:15px; border-radius:10px; border:1px solid #d8b4fe;">
               <label style="color:#6b21a8;"><i class="fa-solid fa-chalkboard-user"></i> Tema do Treinamento:</label>
               <select id="treinamento-tema" class="form-control">
@@ -228,6 +357,7 @@
                 <option value="Apontamento">Apontamento</option>
               </select>
             </div>
+
             <div id="grupo-metricas-impacto" style="display:block;">
                 <div style="display:flex; gap:15px; margin-bottom:15px;">
                   <div class="form-group" style="flex:1; margin-bottom:0;">
@@ -287,6 +417,7 @@
               </div>
             </div>
 
+            <!-- OPÇÃO DUAL: ANEXAR OU COLAR VIA CTRL+V -->
             <div class="form-group" id="grupo-evidencia" style="background:#f8fafc; padding:15px; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:15px;">
               <label style="color:#0f172a; margin-bottom:10px;"><i class="fa-solid fa-paperclip"></i> Evidência da Atividade <span style="font-size:11px; color:#64748b; font-weight:normal;">(Anexo ou Link)</span></label>
 
@@ -295,9 +426,12 @@
                  <input type="file" id="lanc-arquivo" class="form-control" accept="image/*,.pdf" onchange="limparOutrasEvidencias('file')">
               </div>
               <div style="margin-bottom:12px;">
-                 <label style="font-size:11px; color:#475569; font-weight:bold;">Opção 2: Colar Imagem da Área de Transferência</label>
-                 <div id="paste-zone" class="paste-zone" tabindex="0" onfocus="limparOutrasEvidencias('paste')">Clique aqui e aperte <strong>Ctrl+V</strong> para colar a imagem</div>
-                 <div id="paste-preview" style="margin-top:5px; text-align:center;"></div>
+                 <label style="font-size:11px; color:#475569; font-weight:bold;">Opção 2: Colar Imagem da Área de Transferência (Ctrl+V)</label>
+                 <div id="paste-zone" class="paste-zone" tabindex="0" onclick="activarDropzoneClipboard(this)">
+                    <i class="fa-solid fa-paste" style="font-size:20px; margin-bottom:6px; display:block; color:var(--main-color);"></i>
+                    <span id="txt-dropzone">Clique aqui e aperte <strong>Ctrl+V</strong> para colar a imagem</span>
+                 </div>
+                 <div id="paste-preview" style="margin-top:8px; text-align:center;"></div>
               </div>
               <div>
                  <label style="font-size:11px; color:#475569; font-weight:bold;">Opção 3: Link do Google Drive (Público)</label>
@@ -314,12 +448,14 @@
           </div>
         </div>
 
+        <!-- ABA 3: GESTÃO DE ATIVIDADES -->
         <div id="aba-gestao" class="view-aba" style="display:none;">
            <h2 style="margin-top:0; color:#1e293b;">Gestão de Atividades</h2>
            <p style="color:#64748b; font-size:14px; margin-bottom:20px;">Linha do tempo operacional e controle de envios (Visitas, Online e Portais Externos).</p>
            <ul class="history-list" id="lista-gestao"></ul>
         </div>
 
+        <!-- ABA 4: EXTRATO E DESPESAS -->
         <div id="aba-historico" class="view-aba" style="display:none;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap: wrap; gap:10px;">
              <h2 style="margin:0; color:#1e293b;">Extrato de Reembolso e Despesas</h2>
@@ -382,6 +518,7 @@
           <ul class="history-list" id="lista-historico"></ul>
         </div>
 
+        <!-- ABA 5: CONSULTAS GERAIS -->
         <div id="aba-consultas" class="view-aba" style="display:none;">
            <h2 style="margin-top:0; color:#1e293b;">Consultas Gerais</h2>
            <p style="color:#64748b; margin-bottom:20px;">Acesse rapidamente todos os 7 painéis e recursos corporativos do ecossistema sem sair do portal.</p>
@@ -439,6 +576,7 @@
            </div>
         </div>
 
+        <!-- ABA 6: CONFIGURAÇÕES -->
         <div id="aba-configuracoes" class="view-aba" style="display:none;">
            <h2 style="margin-top:0; color:#1e293b;">Configurações do Sistema</h2>
            <p style="color:#64748b; font-size:14px; margin-bottom:20px;">Gerencie as naturezas extras de atividade do sistema.</p>
@@ -478,7 +616,1143 @@
       </div>
   </div>
 
-  <?!= HtmlService.createHtmlOutputFromFile('Scripts_Core').getContent(); ?>
-  <?!= HtmlService.createHtmlOutputFromFile('Scripts_UI').getContent(); ?>
+  <script>
+    // SUPORTE PARA MOCK DE DESENVOLVIMENTO
+    if (typeof google === 'undefined') {
+        console.warn("Ambiente Google Apps Script não detectado. Iniciando modo Mock para Preview.");
+        window.google = {
+            script: {
+                run: {
+                    registrarAuditoria: function(evt, det) { console.log("Auditoria Mock:", evt, det); return this; },
+                    withSuccessHandler: function(callback) {
+                        return {
+                            obterDadosIniciais: function() {
+                                setTimeout(() => callback({
+                                    bloqueado: false,
+                                    usuario: { nome: "Usuário Preview", cargo: "Administrador", infoLinha2: "Visão Preview", regionais: ["Regional Teste"], diretoriasAtendidas: ["Diretoria Teste"], isAdmin: true, isSuperAdmin: true, isConfigAdmin: true, isGerenteGP: true, foto: "" },
+                                    lojas: [{id: 1001, nome: "Loja Preview 1", regional: "Regional Teste"}],
+                                    qtdLojasCarteira: 1, qtdVisitas: 5, moedas: 125, moedasMes: 85, moedasMesAnterior: 40, faseMontanha: 3, gastos: 120.00, gastosMesAnterior: 95.00, historico: [], avisos: [], ranking: [], naturezas: ["Integração Preview"], diretorias: ["Diretoria Teste"],
+                                    mesAtualNum: 7, anoAtualNum: 2026, mesAnteriorNum: 6, anoAnteriorNum: 2026
+                                }), 400);
+                            },
+                            buscarIndicadoresLoja: function() {
+                                setTimeout(() => callback({sucesso: true, venda: "110%", nps: "95", bancoHoras: "10 h", lixo: "3", quadro: "0", txdes: "1.5%"}), 400);
+                            },
+                            registrarAtividade: function() { setTimeout(() => callback({sucesso: true}), 400); },
+                            publicarAviso: function() { setTimeout(() => callback({sucesso: true}), 400); },
+                            adicionarNatureza: function() { setTimeout(() => callback({sucesso: true, naturezas: ["Nova Natureza Mock"]}), 400); },
+                            excluirNatureza: function() { setTimeout(() => callback({sucesso: true, naturezas: []}), 400); },
+                            excluirLancamento: function() { setTimeout(() => callback({sucesso: true}), 400); }
+                        };
+                    }
+                }
+            }
+        };
+    }
+
+    // DECLARAÇÕES GLOBAIS SEGURAS
+    var dadosGlobais = null; 
+    var modoCicloDash = 'atual';
+    var arquivoColadoMemoria = null;
+
+    var nomesMesesMap = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+    var urlsRedirecionamento = {
+        "Relatorios/Feedback/Acompanhamento": "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec",
+        "Atendimento Social": "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec"
+    };
+    var motivosRedirecionamento = Object.keys(urlsRedirecionamento);
+
+    // REGRA DE NORMALIZAÇÃO DE FILIAIS (MIDDLEWARE > 3000)
+    function normalizarFilialId(val) {
+      if (!val && val !== 0) return "";
+      var num = parseInt(String(val).replace(/\D/g, ''), 10);
+      if (isNaN(num)) return String(val).trim();
+      if (num > 3000) { num -= 3000; }
+      return String(num);
+    }
+
+    function usarIniciaisComoFallback(imgElement) {
+        let nome = imgElement.getAttribute('data-nome');
+        if(!nome) nome = 'Usuario GP';
+        imgElement.outerHTML = usarIniciais(nome);
+    }
+
+    function usarIniciais(nome) {
+        let iniciais = nome.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        return '<div style="width:100%;height:100%;border-radius:50%;background:#7C3AED;color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:24px;border:3px solid #7C3AED;">' + iniciais + '</div>';
+    }
+
+    function mostrarToast(msg) {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function toggleMenu() {
+      let sb = document.getElementById('sidebar');
+      if (sb) sb.classList.toggle('open');
+    }
+
+    function customConfirm(message, onConfirm) {
+        let boxConfirm = document.createElement('div');
+        boxConfirm.style.cssText = "position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; color:#333; padding:25px; border-radius:14px; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.2); text-align:center; min-width:320px; border:1px solid #e2e8f0;";
+        boxConfirm.innerHTML = `
+            <div style="margin-bottom:15px; color:#f43f5e; font-size:30px;"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <h3 style="margin-top:0; color:#1e293b; font-size:18px;">Atenção</h3>
+            <p style="color:#64748b; font-size:14px; margin-bottom:20px;">${message}</p>
+            <div style="display:flex; gap:10px; justify-content:center;">
+                <button id="btn-cancelar-modal" class="btn-secondary" style="width:auto;">Cancelar</button>
+                <button id="btn-confirmar-modal" class="btn-danger" style="width:auto;">Sim, Confirmar</button>
+            </div>
+        `;
+        document.body.appendChild(boxConfirm);
+        document.getElementById('btn-cancelar-modal').onclick = () => boxConfirm.remove();
+        document.getElementById('btn-confirmar-modal').onclick = () => {
+            boxConfirm.remove();
+            onConfirm();
+        };
+    }
+
+    function abrirPainelInternoEmbutido(url, titulo) {
+        const container = document.getElementById('container-embutido-painel');
+        const iframe = document.getElementById('iframe-painel-embutido-src');
+        const lblTitulo = document.getElementById('titulo-painel-embutido');
+        if (!container || !iframe) return;
+
+        if (lblTitulo) lblTitulo.innerText = titulo || "Painel Corporativo";
+        iframe.src = url;
+        container.style.display = 'block';
+        setTimeout(() => { container.scrollIntoView({ behavior: 'smooth' }); }, 100);
+        google.script.run.registrarAuditoria("Painel Embutido", titulo || url);
+    }
+
+    function fecharPainelEmbutido() {
+        const container = document.getElementById('container-embutido-painel');
+        const iframe = document.getElementById('iframe-painel-embutido-src');
+        if (container) container.style.display = 'none';
+        if (iframe) iframe.src = 'about:blank';
+    }
+
+    function mudarAba(abaId, element) {
+      document.querySelectorAll('.view-aba').forEach(el => el.style.display = 'none');
+      let targetAba = document.getElementById('aba-' + abaId);
+      if (targetAba) targetAba.style.display = 'block';
+      if (element) {
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
+      }
+      if(window.innerWidth <= 768) { 
+        let sb = document.getElementById('sidebar');
+        if (sb) sb.classList.remove('open'); 
+      }
+    }
+
+    function dispararConfetes() {
+       try { if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, zIndex: 9999 }); } catch(e) {}
+    }
+
+    /* MÓDULO INTERATIVO DE ANEXO VIA CTRL+V / CLIPBOARD */
+    function activarDropzoneClipboard(elem) {
+      elem.focus();
+      let txt = document.getElementById('txt-dropzone');
+      if (txt) txt.innerHTML = "Pronto! Aperte <strong>Ctrl+V</strong> para colar sua imagem agora.";
+    }
+
+    document.addEventListener('paste', function(e) {
+      let items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (let index in items) {
+        let item = items[index];
+        if (item.kind === 'file' && item.type.indexOf('image') !== -1) {
+          let blob = item.getAsFile();
+          let reader = new FileReader();
+          reader.onload = function(event) {
+            arquivoColadoMemoria = { 
+              fileName: 'colado_' + Date.now() + '.png', 
+              mimeType: blob.type, 
+              base64: event.target.result.split(',')[1] 
+            };
+            let prev = document.getElementById('paste-preview');
+            if (prev) prev.innerHTML = `<img src="${event.target.result}" style="max-height:120px; border-radius:8px; margin-top:8px; border:2px solid #10b981; box-shadow:0 4px 10px rgba(0,0,0,0.1); margin-left:auto; margin-right:auto;">`;
+            let txt = document.getElementById('txt-dropzone');
+            if (txt) txt.innerHTML = "<strong style='color:#10b981;'><i class='fa-solid fa-circle-check'></i> Imagem capturada da área de transferência!</strong>";
+            let zone = document.getElementById('paste-zone');
+            if (zone) zone.style.borderColor = "#10b981";
+            limparOutrasEvidencias('paste');
+            mostrarToast("Imagem capturada com sucesso!");
+          };
+          reader.readAsDataURL(blob);
+        }
+      }
+    });
+
+    // CICLO DE INICIALIZAÇÃO DA APLICAÇÃO
+    window.onload = function() {
+      let dtElem = document.getElementById('lanc-data');
+      if (dtElem) dtElem.valueAsDate = new Date(); 
+      let h = new Date().getHours();
+      let saudacao = h < 12 ? "Bom dia" : (h < 18 ? "Boa tarde" : "Boa noite");
+
+      google.script.run.withSuccessHandler(function(res) {
+         let splash = document.getElementById('loading-splash');
+         if (splash) splash.style.display = 'none';
+
+         if(res.bloqueado) {
+            let bTela = document.getElementById('bloqueio-tela');
+            if (bTela) bTela.style.display = 'flex';
+            if(res.mensagem) document.getElementById('txt-motivo-bloqueio').innerText = res.mensagem;
+            return;
+         }
+
+         if(res.erro) {
+            mostrarToast(res.erro);
+            let appC = document.getElementById('app-container');
+            if (appC) appC.style.display = 'flex';
+            let uName = document.getElementById('user-name');
+            if (uName) uName.innerText = "Erro no Login";
+            return;
+         }
+
+         let appC = document.getElementById('app-container');
+         if (appC) appC.style.display = 'flex';
+         dadosGlobais = res;
+
+         let uName = document.getElementById('user-name');
+         if (uName) uName.innerText = saudacao + ", " + res.usuario.nome.split(' ')[0];
+         let uRole = document.getElementById('user-role');
+         if (uRole) uRole.innerText = res.usuario.cargo;
+         let uInfo2 = document.getElementById('user-info2');
+         if (uInfo2) uInfo2.innerText = res.usuario.infoLinha2;
+         let uCoins = document.getElementById('user-coins');
+         if (uCoins) uCoins.innerText = res.moedas;
+
+         let divFoto = document.getElementById('user-photo-container');
+         if (divFoto) {
+           if (res.usuario.foto) {
+               divFoto.innerHTML = '<img src="' + res.usuario.foto + '" alt="Foto" data-nome="' + res.usuario.nome + '" onerror="usarIniciaisComoFallback(this)">';
+           } else {
+               divFoto.innerHTML = usarIniciais(res.usuario.nome);
+           }
+         }
+
+         if (res.usuario.isAdmin || res.usuario.isSuperAdmin) {
+             let btnAdd = document.getElementById('btn-add-aviso');
+             if (btnAdd) btnAdd.style.display = 'block';
+         }
+         if (res.usuario.isConfigAdmin || res.usuario.isGerenteGP) {
+             let menuAdm = document.getElementById('menu-admin');
+             if (menuAdm) menuAdm.style.display = 'block';
+         }
+
+         if (typeof res.mesAtualNum === 'number') {
+             let lblAtual = document.getElementById('lbl-mes-atual-nome');
+             if (lblAtual) lblAtual.innerText = nomesMesesMap[res.mesAtualNum];
+             let lblAnt = document.getElementById('lbl-mes-anterior-nome');
+             if (lblAnt) lblAnt.innerText = nomesMesesMap[res.mesAnteriorNum];
+         }
+
+         renderizarGamificacaoVisual(res);
+         atualizarCardsDashboard();
+
+         let dLojas = document.getElementById('dash-lojas');
+         if (dLojas) dLojas.innerText = res.qtdLojasCarteira || res.lojas.length;
+         let selectDestino = document.getElementById('lanc-destino');
+         if (selectDestino && res.lojas) {
+           selectDestino.innerHTML = '<option value="">Selecione...</option>';
+           res.lojas.forEach(loja => {
+              let opt = document.createElement('option');
+              opt.value = loja.id;
+              opt.text = loja.id + ' - ' + loja.nome;
+              selectDestino.add(opt);
+           });
+         }
+         
+         atualizarSelectNaturezas(res.naturezas);
+         renderizarRanking(res.ranking);
+         renderizarAvisos(res.avisos);
+         renderizarHistoricos();
+         renderizarListaAdmin(res.naturezas);
+      }).obterDadosIniciais();
+    };
+
+    function limparOutrasEvidencias(origem) {
+        if(origem !== 'file') {
+            let fileEl = document.getElementById('lanc-arquivo');
+            if(fileEl) fileEl.value = '';
+        }
+        if(origem !== 'paste') {
+            arquivoColadoMemoria = null;
+            let prevEl = document.getElementById('paste-preview');
+            if(prevEl) prevEl.innerHTML = '';
+            let zoneEl = document.getElementById('paste-zone');
+            if(zoneEl) {
+                zoneEl.innerHTML = '<i class="fa-solid fa-paste" style="font-size:20px; margin-bottom:6px; display:block; color:var(--main-color);"></i><span id="txt-dropzone">Clique aqui e aperte <strong>Ctrl+V</strong> para colar a imagem</span>';
+                zoneEl.style.borderColor = "#cbd5e1";
+            }
+        }
+        if(origem !== 'link') {
+            let linkEl = document.getElementById('lanc-link-drive');
+            if(linkEl) linkEl.value = '';
+        }
+    }
+
+    function selecionarCicloDash(modo) {
+        modoCicloDash = modo;
+        let btnAtual = document.getElementById('btn-dash-atual');
+        let btnAnt = document.getElementById('btn-dash-anterior');
+        if (modo === 'atual') {
+            if (btnAtual) btnAtual.classList.add('filter-pill-active');
+            if (btnAnt) btnAnt.classList.remove('filter-pill-active');
+        } else {
+            if (btnAnt) btnAnt.classList.add('filter-pill-active');
+            if (btnAtual) btnAtual.classList.remove('filter-pill-active');
+        }
+        atualizarCardsDashboard();
+    }
+
+    function atualizarCardsDashboard() {
+        if (!dadosGlobais) return;
+        if (modoCicloDash === 'atual') {
+            let eMes = document.getElementById('arvore-moedas-mes');
+            if (eMes) eMes.innerText = dadosGlobais.moedasMes || 0;
+            let eGas = document.getElementById('dash-gastos');
+            if (eGas) eGas.innerText = 'R$ ' + (dadosGlobais.gastos || 0).toFixed(2).replace('.', ',');
+            let eVis = document.getElementById('dash-visitas');
+            if (eVis) eVis.innerText = dadosGlobais.qtdVisitas || 0;
+        } else {
+            let eMes = document.getElementById('arvore-moedas-mes');
+            if (eMes) eMes.innerText = dadosGlobais.moedasMesAnterior || 0;
+            let eGas = document.getElementById('dash-gastos');
+            if (eGas) eGas.innerText = 'R$ ' + (dadosGlobais.gastosMesAnterior || 0).toFixed(2).replace('.', ',');
+            let eVis = document.getElementById('dash-visitas');
+            if (eVis) eVis.innerText = dadosGlobais.qtdVisitasAnterior || 0;
+        }
+        renderizarRanking(dadosGlobais.ranking);
+    }
+
+    function renderizarGamificacaoVisual(res) {
+        let eMes = document.getElementById('arvore-moedas-mes');
+        if (eMes) eMes.innerText = res.moedasMes || 0;
+        let eTot = document.getElementById('arvore-moedas-total');
+        if (eTot) eTot.innerText = res.moedas || 0;
+
+        let emoji = '🥾';
+        let nomeFase = 'Fase 1: Acampamento Base';
+        if (res.faseMontanha === 2) { emoji = '🧗'; nomeFase = 'Fase 2: Subida da Montanha'; }
+        else if (res.faseMontanha === 3) { emoji = '🏔️'; nomeFase = 'Fase 3: Cume Alcançado'; }
+        else if (res.faseMontanha === 4) { emoji = '🏔️⚡'; nomeFase = 'Fase Final: Bandeira no Everest'; }
+
+        let eVisBox = document.getElementById('arvore-visual-box');
+        if (eVisBox) eVisBox.innerText = emoji;
+        let eBadge = document.getElementById('arvore-fase-badge');
+        if (eBadge) eBadge.innerText = nomeFase;
+    }
+
+    function renderizarRanking(ranking) {
+        const ul = document.getElementById('lista-ranking');
+        if(!ul) return;
+        ul.innerHTML = '';
+        if (!ranking || ranking.length === 0) {
+            ul.innerHTML = '<li style="padding:10px;text-align:center;color:#64748b;">Nenhum engajamento registrado.</li>';
+            return;
+        }
+
+        let rankingCiclo = [...ranking];
+        if (modoCicloDash === 'atual') {
+            rankingCiclo.sort((a, b) => (b.moedasMes || 0) - (a.moedasMes || 0));
+        } else {
+            rankingCiclo.sort((a, b) => (b.moedasMesAnterior || 0) - (a.moedasMesAnterior || 0));
+        }
+
+        const top5 = rankingCiclo.filter(u => {
+            let m = modoCicloDash === 'atual' ? u.moedasMes : u.moedasMesAnterior;
+            return m > 0;
+        }).slice(0, 5);
+
+        if (top5.length === 0) {
+            ul.innerHTML = '<li style="padding:10px;text-align:center;color:#64748b;">Nenhum engajamento registrado neste ciclo.</li>';
+            return;
+        }
+
+        const nomesFaseMontanha = { 
+          1: '🥾 Acampamento Base', 
+          2: '🧗 Subida da Montanha', 
+          3: '🏔️ Cume Alcançado', 
+          4: '🏔️⚡ Bandeira no Everest' 
+        };
+
+        top5.forEach((user, index) => {
+            let pos = index + 1;
+            let posHtml = `<div class="ranking-pos">${pos}º</div>`;
+            let fotoHtml = user.foto ? `<img src="${user.foto}" class="ranking-img" onerror="usarIniciaisComoFallback(this)" data-nome="${user.nome}">` : `<div class="ranking-img">${usarIniciais(user.nome)}</div>`;
+
+            let statusTag = `<span style="font-size:10px; font-weight:bold; background:#f3e8ff; color:#6b21a8; padding:2px 8px; border-radius:10px; display:inline-block;">${nomesFaseMontanha[user.fase || 1]}</span>`;
+
+            let moedasExibidas = modoCicloDash === 'atual' ? user.moedasMes : user.moedasMesAnterior;
+
+            let li = document.createElement('li');
+            li.className = 'ranking-item';
+            li.innerHTML = posHtml + fotoHtml +
+                           `<div class="ranking-info">
+                              <div class="ranking-nome">${user.nome}</div>
+                              <div style="display:flex; align-items:center; gap:6px; margin-top:3px; flex-wrap:wrap;">
+                                ${statusTag}
+                              </div>
+                            </div>
+                            <div class="ranking-moedas"><i class="fa-solid fa-coins" style="color:#f59e0b;"></i> ${moedasExibidas}</div>`;
+            ul.appendChild(li);
+        });
+    }
+
+    function renderizarAvisos(avisos) {
+        const container = document.getElementById('mural-avisos-container');
+        const lista = document.getElementById('lista-avisos');
+        if (!container || !lista) return;
+        lista.innerHTML = '';
+        if (!avisos || avisos.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = 'block';
+        avisos.forEach(a => {
+            let btnDel = (dadosGlobais && dadosGlobais.usuario && (dadosGlobais.usuario.isAdmin || dadosGlobais.usuario.isSuperAdmin)) 
+                         ? `<i class="fa-solid fa-xmark btn-del-aviso" onclick="deletarAviso('${a.data}', '${a.mensagem}')" title="Excluir Aviso"></i>` : '';
+            let div = document.createElement('div');
+            div.className = 'aviso-item';
+            div.innerHTML = `<div class="aviso-meta"><i class="fa-regular fa-clock"></i> ${a.data} • ${a.autor}</div>
+                             <div style="font-size:13px; color:#1e293b;">${a.mensagem}</div>
+                             ${btnDel}`;
+            lista.appendChild(div);
+        });
+    }
+
+    function abrirModalAviso() {
+        let selectDir = document.getElementById('aviso-diretoria');
+        if (selectDir) {
+          selectDir.innerHTML = '<option value="Todos">Todas as Diretorias</option>';
+          if (dadosGlobais && dadosGlobais.diretorias) {
+              dadosGlobais.diretorias.forEach(d => {
+                  selectDir.add(new Option(d, d));
+              });
+          }
+        }
+        let txtAviso = document.getElementById('texto-novo-aviso');
+        if (txtAviso) txtAviso.value = '';
+        let mAviso = document.getElementById('modal-novo-aviso');
+        if (mAviso) mAviso.style.display = 'flex';
+    }
+
+    function fecharModalAviso() {
+        let mAviso = document.getElementById('modal-novo-aviso');
+        if (mAviso) mAviso.style.display = 'none';
+    }
+
+    function salvarNovoAviso() {
+        let txtAviso = document.getElementById('texto-novo-aviso');
+        let msg = txtAviso ? txtAviso.value.trim() : '';
+        let selectDir = document.getElementById('aviso-diretoria');
+        let dir = selectDir ? selectDir.value : 'Todos';
+
+        if (!msg) return mostrarToast('Digite a mensagem!');
+        let btn = document.getElementById('btn-salvar-aviso');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
+        }
+
+        google.script.run.withSuccessHandler(function(res){
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = 'Publicar Aviso';
+            }
+            if (res.erro) { mostrarToast(res.erro); return; }
+            mostrarToast('Recado publicado!');
+            fecharModalAviso();
+            google.script.run.withSuccessHandler(function(newData){
+                dadosGlobais = newData;
+                renderizarAvisos(newData.avisos);
+            }).obterDadosIniciais();
+        }).publicarAviso(msg, dir);
+    }
+
+    function deletarAviso(data, msg) {
+        customConfirm("Tem certeza que deseja apagar este recado?", function() {
+            google.script.run.withSuccessHandler(function(res){
+                if (res.erro) { mostrarToast(res.erro); return; }
+                mostrarToast('Recado excluído!');
+                google.script.run.withSuccessHandler(function(newData){
+                    dadosGlobais = newData;
+                    renderizarAvisos(newData.avisos);
+                }).obterDadosIniciais();
+            }).excluirAvisoPlanilha(data, msg);
+        });
+    }
+
+    function toggleTodasAbrangencias(checkbox) {
+       document.querySelectorAll('.chk-abrangencia').forEach(chk => chk.checked = checkbox.checked);
+    }
+
+    function alternarEscopo(valor) {
+      let gFilial = document.getElementById('grupo-filial');
+      if (gFilial) gFilial.style.display = valor === 'filial' ? 'block' : 'none';
+      let gAbr = document.getElementById('grupo-abrangencia-lancamento');
+      if (gAbr) gAbr.style.display = (valor === 'regional' || valor === 'diretoria') ? 'block' : 'none';
+      let pInd = document.getElementById('painel-indicadores-lancamento');
+      if(valor !== 'filial' && pInd) pInd.style.display = 'none';
+      
+      let containerPils = document.getElementById('container-pilulas-abrangencia');
+      let lblAbrangencia = document.getElementById('lbl-abrangencia');
+      
+      if (containerPils && dadosGlobais) {
+          containerPils.innerHTML = '';
+          let checkTodas = document.getElementById('check-todas-abrangencia');
+          if(checkTodas) checkTodas.checked = false;
+
+          let arrayBase = [];
+          if (valor === 'regional') {
+              if (lblAbrangencia) lblAbrangencia.innerHTML = '<i class="fa-solid fa-map-location-dot"></i> Selecione as Regionais:';
+              arrayBase = (dadosGlobais.usuario && dadosGlobais.usuario.isSuperAdmin) ? [...new Set(dadosGlobais.lojas.map(l => l.regional))].sort() : (dadosGlobais.usuario ? dadosGlobais.usuario.regionais : []);
+          } else if (valor === 'diretoria') {
+              if (lblAbrangencia) lblAbrangencia.innerHTML = '<i class="fa-solid fa-sitemap"></i> Selecione as Diretorias:';
+              arrayBase = (dadosGlobais.usuario && dadosGlobais.usuario.isSuperAdmin) ? dadosGlobais.diretorias : (dadosGlobais.usuario ? dadosGlobais.usuario.diretoriasAtendidas : []);
+          }
+          if (arrayBase && arrayBase.length > 0) {
+              arrayBase.forEach(r => {
+                  containerPils.innerHTML += `<label class="check-label"><input type="checkbox" value="${r}" class="chk-abrangencia"><span class="pill-btn">${r}</span></label>`;
+              });
+          }
+      }
+      verificarCamposDinamicos();
+    }
+
+    function atualizarSelectNaturezas(naturezas) {
+       let optgroup = document.getElementById('optgroup-dinamico');
+       if (!optgroup) return;
+       optgroup.innerHTML = "";
+       if(naturezas && naturezas.length > 0) {
+           optgroup.style.display = 'block';
+           naturezas.forEach(item => { optgroup.innerHTML += `<option value="${item}">${item}</option>`; });
+       } else {
+           optgroup.style.display = 'none';
+       }
+    }
+
+    function verificarCamposDinamicos() {
+       let lMot = document.getElementById('lanc-motivo');
+       const motivo = lMot ? lMot.value : '';
+       let lRot = document.getElementById('lanc-roteiro');
+       const roteiro = lRot ? lRot.value : '';
+       const isRedirect = motivosRedirecionamento.includes(motivo);
+
+       let sReu = document.getElementById('sub-reuniao');
+       let sTre = document.getElementById('sub-treinamento');
+
+       if (motivo === "Reunião regional") {
+           if (sReu) sReu.style.display = 'block';
+           if (sTre) sTre.style.display = 'none';
+       } else if (motivo === "Treinamentos") {
+           if (sReu) sReu.style.display = 'none';
+           if (sTre) sTre.style.display = 'block';
+       } else {
+           if (sReu) sReu.style.display = 'none';
+           if (sTre) sTre.style.display = 'none';
+           document.querySelectorAll('.chk-tema').forEach(chk => chk.checked = false);
+       }
+       
+       let gEvi = document.getElementById('grupo-evidencia');
+       let gObs = document.getElementById('grupo-obs');
+       let gMet = document.getElementById('grupo-metricas-impacto');
+
+       if (isRedirect) {
+           if (gEvi) gEvi.style.display = 'none';
+           if (gObs) gObs.style.display = 'block';
+           if (gMet) gMet.style.display = 'block';
+       } else {
+           if (gEvi) gEvi.style.display = 'block';
+           if (gObs) gObs.style.display = 'block';
+           if (gMet) gMet.style.display = 'block';
+       }
+       
+       let gKm = document.getElementById('grupo-km');
+       if (roteiro && roteiro.includes('Presencial')) {
+           if (gKm) gKm.style.display = 'block';
+       } else {
+           if (gKm) gKm.style.display = 'none';
+           let kQtd = document.getElementById('km-qtd'); if (kQtd) kQtd.value = 0;
+           let gAli = document.getElementById('gasto-alimentacao'); if (gAli) gAli.value = '';
+           let gHos = document.getElementById('gasto-hospedagem'); if (gHos) gHos.value = '';
+           let gAer = document.getElementById('gasto-aereo'); if (gAer) gAer.value = '';
+           let gPed = document.getElementById('gasto-pedagio'); if (gPed) gPed.value = '';
+           let gEst = document.getElementById('gasto-estacionamento'); if (gEst) gEst.value = '';
+           calcularDespesas();
+       }
+       
+       const btnSalvar = document.getElementById('btn-salvar');
+       if (btnSalvar) {
+         if (isRedirect) {
+             mostrarToast("Atenção: Ação requer envio via Portal Externo!");
+             btnSalvar.innerHTML = '<i class="fa-solid fa-external-link-alt"></i> Ir para Portal Externo (+1 Moeda)';
+             btnSalvar.style.backgroundColor = "#f43f5e";
+         } else {
+             btnSalvar.innerHTML = '<i class="fa-solid fa-coins"></i> Salvar e Ganhar Moeda';
+             btnSalvar.style.backgroundColor = "var(--main-color)";
+         }
+       }
+    }
+
+    function calcularDespesas() {
+       let kV = document.getElementById('km-valor');
+       let kmValor = kV ? parseFloat(kV.value) || 0 : 0;
+       let kQ = document.getElementById('km-qtd');
+       let kmQtd = kQ ? parseFloat(kQ.value) || 0 : 0;
+       let kmCusto = kmValor * kmQtd;
+       let kDisp = document.getElementById('km-custo-display');
+       if (kDisp) kDisp.value = kmCusto.toFixed(2);
+
+       let gAli = document.getElementById('gasto-alimentacao');
+       let alimentacao = gAli ? parseFloat(gAli.value) || 0 : 0;
+       let gHos = document.getElementById('gasto-hospedagem');
+       let hospedagem = gHos ? parseFloat(gHos.value) || 0 : 0;
+       let gAer = document.getElementById('gasto-aereo');
+       let aereo = gAer ? parseFloat(gAer.value) || 0 : 0;
+       let gPed = document.getElementById('gasto-pedagio');
+       let pedagio = gPed ? parseFloat(gPed.value) || 0 : 0;
+       let gEst = document.getElementById('gasto-estacionamento');
+       let estacionamento = gEst ? parseFloat(gEst.value) || 0 : 0;
+
+       let total = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
+       let gTotDisp = document.getElementById('gasto-total-display');
+       if (gTotDisp) gTotDisp.innerText = total.toFixed(2).replace('.', ',');
+    }
+
+    function calcularDespesasAvulso() {
+       let aV = document.getElementById('avulso-valor');
+       let kmValor = aV ? parseFloat(aV.value) || 0 : 0;
+       let aQ = document.getElementById('avulso-qtd');
+       let kmQtd = aQ ? parseFloat(aQ.value) || 0 : 0;
+       let kmCusto = kmValor * kmQtd;
+
+       let aAli = document.getElementById('avulso-alimentacao');
+       let alimentacao = aAli ? parseFloat(aAli.value) || 0 : 0;
+       let aHos = document.getElementById('avulso-hospedagem');
+       let hospedagem = aHos ? parseFloat(aHos.value) || 0 : 0;
+       let aAer = document.getElementById('avulso-aereo');
+       let aereo = aAer ? parseFloat(aAer.value) || 0 : 0;
+       let aPed = document.getElementById('avulso-pedagio');
+       let pedagio = aPed ? parseFloat(aPed.value) || 0 : 0;
+       let aEst = document.getElementById('avulso-estacionamento');
+       let estacionamento = aEst ? parseFloat(aEst.value) || 0 : 0;
+
+       let total = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
+       let aTotDisp = document.getElementById('avulso-total-display');
+       if (aTotDisp) aTotDisp.innerText = total.toFixed(2).replace('.', ',');
+    }
+
+    function mostrarIndicadoresLancamento(filialId) {
+        const painel = document.getElementById('painel-indicadores-lancamento');
+        const loading = document.getElementById('loading-indicadores-lanc');
+        const grid = document.getElementById('grid-indicadores-lanc');
+        if (!filialId) { if(painel) painel.style.display = 'none'; return; }
+
+        if (painel) painel.style.display = 'block';
+        if (loading) loading.style.display = 'block';
+        if (grid) grid.style.display = 'none';
+
+        let eNps = document.getElementById('ind-nps-val'); if (eNps) eNps.innerText = '-';
+        let eRec = document.getElementById('ind-rec-val'); if (eRec) eRec.innerText = '-';
+        let eBh = document.getElementById('ind-bh-val'); if (eBh) eBh.innerText = '-';
+        let eLixo = document.getElementById('ind-lixo-val'); if (eLixo) eLixo.innerText = '-';
+        let eQua = document.getElementById('ind-quadro-val'); if (eQua) eQua.innerText = '-';
+        let eTx = document.getElementById('ind-txdes-val'); if (eTx) eTx.innerText = '-';
+
+        google.script.run.withSuccessHandler(function(res){
+            if (loading) loading.style.display = 'none';
+            if (grid) grid.style.display = 'grid'; 
+            if(res.erro || !res.sucesso) return mostrarToast("Erro ao buscar: " + (res.erro || "Falha nos dados"));
+
+            if (eNps) eNps.innerText = res.nps || '-';
+            if (eRec) eRec.innerText = res.venda || '-';
+            if (eBh) eBh.innerText = (res.bancoHoras && res.bancoHoras !== "-") ? res.bancoHoras + " h" : "-";
+            if (eLixo) eLixo.innerText = res.lixo || '-';
+            if (eQua) eQua.innerText = res.quadro || '-';
+            if (eTx) eTx.innerText = res.txdes || '-';
+        }).buscarIndicadoresLoja(filialId);
+    }
+
+    function salvarAtividade() {
+       let btn = document.getElementById('btn-salvar');
+       let lEsc = document.getElementById('lanc-escopo');
+       const escopo = lEsc ? lEsc.value : 'filial';
+       let lMot = document.getElementById('lanc-motivo');
+       const motivo = lMot ? lMot.value : '';
+       
+       let destino = "";
+       if (escopo === 'filial') {
+           let lDes = document.getElementById('lanc-destino');
+           destino = lDes ? lDes.value : '';
+       } else {
+           let selecionadas = [];
+           document.querySelectorAll('.chk-abrangencia:checked').forEach(cb => selecionadas.push(cb.value));
+           if(selecionadas.length === 0) return mostrarToast("Selecione pelo menos uma opção!");
+           let prefixo = escopo === 'regional' ? 'REGIONAL - ' : 'DIRETORIA - ';
+           destino = prefixo + selecionadas.join(' / ');
+       }
+       
+       let subTema = "";
+       try {
+           if (motivo === "Reunião regional") {
+               let temasR = [];
+               document.querySelectorAll('.chk-tema:checked').forEach(cb => temasR.push(cb.value));
+               subTema = temasR.join(', ');
+           } else if (motivo === "Treinamentos") {
+               let elemTreino = document.getElementById('treinamento-tema');
+               if(elemTreino) subTema = elemTreino.value;
+           }
+       } catch(e) {}
+       
+       let lData = document.getElementById('lanc-data');
+       let dataAtiv = lData ? lData.value : '';
+       if(!dataAtiv || !destino || !motivo) {
+           return mostrarToast("Preencha Data, Destino e Motivo!");
+       }
+       
+       let pessoasImpactadas = 0;
+       try { let p = document.getElementById('lanc-pessoas'); if(p && p.value) pessoasImpactadas = parseInt(p.value, 10); } catch(e){}
+
+       let tempoGasto = 0;
+       try { let t = document.getElementById('lanc-tempo'); if(t && t.value) tempoGasto = parseFloat(t.value); } catch(e){}
+       let observacoes = "";
+       try { let o = document.getElementById('lanc-obs'); if(o && o.value) observacoes = o.value; } catch(e){}
+       
+       let gTotDisp = document.getElementById('gasto-total-display');
+       let gastoTotalFormatado = gTotDisp ? (parseFloat(gTotDisp.innerText.replace(',', '.')) || 0) : 0;
+       let linkInputDrive = "";
+       try { let ld = document.getElementById('lanc-link-drive'); if(ld && ld.value) linkInputDrive = ld.value; } catch(e){}
+
+       let lRot = document.getElementById('lanc-roteiro');
+
+       if (motivosRedirecionamento.includes(motivo)) {
+           window.open(urlsRedirecionamento[motivo], "_blank");
+           mostrarToast("Redirecionando para painel externo...");
+
+           let dRedir = {
+               dataAtividade: dataAtiv || new Date().toISOString().split('T')[0],
+               roteiro: lRot ? lRot.value : "Não informado",
+               destino: destino,
+               motivo: motivo,
+               observacoes: observacoes ? observacoes + " (Redirecionamento efetuado via formulário do Portal GP 360)" : "Redirecionamento efetuado via formulário do Portal GP 360",
+               notaChecklist: "",
+               moedas: 1, 
+               kmValor: parseFloat(document.getElementById('km-valor')?.value) || 0,
+               kmQtd: parseFloat(document.getElementById('km-qtd')?.value) || 0,
+               kmCusto: parseFloat(document.getElementById('km-custo-display')?.value) || 0,
+               alimentacao: parseFloat(document.getElementById('gasto-alimentacao')?.value) || 0,
+               hospedagem: parseFloat(document.getElementById('gasto-hospedagem')?.value) || 0,
+               aereo: parseFloat(document.getElementById('gasto-aereo')?.value) || 0,
+               pedagio: parseFloat(document.getElementById('gasto-pedagio')?.value) || 0,
+               estacionamento: parseFloat(document.getElementById('gasto-estacionamento')?.value) || 0,
+               gastoTotal: gastoTotalFormatado,
+               subTema: subTema, 
+               pessoasImpactadas: isNaN(pessoasImpactadas) ? 0 : pessoasImpactadas, 
+               tempoGasto: isNaN(tempoGasto) ? 0 : tempoGasto, 
+               linkEvidenciaExterna: ""
+           };
+           if (btn) { btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Registrando..."; btn.disabled = true; }
+           chamarBackendSalvar(dRedir, null, btn);
+           if (lMot) lMot.value = '';
+           verificarCamposDinamicos();
+           return; 
+       }
+       
+       let d = {
+          dataAtividade: dataAtiv,
+          roteiro: lRot ? lRot.value : "",
+          destino: destino,
+          motivo: motivo,
+          observacoes: observacoes,
+          notaChecklist: "",
+          moedas: 1, 
+          kmValor: parseFloat(document.getElementById('km-valor')?.value) || 0,
+          kmQtd: parseFloat(document.getElementById('km-qtd')?.value) || 0,
+          kmCusto: parseFloat(document.getElementById('km-custo-display')?.value) || 0,
+          alimentacao: parseFloat(document.getElementById('gasto-alimentacao')?.value) || 0,
+          hospedagem: parseFloat(document.getElementById('gasto-hospedagem')?.value) || 0,
+          aereo: parseFloat(document.getElementById('gasto-aereo')?.value) || 0,
+          pedagio: parseFloat(document.getElementById('gasto-pedagio')?.value) || 0,
+          estacionamento: parseFloat(document.getElementById('gasto-estacionamento')?.value) || 0,
+          gastoTotal: gastoTotalFormatado,
+          subTema: subTema,
+          pessoasImpactadas: isNaN(pessoasImpactadas) ? 0 : pessoasImpactadas,
+          tempoGasto: isNaN(tempoGasto) ? 0 : tempoGasto,
+          linkEvidenciaExterna: linkInputDrive
+       };
+       if (btn) { btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Salvando..."; btn.disabled = true; }
+
+       let fileInput = document.getElementById('lanc-arquivo');
+       if (fileInput && fileInput.files && fileInput.files[0]) {
+           let file = fileInput.files[0];
+           let fr = new FileReader();
+           fr.onload = function(e) {
+               let data = e.target.result.split(",");
+               let fileData = { fileName: file.name, mimeType: file.type, base64: data[1] };
+               chamarBackendSalvar(d, fileData, btn);
+           };
+           fr.readAsDataURL(file);
+       } else if (arquivoColadoMemoria) {
+           chamarBackendSalvar(d, arquivoColadoMemoria, btn);
+       } else {
+           chamarBackendSalvar(d, null, btn);
+       }
+    }
+
+    function chamarBackendSalvar(dados, fileData, btn) {
+       google.script.run.withSuccessHandler(function(res){
+           if(res.erro) { 
+             mostrarToast("Erro: " + res.erro); 
+             if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-coins"></i> Salvar e Ganhar Moeda'; }
+             return; 
+           }
+
+           dispararConfetes();
+           mostrarToast("Ação salva com sucesso!");
+           if (btn) btn.disabled = false;
+           setTimeout(function() {
+               let lData = document.getElementById('lanc-data'); if (lData) lData.valueAsDate = new Date();
+               let lDes = document.getElementById('lanc-destino'); if (lDes) lDes.value = '';
+               let obsEl = document.getElementById('lanc-obs'); if(obsEl) obsEl.value = '';
+               let pesEl = document.getElementById('lanc-pessoas'); if(pesEl) pesEl.value = '';
+               let tmpEl = document.getElementById('lanc-tempo'); if(tmpEl) tmpEl.value = '';
+               let kQtd = document.getElementById('km-qtd'); if (kQtd) kQtd.value = 0;
+               let gAli = document.getElementById('gasto-alimentacao'); if (gAli) gAli.value = '';
+               let gHos = document.getElementById('gasto-hospedagem'); if (gHos) gHos.value = '';
+               let gAer = document.getElementById('gasto-aereo'); if (gAer) gAer.value = '';
+               let gPed = document.getElementById('gasto-pedagio'); if (gPed) gPed.value = '';
+               let gEst = document.getElementById('gasto-estacionamento'); if (gEst) gEst.value = '';
+               document.querySelectorAll('.chk-abrangencia').forEach(chk => chk.checked = false);
+               let checkTodas = document.getElementById('check-todas-abrangencia'); if(checkTodas) checkTodas.checked = false;
+               limparOutrasEvidencias('all');
+               calcularDespesas();
+               let pInd = document.getElementById('painel-indicadores-lancamento'); if (pInd) pInd.style.display = 'none';
+
+               verificarCamposDinamicos();
+               google.script.run.withSuccessHandler(function(newData){
+                   dadosGlobais = newData;
+                   renderizarGamificacaoVisual(newData);
+                   renderizarHistoricos();
+                   renderizarRanking(newData.ranking);
+
+                   let domMoedas = document.getElementById('user-coins');
+                   if(domMoedas) domMoedas.innerText = newData.moedas;
+
+                   atualizarCardsDashboard();
+                   mudarAba('home', document.querySelector('.nav-item'));
+               }).obterDadosIniciais();
+           }, 1000);
+       }).registrarAtividade(dados, fileData);
+    }
+
+    function abrirModalAvulso() {
+        let aData = document.getElementById('avulso-data'); if (aData) aData.valueAsDate = new Date();
+        let aDes = document.getElementById('avulso-destino'); if (aDes) aDes.value = '';
+        let aQtd = document.getElementById('avulso-qtd'); if (aQtd) aQtd.value = '';
+        let aAli = document.getElementById('avulso-alimentacao'); if (aAli) aAli.value = '';
+        let aHos = document.getElementById('avulso-hospedagem'); if (aHos) aHos.value = '';
+        let aAer = document.getElementById('avulso-aereo'); if (aAer) aAer.value = '';
+        let aPed = document.getElementById('avulso-pedagio'); if (aPed) aPed.value = '';
+        let aEst = document.getElementById('avulso-estacionamento'); if (aEst) aEst.value = '';
+        let aTot = document.getElementById('avulso-total-display'); if (aTot) aTot.innerText = '0,00';
+        let mKm = document.getElementById('modal-km-avulso'); if (mKm) mKm.style.display='block';
+    }
+
+    function salvarKMAvulso() {
+       let aData = document.getElementById('avulso-data');
+       const data = aData ? aData.value : ''; 
+       let aDes = document.getElementById('avulso-destino');
+       const destino = aDes ? aDes.value : ''; 
+       let aVal = document.getElementById('avulso-valor');
+       const valor = aVal ? parseFloat(aVal.value) || 0 : 0; 
+       let aQtd = document.getElementById('avulso-qtd');
+       const qtd = aQtd ? parseFloat(aQtd.value) || 0 : 0;
+       const kmCusto = valor * qtd;
+
+       let aAli = document.getElementById('avulso-alimentacao'); const alimentacao = aAli ? parseFloat(aAli.value) || 0 : 0;
+       let aHos = document.getElementById('avulso-hospedagem'); const hospedagem = aHos ? parseFloat(aHos.value) || 0 : 0;
+       let aAer = document.getElementById('avulso-aereo'); const aereo = aAer ? parseFloat(aAer.value) || 0 : 0;
+       let aPed = document.getElementById('avulso-pedagio'); const pedagio = aPed ? parseFloat(aPed.value) || 0 : 0;
+       let aEst = document.getElementById('avulso-estacionamento'); const estacionamento = aEst ? parseFloat(aEst.value) || 0 : 0;
+
+       const totalFloat = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
+       if(!data || !destino || totalFloat <= 0) { 
+           mostrarToast("Preencha data, destino e ao menos um gasto válido!"); 
+           return; 
+       }
+       const payload = { 
+         destino: "AVULSO: " + destino, 
+         motivo: "Deslocamento Avulso (Sede/Evento)", 
+         dataViagem: data, 
+         kmValor: valor, 
+         kmQtd: qtd, 
+         kmCusto: kmCusto, 
+         alimentacao: alimentacao,
+         hospedagem: hospedagem,
+         aereo: aereo,
+         pedagio: pedagio,
+         estacionamento: estacionamento,
+         gastoTotal: totalFloat, 
+         moedas: 0,
+         roteiro: "Presencial (KM Avulso)",
+         linkEvidenciaExterna: ""
+       };
+       let mKm = document.getElementById('modal-km-avulso'); if (mKm) mKm.style.display='none';
+       mostrarToast("Salvando KM Avulso...");
+       google.script.run.withSuccessHandler(function(res){ 
+           if(res.erro) { mostrarToast(res.erro); return; }
+           dispararConfetes();
+           mostrarToast("KM Avulso registrado!"); 
+           google.script.run.withSuccessHandler(function(newData){
+               dadosGlobais = newData;
+               renderizarHistoricos();
+               atualizarCardsDashboard();
+           }).obterDadosIniciais(); 
+       }).registrarAtividade(payload, null);
+    }
+
+    function parseDataBR(dataString) {
+        if (!dataString) return 0;
+        if (dataString.includes('-')) return new Date(dataString + "T00:00:00").getTime();
+        let partes = dataString.split('/');
+        if (partes.length === 3) return new Date(partes[2], partes[1] - 1, partes[0]).getTime();
+        return 0;
+    }
+
+    function filtrarCicloRapido(mes) {
+        let ano = new Date().getFullYear();
+        let dtIni = document.getElementById('filtro-dt-inicio');
+        let dtFim = document.getElementById('filtro-dt-fim');
+        if (mes === 'julho') {
+            if (dtIni) dtIni.value = ano + '-07-01';
+            if (dtFim) dtFim.value = ano + '-07-31';
+        } else if (mes === 'agosto') {
+            if (dtIni) dtIni.value = ano + '-08-01';
+            if (dtFim) dtFim.value = ano + '-08-31';
+        }
+        renderizarHistoricos();
+    }
+
+    function limparFiltroDatas() {
+        let dtIni = document.getElementById('filtro-dt-inicio'); if (dtIni) dtIni.value = '';
+        let dtFim = document.getElementById('filtro-dt-fim'); if (dtFim) dtFim.value = '';
+        renderizarHistoricos();
+    }
+
+    function renderizarHistoricos() {
+       const ulHistoricoFinanceiro = document.getElementById('lista-historico');
+       const ulGestao = document.getElementById('lista-gestao');
+
+       if(!ulHistoricoFinanceiro || !ulGestao) return;
+
+       ulHistoricoFinanceiro.innerHTML = '';
+       ulGestao.innerHTML = '';
+       if (!dadosGlobais || !dadosGlobais.historico) return;
+       let dtIniEl = document.getElementById('filtro-dt-inicio');
+       let dtFimEl = document.getElementById('filtro-dt-fim');
+       let dtInicioInput = dtIniEl ? dtIniEl.value : '';
+       let dtFimInput = dtFimEl ? dtFimEl.value : '';
+       let dtInicio = parseDataBR(dtInicioInput);
+       let dtFim = parseDataBR(dtFimInput);
+       if (dtFim) dtFim += 86399000; 
+       let temItensFin = false;
+       let temItensGes = false;
+
+       dadosGlobais.historico.forEach(h => {
+          let dataTimestamp = parseDataBR(h.dataViagem || h.dataRegistro);
+          let dentroDoFiltro = true;
+          if (dtInicio && dataTimestamp < dtInicio) dentroDoFiltro = false;
+          if (dtFim && dataTimestamp > dtFim) dentroDoFiltro = false;
+
+          let badgeGastos = h.gastoTotal > 0 ? "<span style='background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:10px; font-size:11px; margin-left:10px;'><i class='fa-solid fa-receipt'></i> R$ " + h.gastoTotal.toFixed(2).replace('.', ',') + "</span>" : "";
+          let detalhesDespesas = "";
+          if (h.gastoTotal > 0 || h.kmCusto > 0) {
+             detalhesDespesas = `<div style="margin-top: 10px; padding: 10px; background: #fffcf0; border: 1px dashed #fcd34d; border-radius: 6px; font-size: 11px; color: #b45309; display:flex; gap:15px; flex-wrap:wrap;">`;
+             if (h.kmCusto > 0) detalhesDespesas += `<span><i class="fa-solid fa-car"></i> KM: R$ ${h.kmCusto.toFixed(2).replace('.',',')}</span>`;
+             if (h.alimentacao > 0) detalhesDespesas += `<span><i class="fa-solid fa-utensils"></i> Alim: R$ ${h.alimentacao.toFixed(2).replace('.',',')}</span>`;
+             if (h.hospedagem > 0) detalhesDespesas += `<span><i class="fa-solid fa-bed"></i> Hosp: R$ ${h.hospedagem.toFixed(2).replace('.',',')}</span>`;
+             if (h.aereo > 0) detalhesDespesas += `<span><i class="fa-solid fa-plane"></i> Aéreo: R$ ${h.aereo.toFixed(2).replace('.',',')}</span>`;
+             if (h.pedagio > 0) detalhesDespesas += `<span><i class="fa-solid fa-road"></i> Pedágio: R$ ${h.pedagio.toFixed(2).replace('.',',')}</span>`;
+             if (h.estacionamento > 0) detalhesDespesas += `<span><i class="fa-solid fa-square-parking"></i> Estacion.: R$ ${h.estacionamento.toFixed(2).replace('.',',')}</span>`;
+             detalhesDespesas += `</div>`;
+          }
+          let subTemaHtml = h.subTema ? ` - <span style="color:var(--main-color);">${h.subTema}</span>` : '';
+          let linhaHtmlBase = '<div class="history-date">' + (h.dataViagem || h.dataRegistro) + ' • Lançado por: ' + h.autorNome + '</div>' +
+                              '<div class="history-title">Local: ' + h.destino + ' ' + badgeGastos + '</div>' +
+                              '<div class="history-desc"><strong>Motivo:</strong> ' + h.motivo + subTemaHtml + '</div>' +
+                              detalhesDespesas;
+
+          let isExternal = motivosRedirecionamento.includes(h.motivo);
+          let btnAcaoGestao = "";
+          if (h.isOwner || (dadosGlobais.usuario && (dadosGlobais.usuario.isAdmin || dadosGlobais.usuario.isSuperAdmin))) {
+              if (isExternal) {
+                  btnAcaoGestao = `<i class='fa-solid fa-lock lock-btn' title='Registro Externo: A exclusão deve ser solicitada ao Administrador.'></i>`;
+              } else {
+                  btnAcaoGestao = `<i class='fa-solid fa-trash delete-btn' onclick="deletarHistorico('${h.id}')" title='Excluir Lançamento'></i>`;
+              }
+          }
+          let liGes = document.createElement('li');
+          liGes.className = 'history-item';
+          liGes.id = 'linha-gestao-' + h.id;
+          liGes.innerHTML = btnAcaoGestao + linhaHtmlBase;
+          ulGestao.appendChild(liGes);
+          temItensGes = true;
+
+          if (dentroDoFiltro && h.gastoTotal > 0) {
+              temItensFin = true;
+              let liFin = document.createElement('li');
+              liFin.className = 'history-item';
+              liFin.id = 'linha-fin-' + h.id;
+              liFin.innerHTML = linhaHtmlBase;
+              ulHistoricoFinanceiro.appendChild(liFin);
+          }
+       });
+
+       if (!temItensFin) ulHistoricoFinanceiro.innerHTML = '<li style="text-align:center;color:#64748b;padding:20px;">Nenhum registro de custo encontrado neste período.</li>';
+       if (!temItensGes) ulGestao.innerHTML = '<li style="text-align:center;color:#64748b;padding:20px;">Nenhuma atividade registrada.</li>';
+    }
+
+    function deletarHistorico(id) {
+       customConfirm("Excluir este lançamento permanentemente?", function() {
+           let linhaG = document.getElementById('linha-gestao-' + id);
+           let linhaF = document.getElementById('linha-fin-' + id);
+           if (linhaG) linhaG.style.opacity = '0.5';
+           if (linhaF) linhaF.style.opacity = '0.5';
+
+           google.script.run.withSuccessHandler(function(res){
+               if(res.erro) { mostrarToast(res.erro); return; }
+               mostrarToast("Excluído com sucesso!");
+               dadosGlobais.historico = dadosGlobais.historico.filter(h => h.id !== id);
+               renderizarHistoricos();
+
+               google.script.run.withSuccessHandler(function(newData){
+                   dadosGlobais = newData;
+                   atualizarCardsDashboard();
+               }).obterDadosIniciais();
+
+           }).excluirLancamento(id);
+       });
+    }
+
+    function imprimirRelatorioKM() {
+       if (!dadosGlobais || !dadosGlobais.historico) return mostrarToast("Sem dados para imprimir.");
+
+       let dtIniEl = document.getElementById('filtro-dt-inicio');
+       let dtFimEl = document.getElementById('filtro-dt-fim');
+       let dtInicioInput = dtIniEl ? dtIniEl.value : '';
+       let dtFimInput = dtFimEl ? dtFimEl.value : '';
+
+       let dtInicio = parseDataBR(dtInicioInput);
+       let dtFim = parseDataBR(dtFimInput);
+       if (dtFim) dtFim += 86399000;
+       let descPeriodo = "Todos os Períodos";
+       if(dtInicioInput && dtFimInput) {
+          descPeriodo = "De " + dtInicioInput.split('-').reverse().join('/') + " até " + dtFimInput.split('-').reverse().join('/');
+       } else if (dtInicioInput) {
+          descPeriodo = "A partir de " + dtInicioInput.split('-').reverse().join('/');
+       } else if (dtFimInput) {
+          descPeriodo = "Até " + dtFimInput.split('-').reverse().join('/');
+       }
+       let html = '<html><head><title>Relatório de Despesas e KM</title>';
+       html += '<style>body{font-family:Arial,sans-serif;padding:20px;} table{width:100%;border-collapse:collapse;margin-top:20px;} th,td{border:1px solid #ddd;padding:10px;text-align:left;} th{background-color:#f4f4f4;} .header{text-align:center;margin-bottom:30px;} .total{font-size:18px;font-weight:bold;margin-top:20px;text-align:right;} .obs-box{border:1px dashed #777; height: 120px; margin-top: 30px; padding: 15px; border-radius: 8px; color: #555;}</style>';
+       html += '</head><body>';
+       html += '<div class="header"><h2>Relatório de Despesas de Viagem e KM</h2><p>Usuário: ' + (dadosGlobais.usuario ? dadosGlobais.usuario.nome : 'GP') + '</p><p>Período: ' + descPeriodo + '</p></div>';
+       html += '<table><thead><tr><th>Data Viagem</th><th>Local</th><th>Motivo</th><th>Qtd KM</th><th>Gasto Total (R$)</th></tr></thead><tbody>';
+       
+       let totalGeral = 0;
+       let temDados = false;
+       
+       let arrParaImpressao = [];
+       dadosGlobais.historico.forEach(function(item) {
+           let dataTimestamp = parseDataBR(item.dataViagem || item.dataRegistro);
+           let dentroDoPeriodo = true;
+           if (dtInicio && dataTimestamp < dtInicio) dentroDoPeriodo = false;
+           if (dtFim && dataTimestamp > dtFim) dentroDoPeriodo = false;
+           
+           let gastoLinha = item.gastoTotal;
+           if (dentroDoPeriodo && gastoLinha > 0) {
+               arrParaImpressao.push({ item: item, ts: dataTimestamp });
+           }
+       });
+       
+       arrParaImpressao.sort((a, b) => a.ts - b.ts);
+       
+       arrParaImpressao.forEach(function(d) {
+           let item = d.item;
+           let gastoLinha = item.gastoTotal;
+           temDados = true;
+           totalGeral += gastoLinha;
+           html += '<tr><td>' + (item.dataViagem || item.dataRegistro) + '</td><td>' + item.destino + '</td><td>' + item.motivo + '</td><td>' + item.kmQtd + '</td><td>R$ ' + gastoLinha.toFixed(2).replace('.', ',') + '</td></tr>';
+       });
+       
+       html += '</tbody></table>';
+       if (!temDados) {
+           html += '<p style="text-align:center;margin-top:20px;">Nenhum registro de custo encontrado neste período.</p>';
+       } else {
+           html += '<div class="total">Total a Reembolsar: R$ ' + totalGeral.toFixed(2).replace('.', ',') + '</div>';
+           html += '<div class="obs-box"><strong>Observações Extras:</strong></div>';
+           html += '<br><br><p style="text-align:center;margin-top:50px;">------------------------------------<br>Assinatura Digital</p>';
+       }
+       html += '</body></html>';
+       let win = window.open('', '', 'width=800,height=600');
+       if (win) {
+         win.document.write(html);
+         win.document.close();
+         win.print();
+       }
+       google.script.run.registrarAuditoria("Impressão KM", descPeriodo);
+    }
+
+    function renderizarListaAdmin(naturezas) {
+       let ul = document.getElementById('lista-naturezas-admin');
+       if(!ul) return;
+       ul.innerHTML = '';
+       if(!naturezas || naturezas.length === 0) {
+          ul.innerHTML = '<li style="text-align:center; color:#94a3b8; font-size:12px; padding:10px;">Nenhuma natureza extra.</li>';
+          return;
+       }
+       naturezas.forEach(n => {
+           let li = document.createElement('li');
+           li.className = 'history-item';
+           li.innerHTML = '<span class="history-title">' + n + '</span>' +
+                          '<i class="fa-solid fa-trash delete-btn" onclick="delNatureza(\''+n+'\')" title="Excluir"></i>';
+           ul.appendChild(li);
+       });
+    }
+
+    function addNatureza() {
+       let input = document.getElementById('nova-natureza');
+       let val = input ? input.value.trim() : '';
+       if(!val) return;
+       google.script.run.withSuccessHandler(function(res){
+           if(res.erro) { mostrarToast(res.erro); return; }
+           if (input) input.value = '';
+           dadosGlobais.naturezas = res.naturezas;
+           atualizarSelectNaturezas(res.naturezas);
+           renderizarListaAdmin(res.naturezas);
+           mostrarToast("Natureza adicionada!");
+       }).adicionarNatureza(val);
+    }
+
+    function delNatureza(texto) {
+       customConfirm("Tem certeza que deseja excluir a natureza '" + texto + "'?", function() {
+           google.script.run.withSuccessHandler(function(res){
+               if(res.erro) { mostrarToast(res.erro); return; }
+               dadosGlobais.naturezas = res.naturezas;
+               atualizarSelectNaturezas(res.naturezas);
+               renderizarListaAdmin(res.naturezas);
+               mostrarToast("Natureza removida!");
+           }).excluirNatureza(texto);
+       });
+    }
+  </script>
 </body>
 </html>

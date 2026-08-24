@@ -1,5 +1,20 @@
+/**
+ * ECOSSISTEMA GP360 - PORTAL GP 360
+ * Arquivo: Service_Data.gs
+ * Subpasta Monorepo: src/portal-gp360/
+ * Mapeamento e Consultas de Indicadores Operacionais
+ */
+
+function parseNumPtBr(val) {
+  if (val === undefined || val === null || val === '') return 0;
+  if (typeof val === 'number') return val;
+  var str = String(val).replace(/%/g, '').replace(/\./g, '').replace(',', '.').trim();
+  var num = parseFloat(str);
+  return isNaN(num) ? 0 : num;
+}
+
 // =============================================================================
-// CARREGAMENTO DE DADOS E CONSULTAS DE INDICADORES (OPTIMIZADO E RÁPIDO)
+// CARREGAMENTO DE DADOS E CONSULTAS DE INDICADORES (OTIMIZADO E RÁPIDO)
 // =============================================================================
 
 function obterDadosIniciais(mesAlvo, anoAlvo) {
@@ -168,7 +183,7 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
     }
 
     meusLancamentos.reverse(); 
-    let historicoLimitado = meusLancamentos.slice(0, 400); // Otimizado para performance leve
+    let historicoLimitado = meusLancamentos.slice(0, 400);
 
     let userMoedasTotal = placarMoedasTotal[emailLogado] || 0;
     let userMoedasMes = placarMoedasMes[emailLogado] || 0;
@@ -259,6 +274,7 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
 
 /**
  * Consulta indicadores de desempenho de filiais na base DB_DASH com cache de 5 minutos.
+ * Ajustado para cruzar filiais corretamente pelas Colunas certas de cada historico.
  */
 function buscarIndicadoresLoja(filialId) {
   try {
@@ -272,9 +288,19 @@ function buscarIndicadoresLoja(filialId) {
     const cacheKey = 'IND_LOJA_' + targetFilial;
     const cachedData = cache.get(cacheKey);
     if (cachedData) return JSON.parse(cachedData);
+
     const ss = SpreadsheetApp.openById(SPREADSHEET_DASH);
-    let nps = "-", venda = "-", bh = "-", quadro = "-", txdes = "-";
-    const abasConsultadas = ['HISTORICO_VENDA_ANO', 'HISTORICO_NPS', 'HISTORICO_BH_ACUMULADO', 'HISTORICO_QUADRO', 'HISTORICO_TXDESL'];
+    let nps = "-", venda = "-", bh = "-", lixo = "-", quadro = "-", txdes = "-";
+    const abasConsultadas = [
+      'HISTORICO_VENDA_ANO', 
+      'HISTORICO_NPS', 
+      'HISTORICO_BH_ACUMULADO', 
+      'HISTORICO_QUADRO', 
+      'HISTORICO_TXDESL',
+      'HISTORICO_LIXO',
+      'HISTORICO_COLETAS',
+      'HISTORICO_LIXO_ELETRONICO'
+    ];
     const blocosDeDados = {};
 
     abasConsultadas.forEach(nomeAba => {
@@ -282,6 +308,7 @@ function buscarIndicadoresLoja(filialId) {
       blocosDeDados[nomeAba] = sheet ? sheet.getDataRange().getValues() : [];
     });
 
+    // 1. VENDAS
     const dVendas = blocosDeDados['HISTORICO_VENDA_ANO'];
     for(let i = 1; i < dVendas.length; i++) {
       let rowF = parseInt(normalizarFilialId(dVendas[i][0]), 10);
@@ -296,6 +323,7 @@ function buscarIndicadoresLoja(filialId) {
       }
     }
 
+    // 2. NPS
     const dNPS = blocosDeDados['HISTORICO_NPS'];
     let maxDateNPS = 0; 
     let lastNPS = "-";
@@ -312,6 +340,7 @@ function buscarIndicadoresLoja(filialId) {
     }
     nps = lastNPS;
 
+    // 3. BANCO DE HORAS
     const dBH = blocosDeDados['HISTORICO_BH_ACUMULADO'];
     let maxDateBH = 0; 
     let sumBH = 0; 
@@ -335,6 +364,7 @@ function buscarIndicadoresLoja(filialId) {
     }
     if(matchFoundBH) bh = sumBH.toFixed(2);
 
+    // 4. QUADRO (VAGAS)
     const dQuadro = blocosDeDados['HISTORICO_QUADRO'];
     let qContratar = 0; 
     let matchFoundQ = false;
@@ -350,22 +380,63 @@ function buscarIndicadoresLoja(filialId) {
     }
     if(matchFoundQ) quadro = Math.round(qContratar);
 
+    // 5. TAXA DE DESLIGAMENTO (HISTORICO_TXDESL)
+    // Coluna A (0) = Ano, Coluna B (1) = filial, Coluna K (10) = Tx de Saída
     const dTx = blocosDeDados['HISTORICO_TXDESL'];
     for(let i = 1; i < dTx.length; i++) {
-      let rowF = parseInt(normalizarFilialId(dTx[i][0]), 10);
+      let rowF = parseInt(normalizarFilialId(dTx[i][1] !== undefined && dTx[i][1] !== '' ? dTx[i][1] : dTx[i][0]), 10);
       if (rowF === targetFilial) {
-        let v = parseFloat(String(dTx[i][9]).replace('%', '').replace(',', '.'));
+        let rawVal = dTx[i][10] !== undefined && dTx[i][10] !== '' ? dTx[i][10] : dTx[i][9];
+        let v = parseFloat(String(rawVal).replace('%', '').replace(',', '.'));
         if(!isNaN(v)) {
-          let perc = (v * 100).toFixed(2);
+          let perc = (v < 1 ? v * 100 : v).toFixed(2);
           if (txdes === "-" || parseFloat(perc) > parseFloat(txdes)) txdes = perc;
         }
       }
     }
+
+    // 6. LIXO ELETRÔNICO / COLETAS
+    // Busca na DB_DASH primeiro
+    ['HISTORICO_LIXO', 'HISTORICO_COLETAS', 'HISTORICO_LIXO_ELETRONICO'].forEach(nomeAbaLixo => {
+      const dL = blocosDeDados[nomeAbaLixo];
+      if (dL && dL.length > 1) {
+        for (let i = 1; i < dL.length; i++) {
+          let rowF = parseInt(normalizarFilialId(dL[i][1] !== undefined && dL[i][1] !== '' ? dL[i][1] : dL[i][0]), 10);
+          if (rowF === targetFilial) {
+            let val = parseFloat(String(dL[i][dL[i].length - 1] || dL[i][7] || dL[i][2]).replace(',', '.'));
+            if (!isNaN(val)) lixo = Math.round(val);
+          }
+        }
+      }
+    });
+
+    // Fallback de busca de lixo na aba DADOS_INDICADORES do DB_MASTER (Coluna H / Index 7)
+    if (lixo === "-") {
+      try {
+        const ssMaster = SpreadsheetApp.openById(SPREADSHEET_ID);
+        const abaInd = ssMaster.getSheetByName('DADOS_INDICADORES');
+        if (abaInd) {
+          const dadosInd = abaInd.getDataRange().getValues();
+          for (let i = 1; i < dadosInd.length; i++) {
+            let rowF = parseInt(normalizarFilialId(dadosInd[i][0]), 10);
+            if (rowF === targetFilial) {
+              let valLixo = parseNumPtBr(dadosInd[i][7]); 
+              if (!isNaN(valLixo)) lixo = Math.round(valLixo);
+              break;
+            }
+          }
+        }
+      } catch (eLixo) {
+        Logger.log("Erro no fallback de lixo: " + eLixo.message);
+      }
+    }
+
     let payload = {
       sucesso: true,
       venda: venda !== "-" ? String(venda).replace('.', ',') + "%" : "-",
       nps: nps !== "-" ? String(nps).replace('.', ',') : "-",
       bancoHoras: bh !== "-" ? String(bh).replace('.', ',') : "-",
+      lixo: lixo !== "-" ? String(lixo) : "-",
       quadro: quadro !== "-" ? String(quadro) : "-",
       txdes: txdes !== "-" ? String(txdes).replace('.', ',') + "%" : "-"
     };
