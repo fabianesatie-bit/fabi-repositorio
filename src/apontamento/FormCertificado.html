@@ -1,7 +1,7 @@
 <?
-  // Trava de segurança para impedir ReferenceError no interpretador de templates do Apps Script
-  var fId = (typeof filialId !== 'undefined' && filialId) ? filialId : (this.filialId || '');
-  var cId = (typeof chapa !== 'undefined' && chapa) ? chapa : (this.chapa || '');
+  // Trava de segurança usando o objeto this para impedir ReferenceError no Apps Script
+  var fId = (this.filialId !== undefined && this.filialId !== null) ? String(this.filialId) : '';
+  var cId = (this.chapa !== undefined && this.chapa !== null) ? String(this.chapa) : '';
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">

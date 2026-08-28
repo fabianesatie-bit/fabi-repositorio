@@ -11,9 +11,9 @@ function doGet(e) {
   // Se for o acesso do Gerente via link do e-mail (modo certificado ou filial sem admin)
   if (mode === 'certificado' || (reqFilialId && !isAdmin)) {
     var template = HtmlService.createTemplateFromFile('FormCertificado');
-    template.filialId = reqFilialId;
-    template.chapa = reqChapa;
-    
+    template.filialId = reqFilialId || '';
+    template.chapa = reqChapa || '';
+
     return template.evaluate()
       .setTitle('Inclusão de Certificados | Magalu GP')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
@@ -21,8 +21,11 @@ function doGet(e) {
   }
 
   // Acesso padrão dos Coordenadores ao Dashboard Completo
-  return HtmlService.createTemplateFromFile('Index')
-    .evaluate()
+  var templateIndex = HtmlService.createTemplateFromFile('Index');
+  templateIndex.filialId = reqFilialId || '';
+  templateIndex.chapa = reqChapa || '';
+
+  return templateIndex.evaluate()
     .setTitle('Apontamento Operações de Loja | Magalu GP')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
