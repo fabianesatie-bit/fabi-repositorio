@@ -3,13 +3,17 @@
  */
 
 function doGet(e) {
-  var mode = e && e.parameter ? e.parameter.mode : '';
-  
-  // Se for o acesso do Gerente via botão do e-mail, renderiza a página isolada do formulário
-  if (mode === 'certificado' || (e && e.parameter && e.parameter.filialId && !e.parameter.admin)) {
+  var mode = e && e.parameter && e.parameter.mode ? String(e.parameter.mode) : '';
+  var reqFilialId = e && e.parameter && e.parameter.filialId ? String(e.parameter.filialId) : '';
+  var reqChapa = e && e.parameter && e.parameter.chapa ? String(e.parameter.chapa) : '';
+  var isAdmin = e && e.parameter && e.parameter.admin ? true : false;
+
+  // Se for o acesso do Gerente via link do e-mail (modo certificado ou filial sem admin)
+  if (mode === 'certificado' || (reqFilialId && !isAdmin)) {
     var template = HtmlService.createTemplateFromFile('FormCertificado');
-    template.filialId = e.parameter.filialId || '';
-    template.chapa = e.parameter.chapa || '';
+    template.filialId = reqFilialId;
+    template.chapa = reqChapa;
+    
     return template.evaluate()
       .setTitle('Inclusão de Certificados | Magalu GP')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
@@ -28,9 +32,6 @@ function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
-/**
- * Envia E-mail de Plano de Ação individual para o Gerente da Filial
- */
 function sendEmailFilial(filialId, customNotes) {
   try {
     var rawData = obterDadosAuditoria();
@@ -68,9 +69,6 @@ function sendEmailFilial(filialId, customNotes) {
   }
 }
 
-/**
- * Envia E-mails em Massa para os gerentes das filiais da Regional
- */
 function sendEmailRegional(regionalName) {
   try {
     var rawData = obterDadosAuditoria();
@@ -110,11 +108,7 @@ function sendEmailRegional(regionalName) {
   }
 }
 
-/**
- * Montagem de HTML do E-mail oficial com agrupamento por Colaborador + Tipo e ID do Colaborador
- */
 function buildEmailHtml(loja, irregularidades, customNotes) {
-  // Agrupa por colaborador (Chapa + Nome) e por Tipo de Irregularidade
   var mapaAgrupado = {};
 
   irregularidades.forEach(function(item) {
@@ -142,7 +136,6 @@ function buildEmailHtml(loja, irregularidades, customNotes) {
 
   var webAppUrl = ScriptApp.getService().getUrl();
   var linkAnexoGerente = webAppUrl + '?mode=certificado&filialId=' + loja.filial;
-
   var textoWhatsApp = "Olá! Identificamos apontamentos em seu registro de ponto neste mês. Solicitamos que realize a trilha obrigatória no link: " + LINK_CURSO_OBRIGATORIO + " e envie o comprovante para a gerência.";
 
   return '<div style="font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">' +
