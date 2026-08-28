@@ -15,11 +15,11 @@ function normalizarFilialId(val) {
 }
 
 /**
- * Normaliza textos para comparação sem acento e caixa baixa.
+ * Normaliza textos para comparação sem acento e em caixa alta.
  */
-function normalizarTexto(texto) {
+function normalizarTextoUpper(texto) {
   if (!texto) return '';
-  return texto.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  return texto.toString().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
 
 /**
@@ -37,21 +37,4 @@ function parseFloatBR(val) {
   }
   var num = parseFloat(str);
   return isNaN(num) ? 0 : num;
-}
-
-/**
- * Formata data para o padrão seguro BR (dd/MM/yyyy).
- */
-function formatarDataBR(dataVal) {
-  if (!dataVal) return '-';
-  try {
-    var dt = new Date(dataVal);
-    if (isNaN(dt.getTime())) {
-      var str = String(dataVal).trim();
-      return str || '-';
-    }
-    return Utilities.formatDate(dt, Session.getScriptTimeZone(), 'dd/MM/yyyy');
-  } catch(e) {
-    return String(dataVal);
-  }
 }

@@ -1,5 +1,5 @@
 <script>
-  // Estado Global da Aplicação
+  // ESTADO REATIVO GLOBAL DA SPA
   var ESTADO_AUDITORIA = {
     dadosBrutos: null,
     exibirTodasFiliais: false
@@ -10,92 +10,137 @@
   });
 
   function recarregarDados() {
+    var iconSync = document.getElementById('icon-sync');
+    if (iconSync) iconSync.classList.add('animate-spin');
+
     if (google && google.script && google.script.run) {
       google.script.run
-        .withSuccessHandler(renderizarDados)
-        .withFailureHandler(tratarErro)
+        .withSuccessHandler(function(res) {
+          if (iconSync) iconSync.classList.remove('animate-spin');
+          renderizarDadosIniciais(res);
+        })
+        .withFailureHandler(function(err) {
+          if (iconSync) iconSync.classList.remove('animate-spin');
+          alert("Erro de comunicação com o servidor: " + err.message);
+        })
         .obterDadosAuditoria();
     }
   }
 
-  function renderizarDados(jsonResposta) {
+  function renderizarDadosIniciais(jsonResposta) {
     try {
       var res = typeof jsonResposta === 'string' ? JSON.parse(jsonResposta) : jsonResposta;
       if (!res.sucesso) {
-        alert("Erro ao carregar dados: " + res.erro);
+        alert("Erro no backend: " + res.erro);
         return;
       }
 
       ESTADO_AUDITORIA.dadosBrutos = res;
 
-      // Renderiza KPIs
-      document.getElementById('kpi-colaboradores').innerText = res.kpis.colaboradoresIrregulares || 0;
-      document.getElementById('kpi-apontamentos').innerText = res.kpis.apontamentosCriticos || 0;
-
       if (res.perfil && res.perfil.nome) {
         document.getElementById('user-badge').setAttribute('title', res.perfil.nome + ' (' + res.perfil.email + ')');
       }
 
-      // Popula Selects de Filtros
-      popularFiltro('filtro-diretoria', res.filtros.diretorias, 'Diretoria: Todas');
-      popularFiltro('filtro-regional', res.filtros.regionais, 'Regional: Todas');
-      popularFiltro('filtro-filial', res.filtros.filiais, 'Filial: Todas');
+      // Popula filtro de Diretorias a partir do mapa de hierarquia oficial DADOS_LOJAS
+      popularSelectDiretorias();
 
-      // Renderiza Top Regionais e Tabela de Filiais
-      renderizarTopRegionais(res.topRegionais);
-      renderizarTabelaFiliais();
+      // Dispara o recálculo dos filtros e da UI
+      aplicarFiltrosEAtualizarUI();
 
-    } catch(e) {
-      console.error("Erro no parse do JSON", e);
+    } catch (e) {
+      console.error("Erro no processamento dos dados", e);
     }
   }
 
-  function popularFiltro(idElemento, lista, textoPadrao) {
-    var select = document.getElementById(idElemento);
-    var valAtual = select.value;
-    select.innerHTML = '<option value="TODAS">' + textoPadrao + '</option>';
-    lista.forEach(function(item) {
+  // POPULA O SELETOR DE DIRETORIAS
+  function popularSelectDiretorias() {
+    var res = ESTADO_AUDITORIA.dadosBrutos;
+    var selDir = document.getElementById('filtro-diretoria');
+    selDir.innerHTML = '<option value="TODAS">Diretoria: Todas</option>';
+
+    if (!res || !res.mapaHierarquia) return;
+
+    var diretorias = Object.keys(res.mapaHierarquia).sort();
+    diretorias.forEach(function(d) {
       var opt = document.createElement('option');
-      opt.value = item;
-      opt.textContent = item;
-      select.appendChild(opt);
+      opt.value = d;
+      opt.textContent = 'Diretoria: ' + d;
+      selDir.appendChild(opt);
     });
-    if (lista.includes(valAtual)) select.value = valAtual;
   }
 
-  function aplicarFiltros() {
-    renderizarTabelaFiliais();
-  }
+  // REAÇÃO AO MUDAR DIRETORIA
+  function aoAlterarDiretoria() {
+    var res = ESTADO_AUDITORIA.dadosBrutos;
+    var dirSel = document.getElementById('filtro-diretoria').value;
+    var selReg = document.getElementById('filtro-regional');
 
-  function renderizarTopRegionais(regionais) {
-    var container = document.getElementById('container-top-regionais');
-    if (!regionais || regionais.length === 0) {
-      container.innerHTML = '<p class="text-body-sm text-on-surface-variant">Nenhum risco regional identificado.</p>';
-      return;
+    selReg.innerHTML = '<option value="TODAS">Regional: Todas</option>';
+
+    if (res && res.mapaHierarquia) {
+      var regionaisSet = new Set();
+
+      if (dirSel === 'TODAS') {
+        Object.keys(res.mapaHierarquia).forEach(function(d) {
+          Object.keys(res.mapaHierarquia[d]).forEach(function(r) {
+            regionaisSet.add(r);
+          });
+        });
+      } else if (res.mapaHierarquia[dirSel]) {
+        Object.keys(res.mapaHierarquia[dirSel]).forEach(function(r) {
+          regionaisSet.add(r);
+        });
+      }
+
+      Array.from(regionaisSet).sort().forEach(function(r) {
+        var opt = document.createElement('option');
+        opt.value = r;
+        opt.textContent = 'Regional: ' + r;
+        selReg.appendChild(opt);
+      });
     }
 
-    var maxQtd = regionais[0].quantidade || 1;
-    var html = '';
-
-    regionais.forEach(function(r, idx) {
-      var perc = Math.min(100, Math.round((r.quantidade / maxQtd) * 100));
-      var corClass = idx === 0 ? 'text-error bg-error' : (idx === 1 ? 'text-tertiary bg-tertiary' : 'text-primary bg-primary');
-      
-      html += '<div class="flex flex-col gap-2">' +
-                '<div class="flex justify-between text-body-sm text-on-surface">' +
-                  '<span class="font-medium">' + r.regional + '</span>' +
-                  '<span class="font-bold ' + corClass.split(' ')[0] + '">' + r.quantidade + ' Ocorrências</span>' +
-                '</div>' +
-                '<div class="w-full h-2 rounded-full bg-surface-variant overflow-hidden">' +
-                  '<div class="h-full ' + corClass.split(' ')[1] + ' rounded-full" style="width: ' + perc + '%"></div>' +
-                '</div>' +
-              '</div>';
-    });
-
-    container.innerHTML = html;
+    aoAlterarRegional();
   }
 
-  function renderizarTabelaFiliais() {
+  // REAÇÃO AO MUDAR REGIONAL
+  function aoAlterarRegional() {
+    var res = ESTADO_AUDITORIA.dadosBrutos;
+    var dirSel = document.getElementById('filtro-diretoria').value;
+    var regSel = document.getElementById('filtro-regional').value;
+    var selFil = document.getElementById('filtro-filial');
+
+    selFil.innerHTML = '<option value="TODAS">Filial: Todas</option>';
+
+    if (res && res.filiaisAlertas) {
+      var filiaisFiltradas = res.filiaisAlertas.filter(function(f) {
+        if (dirSel !== 'TODAS' && f.diretoria !== dirSel) return false;
+        if (regSel !== 'TODAS' && f.regional !== regSel) return false;
+        return true;
+      });
+
+      filiaisFiltradas.sort(function(a, b) {
+        return parseInt(a.filial) - parseInt(b.filial);
+      });
+
+      filiaisFiltradas.forEach(function(f) {
+        var opt = document.createElement('option');
+        opt.value = f.filial;
+        opt.textContent = 'Filial ' + f.filial;
+        selFil.appendChild(opt);
+      });
+    }
+
+    aplicarFiltrosEAtualizarUI();
+  }
+
+  // REAÇÃO AO MUDAR FILIAL
+  function aoAlterarFilial() {
+    aplicarFiltrosEAtualizarUI();
+  }
+
+  // MOTOR DE FILTRAGEM REATIVA E RE-RENDERIZAÇÃO COMPLETA DA INTERFACE
+  function aplicarFiltrosEAtualizarUI() {
     var res = ESTADO_AUDITORIA.dadosBrutos;
     if (!res) return;
 
@@ -103,18 +148,98 @@
     var regSel = document.getElementById('filtro-regional').value;
     var filSel = document.getElementById('filtro-filial').value;
 
-    var filtradas = res.filiaisAlertas.filter(function(f) {
+    // 1. Filtra a lista de Filiais em Alerta
+    var filiaisFiltradas = res.filiaisAlertas.filter(function(f) {
       if (dirSel !== 'TODAS' && f.diretoria !== dirSel) return false;
       if (regSel !== 'TODAS' && f.regional !== regSel) return false;
       if (filSel !== 'TODAS' && f.filial !== filSel) return false;
       return true;
     });
 
-    document.getElementById('tag-qtd-filiais').innerText = filtradas.length + ' Filiais';
+    // 2. Filtra os Apontamentos Brutos para recálculo dos KPIs
+    var apontamentosFiltrados = res.apontamentosBrutos.filter(function(a) {
+      if (dirSel !== 'TODAS' && a.diretoria !== dirSel) return false;
+      if (regSel !== 'TODAS' && a.regional !== regSel) return false;
+      if (filSel !== 'TODAS' && a.filial !== filSel) return false;
+      return true;
+    });
 
+    // Recálculo dinâmico de KPIs
+    var colabsSet = new Set();
+    var totalApontamentosCriticos = 0;
+
+    apontamentosFiltrados.forEach(function(item) {
+      if (item.colaborador) colabsSet.add(item.colaborador);
+      if (item.quantidade) {
+        totalApontamentosCriticos += item.quantidade;
+      } else {
+        totalApontamentosCriticos++;
+      }
+    });
+
+    document.getElementById('kpi-colaboradores').innerText = colabsSet.size;
+    document.getElementById('kpi-apontamentos').innerText = totalApontamentosCriticos;
+
+    // 3. Renderiza Ranking de Top Regionais Risco
+    renderizarTopRegionais(filiaisFiltradas);
+
+    // 4. Renderiza Tabela de Filiais
+    renderizarTabelaFiliais(filiaisFiltradas);
+  }
+
+  function renderizarTopRegionais(filiaisFiltradas) {
+    var container = document.getElementById('container-top-regionais');
+    var tagQtd = document.getElementById('tag-qtd-regionais');
+
+    var mapaRegs = {};
+    filiaisFiltradas.forEach(function(f) {
+      if (!mapaRegs[f.regional]) mapaRegs[f.regional] = 0;
+      mapaRegs[f.regional] += f.totalApontamentos;
+    });
+
+    var listaRegs = Object.keys(mapaRegs).map(function(r) {
+      return { regional: r, quantidade: mapaRegs[r] };
+    });
+
+    listaRegs.sort(function(a, b) { return b.quantidade - a.quantidade; });
+
+    tagQtd.innerText = listaRegs.length + ' Regionais';
+
+    if (listaRegs.length === 0) {
+      container.innerHTML = '<p class="text-body-sm text-on-surface-variant">Nenhum risco regional identificado no filtro selecionado.</p>';
+      return;
+    }
+
+    var maxQtd = listaRegs[0].quantidade || 1;
+    var html = '';
+
+    listaRegs.slice(0, 5).forEach(function(r, idx) {
+      var perc = Math.min(100, Math.round((r.quantidade / maxQtd) * 100));
+      var corTexto = idx === 0 ? 'text-error' : (idx === 1 ? 'text-tertiary' : 'text-primary');
+      var corBarra = idx === 0 ? 'bg-error' : (idx === 1 ? 'bg-tertiary' : 'bg-primary');
+
+      html += '<div class="flex flex-col gap-2">' +
+                '<div class="flex justify-between text-body-sm text-on-surface">' +
+                  '<span class="font-medium">' + r.regional + '</span>' +
+                  '<span class="font-bold ' + corTexto + '">' + r.quantidade + ' Apontamentos</span>' +
+                '</div>' +
+                '<div class="w-full h-2 rounded-full bg-surface-variant overflow-hidden">' +
+                  '<div class="h-full ' + corBarra + ' rounded-full transition-all duration-300" style="width: ' + perc + '%"></div>' +
+                '</div>' +
+              '</div>';
+    });
+
+    container.innerHTML = html;
+  }
+
+  function renderizarTabelaFiliais(filtradas) {
     var container = document.getElementById('container-filiais');
+    var tagQtd = document.getElementById('tag-qtd-filiais');
+
+    tagQtd.innerText = filtradas.length + ' Filiais';
+
     if (filtradas.length === 0) {
-      container.innerHTML = '<p class="p-4 text-body-sm text-on-surface-variant">Nenhuma filial encontrada para os filtros selecionados.</p>';
+      container.innerHTML = '<p class="p-4 text-body-sm text-on-surface-variant">Nenhuma filial encontrada para a combinação de filtros.</p>';
       return;
     }
 
@@ -132,7 +257,7 @@
                 '<div class="absolute left-0 top-0 bottom-0 w-1 ' + corBorda + '"></div>' +
                 '<div class="flex flex-col ml-2">' +
                   '<span class="text-body-md font-medium text-on-surface">' + f.nomeLoja + '</span>' +
-                  '<span class="text-body-sm text-on-surface-variant">' + f.regional + '</span>' +
+                  '<span class="text-body-sm text-on-surface-variant">Regional: ' + f.regional + ' | Dir: ' + f.diretoria + '</span>' +
                 '</div>' +
                 '<div class="flex flex-col items-end">' +
                   '<span class="text-label-md font-bold ' + badgeStyle + ' px-2 py-1 rounded-md">' + f.risco + '</span>' +
@@ -150,22 +275,18 @@
 
   function alternarExibicaoFiliais() {
     ESTADO_AUDITORIA.exibirTodasFiliais = !ESTADO_AUDITORIA.exibirTodasFiliais;
-    var btn = document.getElementById('btn-ver-todas');
-    btn.querySelector('span').innerText = ESTADO_AUDITORIA.exibirTodasFiliais ? 'Recolher filiais' : 'Ver todas as filiais';
-    renderizarTabelaFiliais();
+    document.getElementById('txt-btn-todas').innerText = ESTADO_AUDITORIA.exibirTodasFiliais ? 'Recolher filiais' : 'Ver todas as filiais';
+    document.getElementById('icon-btn-todas').innerText = ESTADO_AUDITORIA.exibirTodasFiliais ? 'arrow_upward' : 'arrow_forward';
+
+    aplicarFiltrosEAtualizarUI();
   }
 
   function executarNotificacao(btn) {
-    btn.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Notificando...';
+    btn.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Disparando alertas...';
     setTimeout(function() {
-      btn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Notificados com sucesso!';
+      btn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Notificações enviadas!';
       btn.classList.remove('from-[#0086ff]', 'to-[#a033ff]');
       btn.classList.add('bg-primary');
     }, 1500);
   }
-
-  function tratarErro(err) {
-    console.error("Erro na chamada backend", err);
-  }
 </script>
-

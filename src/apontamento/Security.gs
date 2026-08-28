@@ -4,7 +4,7 @@
 
 function obterPerfilAcessoLogado() {
   var emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-  
+
   var perfil = {
     email: emailLogado,
     nome: emailLogado.split('@')[0],
@@ -29,8 +29,8 @@ function obterPerfilAcessoLogado() {
         if (emailLinha === emailLogado) {
           perfil.nome = dados[i][1] || perfil.nome;
           var cargo = String(dados[i][2] || '').toUpperCase();
-          var regStr = String(dados[i][4] || '').toUpperCase();
           var dirStr = String(dados[i][3] || '').toUpperCase();
+          var regStr = String(dados[i][4] || '').toUpperCase();
 
           if (cargo.includes('DIRETOR') || cargo.includes('GERENTEGP')) {
             perfil.temAcessoTotal = true;
@@ -54,10 +54,10 @@ function obterPerfilAcessoLogado() {
       }
     }
   } catch (e) {
-    Logger.log("Erro ao carregar segurança: " + e.message);
+    Logger.log("Erro ao carregar perfil de segurança: " + e.message);
   }
 
-  if (perfil.regionaisPermitidas.includes('TODAS') || perfil.regionaisPermitidas.length === 0) {
+  if (perfil.regionaisPermitidas.includes('TODAS') || (perfil.regionaisPermitidas.length === 0 && perfil.diretoriasPermitidas.length === 0)) {
     perfil.temAcessoTotal = true;
   }
 

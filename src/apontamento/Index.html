@@ -6,7 +6,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  
+
   <script id="tailwind-config">
     tailwind.config = {
       darkMode: "class",
@@ -73,18 +73,18 @@
 </head>
 <body class="bg-surface font-body-md text-on-surface">
 
-  <!-- Header Fixo Magalu -->
+  <!-- Header Fixo Gradiente Magalu -->
   <header class="fixed top-0 w-full z-50 pt-safe magalu-gradient shadow-[0_1px_8px_rgba(0,0,0,0.12)]">
     <div class="h-16 flex items-center justify-between px-gutter">
       <div class="flex items-center gap-stack-sm">
-        <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+        <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
           <span class="material-symbols-outlined text-primary text-[20px]">analytics</span>
         </div>
         <h1 class="text-headline-sm font-headline-sm text-white">Auditoria GP360</h1>
       </div>
       <div class="flex items-center gap-stack-md">
-        <button class="w-10 h-10 flex items-center justify-center text-white" onclick="recarregarDados()">
-          <span class="material-symbols-outlined">sync</span>
+        <button class="w-10 h-10 flex items-center justify-center text-white hover:opacity-80 transition-opacity" onclick="recarregarDados()" title="Atualizar Dados">
+          <span class="material-symbols-outlined" id="icon-sync">sync</span>
         </button>
         <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center border-2 border-white/30" id="user-badge" title="Usuário Logado">
           <span class="material-symbols-outlined text-white text-[18px]">person</span>
@@ -93,42 +93,46 @@
     </div>
   </header>
 
-  <!-- Conteúdo Principal -->
+  <!-- Conteúdo Principal SPA -->
   <main class="relative pt-16 min-h-screen bg-surface flex flex-col pb-[120px]">
     <div class="flex flex-col w-full gap-stack-lg p-margin-page">
 
-      <!-- Visão Geral & Filtros Rápido -->
+      <!-- Visão Geral & Filtros Rápido (Encadeados) -->
       <div class="flex flex-col gap-stack-sm">
         <h2 class="text-headline-md text-on-surface">Visão Geral</h2>
-        <p class="text-body-md text-on-surface-variant">Resumo executivo de apontamentos, jornada e irregularidades.</p>
+        <p class="text-body-md text-on-surface-variant">Resumo executivo de apontamentos e irregularidades operacionais.</p>
 
+        <!-- Container de Seletores (Filtros extraídos da aba DADOS_LOJAS) -->
         <div class="flex gap-stack-sm overflow-x-auto pb-2 -mx-margin-page px-margin-page hide-scrollbar mt-4">
-          
-          <div class="relative">
-            <select id="filtro-diretoria" onchange="aplicarFiltros()" class="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-high text-on-surface text-label-md appearance-none pr-8 cursor-pointer hover:bg-surface-container-highest transition-colors">
+
+          <!-- Filtro Diretoria -->
+          <div class="relative min-w-[160px]">
+            <select id="filtro-diretoria" onchange="aoAlterarDiretoria()" class="w-full flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-high text-on-surface text-label-md appearance-none pr-8 cursor-pointer hover:bg-surface-container-highest transition-colors border-0">
               <option value="TODAS">Diretoria: Todas</option>
             </select>
-            <span class="material-symbols-outlined text-[18px] absolute right-2 top-2.5 pointer-events-none text-on-surface-variant">arrow_drop_down</span>
+            <span class="material-symbols-outlined text-[18px] absolute right-3 top-2.5 pointer-events-none text-on-surface-variant">arrow_drop_down</span>
           </div>
 
-          <div class="relative">
-            <select id="filtro-regional" onchange="aplicarFiltros()" class="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-high text-on-surface text-label-md appearance-none pr-8 cursor-pointer hover:bg-surface-container-highest transition-colors">
+          <!-- Filtro Regional -->
+          <div class="relative min-w-[160px]">
+            <select id="filtro-regional" onchange="aoAlterarRegional()" class="w-full flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-high text-on-surface text-label-md appearance-none pr-8 cursor-pointer hover:bg-surface-container-highest transition-colors border-0">
               <option value="TODAS">Regional: Todas</option>
             </select>
-            <span class="material-symbols-outlined text-[18px] absolute right-2 top-2.5 pointer-events-none text-on-surface-variant">arrow_drop_down</span>
+            <span class="material-symbols-outlined text-[18px] absolute right-3 top-2.5 pointer-events-none text-on-surface-variant">arrow_drop_down</span>
           </div>
 
-          <div class="relative">
-            <select id="filtro-filial" onchange="aplicarFiltros()" class="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-high text-on-surface text-label-md appearance-none pr-8 cursor-pointer hover:bg-surface-container-highest transition-colors">
+          <!-- Filtro Filial -->
+          <div class="relative min-w-[140px]">
+            <select id="filtro-filial" onchange="aoAlterarFilial()" class="w-full flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-high text-on-surface text-label-md appearance-none pr-8 cursor-pointer hover:bg-surface-container-highest transition-colors border-0">
               <option value="TODAS">Filial: Todas</option>
             </select>
-            <span class="material-symbols-outlined text-[18px] absolute right-2 top-2.5 pointer-events-none text-on-surface-variant">arrow_drop_down</span>
+            <span class="material-symbols-outlined text-[18px] absolute right-3 top-2.5 pointer-events-none text-on-surface-variant">arrow_drop_down</span>
           </div>
 
         </div>
       </div>
 
-      <!-- KPIs Dynamic Cards -->
+      <!-- KPIs Cards Dinâmicos -->
       <div class="grid grid-cols-2 gap-stack-md">
         <div class="flex flex-col p-4 rounded-xl bg-error-container text-on-error-container shadow-sm relative overflow-hidden">
           <div class="absolute top-0 right-0 w-16 h-16 bg-error/10 rounded-bl-full flex items-start justify-end p-3">
@@ -138,7 +142,7 @@
           <span class="text-label-md mt-1">Colaboradores c/ Irregularidade</span>
           <div class="flex items-center gap-1 mt-3 text-error">
             <span class="material-symbols-outlined text-[14px]">trending_up</span>
-            <span class="text-label-md" id="kpi-colab-sub">Atualizado</span>
+            <span class="text-label-md" id="kpi-colab-sub">Filtrado em tempo real</span>
           </div>
         </div>
 
@@ -155,26 +159,24 @@
         </div>
       </div>
 
-      <!-- Top Regionais -->
+      <!-- Top Regionais (Com base nos filtros) -->
       <div class="flex flex-col p-stack-lg rounded-xl bg-surface-container-lowest shadow-sm">
         <div class="flex justify-between items-center mb-6">
           <h3 class="text-headline-sm text-on-surface">Top Regionais (Risco)</h3>
-          <button class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors">
-            <span class="material-symbols-outlined text-[20px]">more_vert</span>
-          </button>
+          <span class="text-label-md text-on-surface-variant" id="tag-qtd-regionais">-- Regionais</span>
         </div>
         <div class="flex flex-col gap-4" id="container-top-regionais">
-          <p class="text-body-sm text-on-surface-variant">Carregando regionais...</p>
+          <p class="text-body-sm text-on-surface-variant">Carregando dados das regionais...</p>
         </div>
       </div>
 
       <!-- Graph: Tendência de Irregularidades -->
       <div class="flex flex-col p-stack-lg rounded-xl bg-surface-container-lowest shadow-sm">
-        <div class="flex justify-between items-center mb-6">
-          <h3 class="text-headline-sm text-on-surface">Tendência de Irregularidades</h3>
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-headline-sm text-on-surface">Tendência de Apontamentos</h3>
           <div class="flex items-center gap-1 text-primary">
             <span class="material-symbols-outlined text-[14px]">show_chart</span>
-            <span class="text-label-md">Série Temporal</span>
+            <span class="text-label-md">Visão Mensal</span>
           </div>
         </div>
         <div class="relative h-32 w-full mt-2">
@@ -195,54 +197,53 @@
           <span class="text-label-md text-on-surface-variant">Sem 3</span>
           <span class="text-label-md text-on-surface-variant">Sem 4</span>
         </div>
-        <p class="text-body-sm text-on-surface-variant mt-4">Apontamentos monitorados através de batidas manuais e acessos fora do horário previsto.</p>
       </div>
 
       <!-- Tabela Filiais com Alertas -->
       <div class="flex flex-col rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden">
         <div class="p-4 bg-surface-container-low flex justify-between items-center">
-          <h3 class="text-body-lg font-headline-sm text-on-surface">Filiais com Alertas</h3>
-          <span class="px-2 py-1 bg-surface-variant text-on-surface-variant text-label-md rounded-md" id="tag-qtd-filiais">Filiais</span>
-        </div>
-        
-        <div class="flex flex-col" id="container-filiais">
-          <p class="p-4 text-body-sm text-on-surface-variant">Carregando lista de filiais...</p>
+          <h3 class="text-body-lg font-headline-sm text-on-surface">Filiais em Alerta</h3>
+          <span class="px-2 py-1 bg-surface-variant text-on-surface-variant text-label-md rounded-md" id="tag-qtd-filiais">-- Filiais</span>
         </div>
 
-        <button id="btn-ver-todas" class="w-full py-3 text-body-sm font-medium text-primary hover:bg-surface-container-high transition-colors flex items-center justify-center gap-2" onclick="alternarExibicaoFiliais()">
-          <span>Ver todas as filiais</span>
-          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        <div class="flex flex-col" id="container-filiais">
+          <p class="p-4 text-body-sm text-on-surface-variant">Carregando filiais...</p>
+        </div>
+
+        <button id="btn-ver-todas" class="w-full py-3 text-body-sm font-medium text-primary hover:bg-surface-container-high transition-colors flex items-center justify-center gap-2 border-t border-surface-variant" onclick="alternarExibicaoFiliais()">
+          <span id="txt-btn-todas">Ver todas as filiais</span>
+          <span class="material-symbols-outlined text-[16px]" id="icon-btn-todas">arrow_forward</span>
         </button>
       </div>
 
-      <!-- Action Button Notificação -->
+      <!-- Botão Ação / Notificação -->
       <div class="mt-4 mb-8">
         <button id="btn-notificar" class="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-gradient-to-r from-[#0086ff] to-[#a033ff] text-white font-headline-sm shadow-md hover:shadow-lg active:scale-[0.98] transition-all" onclick="executarNotificacao(this)">
           <span class="material-symbols-outlined">campaign</span>
           <span>Notificar Regionais Críticas</span>
         </button>
-        <p class="text-center text-label-md text-on-surface-variant mt-2">Envia relatório resumido para gestores das filiais em alerta.</p>
+        <p class="text-center text-label-md text-on-surface-variant mt-2">Dispara alerta para os gerentes regionais selecionados no filtro.</p>
       </div>
 
     </div>
   </main>
 
-  <!-- Barra de Navegação Inferior (Fixa) -->
+  <!-- Navegação Bottom Bar Fixo -->
   <nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface-container-highest/95 backdrop-blur-xl shadow-[0_-1px_8px_rgba(0,0,0,0.04)]">
     <div class="h-20 flex justify-around items-center px-gutter">
       <a class="flex flex-col items-center gap-1 transition-transform text-primary scale-110 font-bold" href="#">
         <span class="material-symbols-outlined">dashboard</span>
         <span class="text-label-md font-label-md">Geral</span>
       </a>
-      <a class="flex flex-col items-center gap-1 text-on-surface-variant transition-transform" href="#">
+      <a class="flex flex-col items-center gap-1 text-on-surface-variant transition-transform hover:text-primary" href="#">
         <span class="material-symbols-outlined">description</span>
         <span class="text-label-md font-label-md">Relatórios</span>
       </a>
-      <a class="flex flex-col items-center gap-1 text-on-surface-variant transition-transform" href="#">
+      <a class="flex flex-col items-center gap-1 text-on-surface-variant transition-transform hover:text-primary" href="#">
         <span class="material-symbols-outlined">account_tree</span>
         <span class="text-label-md font-label-md">Filtros</span>
       </a>
-      <a class="flex flex-col items-center gap-1 text-on-surface-variant transition-transform" href="#">
+      <a class="flex flex-col items-center gap-1 text-on-surface-variant transition-transform hover:text-primary" href="#">
         <span class="material-symbols-outlined">settings</span>
         <span class="text-label-md font-label-md">Ajustes</span>
       </a>
