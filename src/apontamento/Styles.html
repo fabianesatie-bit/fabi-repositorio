@@ -1,26 +1,15 @@
 <style>
-  @layer base {
-    body {
-      -webkit-tap-highlight-color: transparent;
-      overscroll-behavior-y: contain;
-    }
-    .pt-safe {
-      padding-top: env(safe-area-inset-top, 0px);
-    }
-    .pb-safe {
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-    .magalu-gradient {
-      background: linear-gradient(90deg, #0086ff 0%, #a033ff 100%);
-    }
+  body {
+    font-family: 'Be Vietnam Pro', sans-serif;
+    background-color: #f8f9ff;
+    color: #1e293b;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: contain;
   }
-
-  /* Ocultar barra de rolagem mantendo a funcionalidade de scroll */
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
+  .magalu-gradient {
+    background: linear-gradient(90deg, #0086ff 0%, #7c3aed 100%);
   }
-  .hide-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+  .card-shadow {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   }
 </style>

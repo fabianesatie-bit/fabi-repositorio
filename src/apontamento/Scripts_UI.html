@@ -1,292 +1,357 @@
 <script>
-  // ESTADO REATIVO GLOBAL DA SPA
-  var ESTADO_AUDITORIA = {
-    dadosBrutos: null,
-    exibirTodasFiliais: false
-  };
+  var appData = null;
+  var activeFilter = { diretoria: 'TODAS', regional: 'TODAS', filial: 'TODAS' };
 
   window.addEventListener('DOMContentLoaded', function() {
-    recarregarDados();
+    refreshData();
   });
 
-  function recarregarDados() {
-    var iconSync = document.getElementById('icon-sync');
+  function switchTab(tab) {
+    document.getElementById('viewDashboard').classList.add('hidden');
+    document.getElementById('viewCertificados').classList.add('hidden');
+    document.getElementById('viewPedagogico').classList.add('hidden');
+
+    document.getElementById('tabBtnDashboard').className = 'px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5';
+    document.getElementById('tabBtnCertificados').className = 'px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5';
+    document.getElementById('tabBtnPedagogico').className = 'px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5';
+
+    if (tab === 'dashboard') {
+      document.getElementById('viewDashboard').classList.remove('hidden');
+      document.getElementById('tabBtnDashboard').className = 'px-3 py-1.5 rounded-lg bg-white text-[#0086ff] shadow-sm flex items-center gap-1.5';
+    } else if (tab === 'certificados') {
+      document.getElementById('viewCertificados').classList.remove('hidden');
+      document.getElementById('tabBtnCertificados').className = 'px-3 py-1.5 rounded-lg bg-white text-indigo-700 shadow-sm flex items-center gap-1.5';
+      renderCertificadosTable();
+    } else if (tab === 'pedagogico') {
+      document.getElementById('viewPedagogico').classList.remove('hidden');
+      document.getElementById('tabBtnPedagogico').className = 'px-3 py-1.5 rounded-lg bg-white text-purple-700 shadow-sm flex items-center gap-1.5';
+      renderPedagogicoTab();
+    }
+  }
+
+  function refreshData() {
+    var iconSync = document.getElementById('iconSync');
     if (iconSync) iconSync.classList.add('animate-spin');
 
-    if (google && google.script && google.script.run) {
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
       google.script.run
-        .withSuccessHandler(function(res) {
+        .withSuccessHandler(function(resRaw) {
           if (iconSync) iconSync.classList.remove('animate-spin');
-          renderizarDadosIniciais(res);
+          var data = typeof resRaw === 'string' ? JSON.parse(resRaw) : resRaw;
+          if (data && data.sucesso) {
+            appData = data;
+            initDashboard();
+          }
         })
         .withFailureHandler(function(err) {
           if (iconSync) iconSync.classList.remove('animate-spin');
-          alert("Erro de comunicação com o servidor: " + err.message);
+          console.error(err);
         })
         .obterDadosAuditoria();
     }
   }
 
-  function renderizarDadosIniciais(jsonResposta) {
-    try {
-      var res = typeof jsonResposta === 'string' ? JSON.parse(jsonResposta) : jsonResposta;
-      if (!res.sucesso) {
-        alert("Erro no backend: " + res.erro);
-        return;
-      }
-
-      ESTADO_AUDITORIA.dadosBrutos = res;
-
-      if (res.perfil && res.perfil.nome) {
-        document.getElementById('user-badge').setAttribute('title', res.perfil.nome + ' (' + res.perfil.email + ')');
-      }
-
-      // Popula filtro de Diretorias a partir do mapa de hierarquia oficial DADOS_LOJAS
-      popularSelectDiretorias();
-
-      // Dispara o recálculo dos filtros e da UI
-      aplicarFiltrosEAtualizarUI();
-
-    } catch (e) {
-      console.error("Erro no processamento dos dados", e);
-    }
+  function initDashboard() {
+    if (!appData) return;
+    populateFilterOptions();
+    updateDashboard();
   }
 
-  // POPULA O SELETOR DE DIRETORIAS
-  function popularSelectDiretorias() {
-    var res = ESTADO_AUDITORIA.dadosBrutos;
-    var selDir = document.getElementById('filtro-diretoria');
-    selDir.innerHTML = '<option value="TODAS">Diretoria: Todas</option>';
+  function populateFilterOptions() {
+    var selDir = document.getElementById('selectDiretoria');
+    if (!selDir || !appData.mapaHierarquia) return;
 
-    if (!res || !res.mapaHierarquia) return;
-
-    var diretorias = Object.keys(res.mapaHierarquia).sort();
-    diretorias.forEach(function(d) {
-      var opt = document.createElement('option');
-      opt.value = d;
-      opt.textContent = 'Diretoria: ' + d;
-      selDir.appendChild(opt);
+    var opts = '<option value="TODAS">Todas as Diretorias</option>';
+    var dirs = Object.keys(appData.mapaHierarquia).sort();
+    dirs.forEach(function(d) {
+      opts += '<option value="' + d + '">' + d + '</option>';
     });
+    selDir.innerHTML = opts;
+
+    onDiretoriaChange();
   }
 
-  // REAÇÃO AO MUDAR DIRETORIA
-  function aoAlterarDiretoria() {
-    var res = ESTADO_AUDITORIA.dadosBrutos;
-    var dirSel = document.getElementById('filtro-diretoria').value;
-    var selReg = document.getElementById('filtro-regional');
+  function onDiretoriaChange() {
+    var selDir = document.getElementById('selectDiretoria');
+    activeFilter.diretoria = selDir ? selDir.value : 'TODAS';
+    activeFilter.regional = 'TODAS';
+    activeFilter.filial = 'TODAS';
 
-    selReg.innerHTML = '<option value="TODAS">Regional: Todas</option>';
+    var selReg = document.getElementById('selectRegional');
+    var opts = '<option value="TODAS">Todas as Regionais</option>';
 
-    if (res && res.mapaHierarquia) {
-      var regionaisSet = new Set();
-
-      if (dirSel === 'TODAS') {
-        Object.keys(res.mapaHierarquia).forEach(function(d) {
-          Object.keys(res.mapaHierarquia[d]).forEach(function(r) {
-            regionaisSet.add(r);
-          });
+    if (appData && appData.mapaHierarquia) {
+      var regSet = new Set();
+      if (activeFilter.diretoria === 'TODAS') {
+        Object.keys(appData.mapaHierarquia).forEach(function(d) {
+          Object.keys(appData.mapaHierarquia[d]).forEach(function(r) { regSet.add(r); });
         });
-      } else if (res.mapaHierarquia[dirSel]) {
-        Object.keys(res.mapaHierarquia[dirSel]).forEach(function(r) {
-          regionaisSet.add(r);
-        });
+      } else if (appData.mapaHierarquia[activeFilter.diretoria]) {
+        Object.keys(appData.mapaHierarquia[activeFilter.diretoria]).forEach(function(r) { regSet.add(r); });
       }
 
-      Array.from(regionaisSet).sort().forEach(function(r) {
-        var opt = document.createElement('option');
-        opt.value = r;
-        opt.textContent = 'Regional: ' + r;
-        selReg.appendChild(opt);
+      Array.from(regSet).sort().forEach(function(r) {
+        opts += '<option value="' + r + '">' + r + '</option>';
       });
     }
+    if (selReg) selReg.innerHTML = opts;
 
-    aoAlterarRegional();
+    onRegionalChange();
   }
 
-  // REAÇÃO AO MUDAR REGIONAL
-  function aoAlterarRegional() {
-    var res = ESTADO_AUDITORIA.dadosBrutos;
-    var dirSel = document.getElementById('filtro-diretoria').value;
-    var regSel = document.getElementById('filtro-regional').value;
-    var selFil = document.getElementById('filtro-filial');
+  function onRegionalChange() {
+    var selReg = document.getElementById('selectRegional');
+    activeFilter.regional = selReg ? selReg.value : 'TODAS';
+    activeFilter.filial = 'TODAS';
 
-    selFil.innerHTML = '<option value="TODAS">Filial: Todas</option>';
+    var selFil = document.getElementById('selectFilial');
+    var opts = '<option value="TODAS">Todas as Filiais</option>';
 
-    if (res && res.filiaisAlertas) {
-      var filiaisFiltradas = res.filiaisAlertas.filter(function(f) {
-        if (dirSel !== 'TODAS' && f.diretoria !== dirSel) return false;
-        if (regSel !== 'TODAS' && f.regional !== regSel) return false;
-        return true;
+    if (appData && appData.filiaisAlertas) {
+      var filiais = appData.filiaisAlertas.filter(function(f) {
+        var matchDir = activeFilter.diretoria === 'TODAS' || f.diretoria === activeFilter.diretoria;
+        var matchReg = activeFilter.regional === 'TODAS' || f.regional === activeFilter.regional;
+        return matchDir && matchReg;
       });
 
-      filiaisFiltradas.sort(function(a, b) {
-        return parseInt(a.filial) - parseInt(b.filial);
-      });
-
-      filiaisFiltradas.forEach(function(f) {
-        var opt = document.createElement('option');
-        opt.value = f.filial;
-        opt.textContent = 'Filial ' + f.filial;
-        selFil.appendChild(opt);
+      filiais.forEach(function(f) {
+        opts += '<option value="' + f.filial + '">' + f.nomeLoja + '</option>';
       });
     }
+    if (selFil) selFil.innerHTML = opts;
 
-    aplicarFiltrosEAtualizarUI();
+    updateDashboard();
   }
 
-  // REAÇÃO AO MUDAR FILIAL
-  function aoAlterarFilial() {
-    aplicarFiltrosEAtualizarUI();
+  function onFilialChange() {
+    var selFil = document.getElementById('selectFilial');
+    activeFilter.filial = selFil ? selFil.value : 'TODAS';
+    updateDashboard();
   }
 
-  // MOTOR DE FILTRAGEM REATIVA E RE-RENDERIZAÇÃO COMPLETA DA INTERFACE
-  function aplicarFiltrosEAtualizarUI() {
-    var res = ESTADO_AUDITORIA.dadosBrutos;
-    if (!res) return;
-
-    var dirSel = document.getElementById('filtro-diretoria').value;
-    var regSel = document.getElementById('filtro-regional').value;
-    var filSel = document.getElementById('filtro-filial').value;
-
-    // 1. Filtra a lista de Filiais em Alerta
-    var filiaisFiltradas = res.filiaisAlertas.filter(function(f) {
-      if (dirSel !== 'TODAS' && f.diretoria !== dirSel) return false;
-      if (regSel !== 'TODAS' && f.regional !== regSel) return false;
-      if (filSel !== 'TODAS' && f.filial !== filSel) return false;
-      return true;
-    });
-
-    // 2. Filtra os Apontamentos Brutos para recálculo dos KPIs
-    var apontamentosFiltrados = res.apontamentosBrutos.filter(function(a) {
-      if (dirSel !== 'TODAS' && a.diretoria !== dirSel) return false;
-      if (regSel !== 'TODAS' && a.regional !== regSel) return false;
-      if (filSel !== 'TODAS' && a.filial !== filSel) return false;
-      return true;
-    });
-
-    // Recálculo dinâmico de KPIs
-    var colabsSet = new Set();
-    var totalApontamentosCriticos = 0;
-
-    apontamentosFiltrados.forEach(function(item) {
-      if (item.colaborador) colabsSet.add(item.colaborador);
-      if (item.quantidade) {
-        totalApontamentosCriticos += item.quantidade;
-      } else {
-        totalApontamentosCriticos++;
-      }
-    });
-
-    document.getElementById('kpi-colaboradores').innerText = colabsSet.size;
-    document.getElementById('kpi-apontamentos').innerText = totalApontamentosCriticos;
-
-    // 3. Renderiza Ranking de Top Regionais Risco
-    renderizarTopRegionais(filiaisFiltradas);
-
-    // 4. Renderiza Tabela de Filiais
-    renderizarTabelaFiliais(filiaisFiltradas);
+  function resetFilters() {
+    var selDir = document.getElementById('selectDiretoria');
+    if (selDir) selDir.value = 'TODAS';
+    onDiretoriaChange();
   }
 
-  function renderizarTopRegionais(filiaisFiltradas) {
-    var container = document.getElementById('container-top-regionais');
-    var tagQtd = document.getElementById('tag-qtd-regionais');
+  function getFilteredApontamentos() {
+    if (!appData || !appData.apontamentosBrutos) return [];
+    return appData.apontamentosBrutos.filter(function(a) {
+      var matchDir = activeFilter.diretoria === 'TODAS' || a.diretoria === activeFilter.diretoria;
+      var matchReg = activeFilter.regional === 'TODAS' || a.regional === activeFilter.regional;
+      var matchFil = activeFilter.filial === 'TODAS' || a.filialId === activeFilter.filial;
+      return matchDir && matchReg && matchFil;
+    });
+  }
 
-    var mapaRegs = {};
-    filiaisFiltradas.forEach(function(f) {
-      if (!mapaRegs[f.regional]) mapaRegs[f.regional] = 0;
-      mapaRegs[f.regional] += f.totalApontamentos;
+  function updateDashboard() {
+    var items = getFilteredApontamentos();
+    var colabs = {};
+    var totalApont = 0;
+    var lojas = {};
+
+    items.forEach(function(it) {
+      if (it.nome) colabs[it.nome] = true;
+      totalApont += (it.quantidadeMes || 1);
+      if (it.filialId) lojas[it.filialId] = true;
     });
 
-    var listaRegs = Object.keys(mapaRegs).map(function(r) {
-      return { regional: r, quantidade: mapaRegs[r] };
+    document.getElementById('kpiColabDistintos').innerText = Object.keys(colabs).length;
+    document.getElementById('kpiTotalApontamentos').innerText = totalApont;
+    document.getElementById('kpiLojasAfetadas').innerText = Object.keys(lojas).length;
+    document.getElementById('kpiCertificadosQtd').innerText = appData && appData.certificados ? appData.certificados.length : 0;
+
+    renderDynamicRanking();
+    renderTable();
+  }
+
+  function renderDynamicRanking() {
+    var list = document.getElementById('rankingList');
+    if (!list) return;
+
+    var items = getFilteredApontamentos();
+    var countMap = {};
+    items.forEach(function(i) {
+      var reg = i.regional || 'OUTRAS';
+      countMap[reg] = (countMap[reg] || 0) + (i.quantidadeMes || 1);
     });
 
-    listaRegs.sort(function(a, b) { return b.quantidade - a.quantidade; });
+    var keys = Object.keys(countMap).sort(function(a,b){ return countMap[b] - countMap[a]; });
+    var maxVal = keys.length > 0 ? countMap[keys[0]] : 1;
+    var html = '';
 
-    tagQtd.innerText = listaRegs.length + ' Regionais';
+    keys.slice(0, 5).forEach(function(r) {
+      var cnt = countMap[r];
+      var pct = Math.min(100, Math.round((cnt / maxVal) * 100));
+      html += '<div class="space-y-1">' +
+        '<div class="flex justify-between text-xs font-semibold">' +
+          '<span class="text-slate-700">' + r + '</span>' +
+          '<span class="text-red-600 font-bold">' + cnt + ' apontamentos</span>' +
+        '</div>' +
+        '<div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">' +
+          '<div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-full" style="width: ' + pct + '%"></div>' +
+        '</div>' +
+      '</div>';
+    });
 
-    if (listaRegs.length === 0) {
-      container.innerHTML = '<p class="text-body-sm text-on-surface-variant">Nenhum risco regional identificado no filtro selecionado.</p>';
+    list.innerHTML = html || '<p class="text-xs text-slate-400">Nenhum dado encontrado.</p>';
+  }
+
+  function renderTable() {
+    var tbody = document.getElementById('tableBody');
+    if (!tbody) return;
+
+    var q = (document.getElementById('tableSearch').value || '').toLowerCase();
+    var rawItems = getFilteredApontamentos();
+
+    var items = rawItems.filter(function(it) {
+      return !q || (it.nome && it.nome.toLowerCase().includes(q)) || (it.filialNome && it.filialNome.toLowerCase().includes(q));
+    });
+
+    if (items.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400 text-xs font-bold">Nenhum apontamento encontrado com o filtro atual.</td></tr>';
       return;
     }
 
-    var maxQtd = listaRegs[0].quantidade || 1;
     var html = '';
-
-    listaRegs.slice(0, 5).forEach(function(r, idx) {
-      var perc = Math.min(100, Math.round((r.quantidade / maxQtd) * 100));
-      var corTexto = idx === 0 ? 'text-error' : (idx === 1 ? 'text-tertiary' : 'text-primary');
-      var corBarra = idx === 0 ? 'bg-error' : (idx === 1 ? 'bg-tertiary' : 'bg-primary');
-
-      html += '<div class="flex flex-col gap-2">' +
-                '<div class="flex justify-between text-body-sm text-on-surface">' +
-                  '<span class="font-medium">' + r.regional + '</span>' +
-                  '<span class="font-bold ' + corTexto + '">' + r.quantidade + ' Apontamentos</span>' +
-                '</div>' +
-                '<div class="w-full h-2 rounded-full bg-surface-variant overflow-hidden">' +
-                  '<div class="h-full ' + corBarra + ' rounded-full transition-all duration-300" style="width: ' + perc + '%"></div>' +
-                '</div>' +
-              '</div>';
+    items.forEach(function(item) {
+      html += '<tr class="hover:bg-slate-50/80 transition-colors">' +
+        '<td class="p-3 pl-5 font-bold text-slate-800">' + item.filialNome + '</td>' +
+        '<td class="p-3"><div class="font-bold text-slate-900">' + item.nome + '</div><div class="text-[10px] text-slate-400">Chapa: ' + (item.chapa || '-') + ' • ' + item.cargo + '</div></td>' +
+        '<td class="p-3"><span class="px-2.5 py-1 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">' + item.tipoIrregularidade + '</span></td>' +
+        '<td class="p-3 text-center font-black text-slate-800">' + (item.quantidadeMes || 1) + '</td>' +
+        '<td class="p-3 pr-5 text-right">' +
+          '<div class="flex items-center justify-end gap-1.5">' +
+            '<button onclick="openEmailAction(\'' + item.filialId + '\')" class="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold flex items-center gap-1" title="Enviar E-mail de Plano de Ação"><i class="bi bi-envelope-fill"></i> <span>Enviar Plano ao Gerente</span></button>' +
+          '</div>' +
+        '</td>' +
+      '</tr>';
     });
-
-    container.innerHTML = html;
+    tbody.innerHTML = html;
   }
 
-  function renderizarTabelaFiliais(filtradas) {
-    var container = document.getElementById('container-filiais');
-    var tagQtd = document.getElementById('tag-qtd-filiais');
+  function renderCertificadosTable() {
+    var tbody = document.getElementById('certificadosTableBody');
+    var badge = document.getElementById('certificadosCountBadge');
+    if (!tbody || !appData) return;
 
-    tagQtd.innerText = filtradas.length + ' Filiais';
+    var certs = appData.certificados || [];
+    if (badge) badge.innerText = certs.length + ' registros';
 
-    if (filtradas.length === 0) {
-      container.innerHTML = '<p class="p-4 text-body-sm text-on-surface-variant">Nenhuma filial encontrada para a combinação de filtros.</p>';
+    if (certs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 font-bold">Nenhum certificado registrado ainda.</td></tr>';
       return;
     }
 
-    var limite = ESTADO_AUDITORIA.exibirTodasFiliais ? filtradas.length : 3;
-    var exibicao = filtradas.slice(0, limite);
     var html = '';
-
-    exibicao.forEach(function(f, idx) {
-      var corBorda = f.risco === 'Alto Risco' ? 'bg-error' : (f.risco === 'Médio Risco' ? 'bg-tertiary' : 'bg-primary');
-      var badgeStyle = f.risco === 'Alto Risco' 
-        ? 'text-error bg-error-container' 
-        : (f.risco === 'Médio Risco' ? 'text-tertiary bg-tertiary-container' : 'text-primary bg-surface-container-high');
-
-      html += '<div class="flex items-center justify-between p-4 bg-surface-container-lowest hover:bg-surface-container transition-colors relative group cursor-pointer">' +
-                '<div class="absolute left-0 top-0 bottom-0 w-1 ' + corBorda + '"></div>' +
-                '<div class="flex flex-col ml-2">' +
-                  '<span class="text-body-md font-medium text-on-surface">' + f.nomeLoja + '</span>' +
-                  '<span class="text-body-sm text-on-surface-variant">Regional: ' + f.regional + ' | Dir: ' + f.diretoria + '</span>' +
-                '</div>' +
-                '<div class="flex flex-col items-end">' +
-                  '<span class="text-label-md font-bold ' + badgeStyle + ' px-2 py-1 rounded-md">' + f.risco + '</span>' +
-                  '<span class="text-body-sm text-on-surface-variant mt-1">' + f.totalApontamentos + ' Apont.</span>' +
-                '</div>' +
-              '</div>';
-
-      if (idx < exibicao.length - 1) {
-        html += '<div class="h-[1px] w-full bg-surface-variant"></div>';
-      }
+    certs.forEach(function(c) {
+      html += '<tr class="hover:bg-slate-50/80">' +
+        '<td class="p-3 pl-5 text-slate-500 font-medium">' + c.dataEnvio + '</td>' +
+        '<td class="p-3 font-bold text-slate-900">' + c.filialNome + '</td>' +
+        '<td class="p-3"><div class="font-bold text-slate-800">' + c.colaboradorNome + '</div><div class="text-[10px] text-slate-400">Chapa: ' + c.chapa + '</div></td>' +
+        '<td class="p-3 text-slate-700 font-medium">' + c.cursoNome + '</td>' +
+        '<td class="p-3"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="bi bi-check-circle-fill"></i> ' + c.status + '</span></td>' +
+        '<td class="p-3 pr-5 text-right"><a href="' + (c.linkComprovante || '#') + '" target="_blank" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-[#0086ff] text-slate-700 hover:text-white font-bold inline-flex items-center gap-1"><i class="bi bi-box-arrow-up-right"></i> Ver Link</a></td>' +
+      '</tr>';
     });
+    tbody.innerHTML = html;
+  }
 
+  function renderPedagogicoTab() {
+    var container = document.getElementById('pedagogicoCardsContainer');
+    if (!container || !appData) return;
+
+    var html = '';
+    appData.filiaisAlertas.slice(0, 6).forEach(function(loja) {
+      html += '<div class="bg-white p-5 rounded-2xl border border-slate-100 card-shadow space-y-3">' +
+        '<div class="flex justify-between items-start">' +
+          '<div>' +
+            '<h4 class="font-bold text-slate-900">' + loja.nomeLoja + '</h4>' +
+            '<p class="text-xs text-slate-400">' + loja.regional + ' • ' + loja.cidade + '/' + loja.estado + '</p>' +
+          '</div>' +
+          '<span class="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">Magalu GP</span>' +
+        '</div>' +
+        '<p class="text-xs text-slate-600 leading-relaxed">Gerente: <span class="font-bold text-slate-800">' + loja.gerenteEmail + '</span></p>' +
+      '</div>';
+    });
     container.innerHTML = html;
   }
 
-  function alternarExibicaoFiliais() {
-    ESTADO_AUDITORIA.exibirTodasFiliais = !ESTADO_AUDITORIA.exibirTodasFiliais;
-    document.getElementById('txt-btn-todas').innerText = ESTADO_AUDITORIA.exibirTodasFiliais ? 'Recolher filiais' : 'Ver todas as filiais';
-    document.getElementById('icon-btn-todas').innerText = ESTADO_AUDITORIA.exibirTodasFiliais ? 'arrow_upward' : 'arrow_forward';
-
-    aplicarFiltrosEAtualizarUI();
+  function openModal(id) {
+    var m = document.getElementById(id);
+    if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
   }
 
-  function executarNotificacao(btn) {
-    btn.innerHTML = '<span class="material-symbols-outlined animate-spin">sync</span> Disparando alertas...';
-    setTimeout(function() {
-      btn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Notificações enviadas!';
-      btn.classList.remove('from-[#0086ff]', 'to-[#a033ff]');
-      btn.classList.add('bg-primary');
-    }, 1500);
+  function closeModal(id) {
+    var m = document.getElementById(id);
+    if (m) { m.classList.remove('flex'); m.classList.add('hidden'); }
+  }
+
+  function openCertificateModal() {
+    var sel = document.getElementById('certFilialSelect');
+    if (sel && appData && appData.filiaisAlertas) {
+      var opts = '';
+      appData.filiaisAlertas.forEach(function(l) {
+        opts += '<option value="' + l.filial + '">' + l.nomeLoja + '</option>';
+      });
+      sel.innerHTML = opts;
+    }
+    openModal('modalCertificado');
+  }
+
+  function submitCertificateForm(e) {
+    e.preventDefault();
+    var fid = document.getElementById('certFilialSelect').value;
+    var loja = appData.filiaisAlertas.find(function(l){ return l.filial === fid; }) || { nomeLoja: 'Filial ' + fid };
+
+    var payload = {
+      filialId: fid,
+      filialNome: loja.nomeLoja,
+      colaboradorNome: document.getElementById('certColaborador').value,
+      chapa: document.getElementById('certChapa').value,
+      cargo: document.getElementById('certCargo').value,
+      tipoTreinamento: document.getElementById('certCurso').value,
+      linkComprovante: document.getElementById('certLink').value,
+      observacoes: document.getElementById('certObs').value,
+      status: 'Aprovado',
+      registradoPor: appData.perfil ? appData.perfil.nome : 'Gestor GP'
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          alert(res.message || 'Certificado salvo na planilha!');
+          closeModal('modalCertificado');
+          refreshData();
+        })
+        .saveCertificadoTreinamento(payload);
+    }
+  }
+
+  function openEmailAction(filialId) {
+    if (confirm('Disparar e-mail de Plano de Ação para o Gerente da Filial ' + filialId + '?')) {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) { alert(res.message); })
+          .sendEmailFilial(filialId, 'Disparo efetuado via Painel GP');
+      }
+    }
+  }
+
+  function triggerRegionalEmail() {
+    var reg = activeFilter.regional;
+    var msg = reg === 'TODAS' 
+      ? 'Confirmar disparo de relatórios em massa para TODAS as regionais?' 
+      : 'Confirmar disparo de relatórios em massa para os gerentes da ' + reg + '?';
+
+    if (confirm(msg)) {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(function(res) { alert(res.message || 'E-mails enviados com sucesso!'); })
+          .withFailureHandler(function(err) { alert('Erro no disparo: ' + err); })
+          .sendEmailRegional(reg);
+      }
+    }
   }
 </script>

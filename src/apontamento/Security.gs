@@ -32,7 +32,7 @@ function obterPerfilAcessoLogado() {
           var dirStr = String(dados[i][3] || '').toUpperCase();
           var regStr = String(dados[i][4] || '').toUpperCase();
 
-          if (cargo.includes('DIRETOR') || cargo.includes('GERENTEGP')) {
+          if (cargo.includes('DIRETOR') || cargo.includes('GERENTEGP') || cargo.includes('COORDENADOR')) {
             perfil.temAcessoTotal = true;
           }
 
