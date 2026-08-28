@@ -3,133 +3,277 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inclusão de Certificados | Magalu GP</title>
+  <title>Apontamento Operações de Loja | Magalu GP</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     body { font-family: 'Be Vietnam Pro', sans-serif; background-color: #f8f9ff; color: #1e293b; }
     .magalu-gradient { background: linear-gradient(90deg, #0086ff 0%, #7c3aed 100%); }
+    .card-shadow { box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
   </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between">
-  <!-- Header Gerente -->
-  <header class="magalu-gradient text-white p-4 shadow-md">
-    <div class="max-w-2xl mx-auto flex items-center justify-between">
+<body class="pb-24">
+  <!-- Top Navigation Header -->
+  <header class="magalu-gradient text-white p-4 sticky top-0 z-40 shadow-md">
+    <div class="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-3">
       <div class="flex items-center gap-3">
-        <div class="bg-white p-2 rounded-xl text-[#0086ff] font-bold">
-          <i class="bi bi-award-fill text-xl"></i>
+        <div class="bg-white p-2 rounded-xl shadow-sm text-[#0086ff]">
+          <i class="bi bi-bar-chart-steps text-xl"></i>
         </div>
         <div>
-          <h1 class="text-base font-black">Portal do Gerente de Loja</h1>
-          <p class="text-[11px] text-white/80">Inclusão de Certificados da Universidade Luiza</p>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-black tracking-tight leading-tight">Apontamento Operações de Loja</h1>
+            <span class="bg-white/20 text-[10px] font-bold px-2 py-0.5 rounded-full">Gestão de Pessoas</span>
+          </div>
+          <p class="text-[11px] text-white/80">Magazine Luiza • Cultura "Jeito Luiza de Ser"</p>
         </div>
       </div>
-      <span class="bg-white/20 text-[10px] font-bold px-2.5 py-1 rounded-full">Filial: <?= filialId ?></span>
+
+      <!-- Navigation Tabs -->
+      <div class="flex items-center bg-black/20 p-1 rounded-xl gap-1 text-xs font-bold">
+        <button id="tabBtnDashboard" onclick="switchTab('dashboard')" class="px-3 py-1.5 rounded-lg bg-white text-[#0086ff] shadow-sm flex items-center gap-1.5">
+          <i class="bi bi-grid-fill"></i>
+          <span>Dashboard</span>
+        </button>
+        <button id="tabBtnCertificados" onclick="switchTab('certificados')" class="px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5">
+          <i class="bi bi-award-fill"></i>
+          <span>Certificados</span>
+        </button>
+        <button id="tabBtnPedagogico" onclick="switchTab('pedagogico')" class="px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5">
+          <i class="bi bi-heart-pulse-fill"></i>
+          <span>Plano Pedagógico</span>
+        </button>
+      </div>
+
+      <!-- User Profile Pill -->
+      <div class="flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1.5 rounded-xl">
+        <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-white text-xs">
+          <i class="bi bi-person-fill"></i>
+        </div>
+        <div class="text-right">
+          <p id="userProfileName" class="text-xs font-bold leading-tight">Fabiane Satie</p>
+          <p id="userProfileCargo" class="text-[10px] text-white/70">Coordenador GP</p>
+        </div>
+      </div>
     </div>
   </header>
 
-  <!-- Form Container Pop-up -->
-  <main class="max-w-2xl mx-auto w-full p-4 sm:p-6 my-auto">
-    <div class="bg-white rounded-2xl border border-slate-100 shadow-xl overflow-hidden">
-      <div class="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 text-white">
-        <h2 class="font-black text-sm flex items-center gap-2">
-          <i class="bi bi-check-circle-fill"></i>
-          <span>Formulário de Envio de Comprovante</span>
-        </h2>
-        <p class="text-[11px] text-emerald-100 mt-0.5">Preencha os dados do colaborador notificado para regularização na planilha.</p>
-      </div>
-
-      <form onsubmit="submitFormGerente(event)" class="p-5 space-y-4 text-xs">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Filial *:</label>
-            <input type="text" id="gFilial" value="<?= filialId ?>" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 font-bold text-slate-700 cursor-not-allowed">
-          </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">ID do Colaborador (Chapa / Matrícula) *:</label>
-            <input type="text" id="gChapa" required placeholder="Ex: 317861" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold text-slate-800 outline-none focus:border-emerald-500">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Nome Completo do Colaborador *:</label>
-            <input type="text" id="gNome" required placeholder="Ex: Adriana Santana Ribeiro" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-medium text-slate-800 outline-none focus:border-emerald-500">
-          </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Cargo / Função:</label>
-            <input type="text" id="gCargo" placeholder="Ex: Vendedor" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-medium text-slate-800 outline-none focus:border-emerald-500">
-          </div>
-        </div>
-
+  <main class="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
+    <!-- TAB 1: DASHBOARD -->
+    <div id="viewDashboard" class="space-y-6">
+      <section class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Curso / Trilha Concluída:</label>
-          <input type="text" id="gCurso" value="Ponto Eletrônico - O Guia Essencial do Colaborador (Univ. Luiza)" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 font-medium text-slate-600">
+          <h2 class="text-2xl font-black text-slate-900">Painel Executivo de Jornada</h2>
+          <p class="text-slate-500 text-xs sm:text-sm mt-0.5">Controle preventivo e regularização de inconsistências de ponto nas filiais.</p>
         </div>
-
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Link do Certificado (Google Drive / PDF) *:</label>
-          <input type="url" id="gLink" required placeholder="https://drive.google.com/file/d/..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-medium text-slate-800 outline-none focus:border-emerald-500">
-        </div>
-
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Observações do Gerente de Loja:</label>
-          <textarea id="gObs" rows="2" placeholder="Ex: Colaborador alinhado durante a matinal e curso concluído." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-medium text-slate-800 outline-none focus:border-emerald-500"></textarea>
-        </div>
-
-        <div class="pt-3 border-t border-slate-100 flex justify-end">
-          <button type="submit" id="btnSubmit" class="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-md active:scale-95 transition-all flex items-center justify-center gap-2">
+        <div class="flex items-center gap-2">
+          <button onclick="triggerRegionalEmail()" class="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-md transition-all">
             <i class="bi bi-send-fill"></i>
-            <span>Enviar Certificado para a Planilha</span>
+            <span>Notificar Regional em Massa</span>
+          </button>
+          <button onclick="refreshData()" class="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition-all">
+            <i class="bi bi-arrow-clockwise"></i>
+            <span>Atualizar</span>
           </button>
         </div>
-      </form>
+      </section>
+
+      <!-- Filtros Encadeados -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 card-shadow space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <i class="bi bi-funnel-fill text-[#0086ff]"></i> Filtros Hierárquicos (Aba DADOS_LOJAS)
+          </span>
+          <button onclick="resetFilters()" class="text-xs text-[#0086ff] hover:underline font-bold">Limpar Filtros</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Diretoria</label>
+            <select id="selectDiretoria" onchange="onDiretoriaChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2.5 outline-none focus:border-[#0086ff]">
+              <option value="TODAS">Todas as Diretorias</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Regional</label>
+            <select id="selectRegional" onchange="onRegionalChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2.5 outline-none focus:border-[#0086ff]">
+              <option value="TODAS">Todas as Regionais</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Filial</label>
+            <select id="selectFilial" onchange="onFilialChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2.5 outline-none focus:border-[#0086ff]">
+              <option value="TODAS">Todas as Filiais</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Summary Cards -->
+      <div id="kpiContainer" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-red-50 p-4 rounded-2xl border border-red-100 relative overflow-hidden">
+          <div class="absolute top-3 right-3 text-red-400"><i class="bi bi-people-fill text-2xl"></i></div>
+          <span id="kpiColabDistintos" class="text-3xl font-black text-red-900">0</span>
+          <p class="text-xs font-bold text-red-700 mt-1 leading-tight">Colaboradores Notificados</p>
+        </div>
+        <div class="bg-purple-50 p-4 rounded-2xl border border-purple-100 relative overflow-hidden">
+          <div class="absolute top-3 right-3 text-purple-400"><i class="bi bi-exclamation-octagon-fill text-2xl"></i></div>
+          <span id="kpiTotalApontamentos" class="text-3xl font-black text-purple-900">0</span>
+          <p class="text-xs font-bold text-purple-700 mt-1 leading-tight">Total de Inconsistências</p>
+        </div>
+        <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 relative overflow-hidden">
+          <div class="absolute top-3 right-3 text-blue-400"><i class="bi bi-shop text-2xl"></i></div>
+          <span id="kpiLojasAfetadas" class="text-3xl font-black text-blue-900">0</span>
+          <p class="text-xs font-bold text-blue-700 mt-1 leading-tight">Filiais c/ Apontamentos</p>
+        </div>
+        <div class="bg-amber-50 p-4 rounded-2xl border border-amber-100 relative overflow-hidden">
+          <div class="absolute top-3 right-3 text-amber-500"><i class="bi bi-award-fill text-2xl"></i></div>
+          <span id="kpiCertificadosQtd" class="text-3xl font-black text-amber-900">0</span>
+          <p class="text-xs font-bold text-amber-700 mt-1 leading-tight">Certificados Registrados</p>
+        </div>
+      </div>
+
+      <!-- Tabela Detalhada -->
+      <div class="bg-white rounded-2xl border border-slate-100 card-shadow overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+          <div>
+            <h3 class="font-bold text-base text-slate-900">Apontamentos Auditados</h3>
+            <p class="text-xs text-slate-500">Colaboradores, inconsistência identificada e ações da equipe de GP</p>
+          </div>
+          <input id="tableSearch" type="text" placeholder="Buscar colaborador, filial, chapa..." oninput="renderTable()" class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-[#0086ff] w-56 sm:w-64">
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 uppercase font-black text-[10px] tracking-wider border-b border-slate-100">
+              <tr>
+                <th class="p-3 pl-5">Filial</th>
+                <th class="p-3">Colaborador / Chapa</th>
+                <th class="p-3">Tipo de Apontamento</th>
+                <th class="p-3 text-center">Ocorrências</th>
+                <th class="p-3 pr-5 text-right">Ações GP</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: CERTIFICADOS -->
+    <div id="viewCertificados" class="hidden space-y-6">
+      <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 rounded-2xl p-6 text-white shadow-lg flex justify-between items-center">
+        <div>
+          <h2 class="text-xl font-black">Certificados Registrados na Planilha</h2>
+          <p class="text-xs text-blue-100 mt-1">Visão consolidada dos comprovantes anexados pelos Gerentes na aba Comprovantes_Treinamento.</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-100 card-shadow overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+          <h3 class="font-bold text-sm text-slate-800">Comprovantes Salvos</h3>
+          <span id="certificadosCountBadge" class="text-xs font-bold bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">0 registros</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 uppercase font-black text-[10px] tracking-wider border-b border-slate-100">
+              <tr>
+                <th class="p-3 pl-5">Data</th>
+                <th class="p-3">Filial</th>
+                <th class="p-3">Colaborador / Chapa</th>
+                <th class="p-3">Curso</th>
+                <th class="p-3">Status</th>
+                <th class="p-3 pr-5 text-right">Link</th>
+              </tr>
+            </thead>
+            <tbody id="certificadosTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: PLANO PEDAGÓGICO -->
+    <div id="viewPedagogico" class="hidden space-y-6">
+      <div class="bg-gradient-to-r from-purple-700 to-indigo-700 text-white p-6 rounded-2xl shadow-sm">
+        <h2 class="text-xl font-black">Planos de Ação e Acompanhamento Pedagógico</h2>
+        <p class="text-xs text-purple-100 mt-1">Cultura do Jeito Luiza de Ser: orientação, escuta ativa e matinais preventivas.</p>
+      </div>
+      <div id="pedagogicoCardsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </div>
   </main>
 
-  <footer class="p-4 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
-    Magazine Luiza S.A. • Gestão de Pessoas GP360
-  </footer>
-
   <script>
-    function submitFormGerente(e) {
-      e.preventDefault();
-      var btn = document.getElementById('btnSubmit');
-      btn.disabled = true;
-      btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Salvando...';
+    var appData = { filiaisAlertas: [], apontamentosBrutos: [], certificados: [], mapaHierarquia: {} };
 
-      var payload = {
-        filialId: document.getElementById('gFilial').value,
-        filialNome: 'Filial ' + document.getElementById('gFilial').value,
-        chapa: document.getElementById('gChapa').value,
-        colaboradorNome: document.getElementById('gNome').value,
-        cargo: document.getElementById('gCargo').value,
-        tipoTreinamento: document.getElementById('gCurso').value,
-        linkComprovante: document.getElementById('gLink').value,
-        observacoes: document.getElementById('gObs').value,
-        status: 'Aprovado',
-        registradoPor: 'Gerente de Loja (Portal Exclusivo)'
-      };
-
+    function refreshData() {
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            alert(res.message || 'Comprovante salvo com sucesso!');
-            window.close();
-          })
-          .withFailureHandler(function(err) {
-            alert('Erro ao salvar: ' + err);
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-send-fill"></i> Enviar Certificado';
-          })
-          .saveCertificadoTreinamento(payload);
-      } else {
-        alert('Simulação: Certificado do colaborador ' + payload.chapa + ' salvo na planilha!');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-send-fill"></i> Enviar Certificado';
+        google.script.run.withSuccessHandler(function(resRaw) {
+          var res = JSON.parse(resRaw);
+          if (res && res.sucesso) {
+            appData = res;
+            initDashboard();
+          }
+        }).obterDadosAuditoria();
       }
     }
+
+    function initDashboard() {
+      populateFilterOptions();
+      updateDashboard();
+    }
+
+    function populateFilterOptions() {
+      var selDir = document.getElementById('selectDiretoria');
+      if (!selDir || !appData.mapaHierarquia) return;
+      var dirs = Object.keys(appData.mapaHierarquia);
+      var opts = '<option value="TODAS">Todas as Diretorias</option>';
+      dirs.forEach(function(d) { opts += '<option value="' + d + '">' + d + '</option>'; });
+      selDir.innerHTML = opts;
+    }
+
+    function switchTab(tab) {
+      document.getElementById('viewDashboard').classList.add('hidden');
+      document.getElementById('viewCertificados').classList.add('hidden');
+      document.getElementById('viewPedagogico').classList.add('hidden');
+      if (tab === 'dashboard') document.getElementById('viewDashboard').classList.remove('hidden');
+      if (tab === 'certificados') document.getElementById('viewCertificados').classList.remove('hidden');
+      if (tab === 'pedagogico') document.getElementById('viewPedagogico').classList.remove('hidden');
+    }
+
+    function updateDashboard() {
+      var totalApont = appData.kpisGlobais ? appData.kpisGlobais.apontamentosCriticos : 0;
+      document.getElementById('kpiTotalApontamentos').innerText = totalApont;
+      document.getElementById('kpiColabDistintos').innerText = appData.kpisGlobais ? appData.kpisGlobais.colaboradoresIrregulares : 0;
+      document.getElementById('kpiLojasAfetadas').innerText = appData.filiaisAlertas ? appData.filiaisAlertas.length : 0;
+      document.getElementById('kpiCertificadosQtd').innerText = appData.certificados ? appData.certificados.length : 0;
+      renderTable();
+    }
+
+    function renderTable() {
+      var tbody = document.getElementById('tableBody');
+      if (!tbody) return;
+      var html = '';
+      (appData.apontamentosBrutos || []).forEach(function(item) {
+        html += '<tr class="hover:bg-slate-50/80">' +
+          '<td class="p-3 pl-5 font-bold text-slate-800">' + item.filialNome + '</td>' +
+          '<td class="p-3"><div class="font-bold text-slate-900">' + item.nome + '</div><div class="text-[10px] text-slate-400">Chapa: ' + item.chapa + '</div></td>' +
+          '<td class="p-3"><span class="px-2.5 py-1 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">' + item.tipoIrregularidade + '</span></td>' +
+          '<td class="p-3 text-center font-black text-slate-800">' + (item.quantidadeMes || 1) + '</td>' +
+          '<td class="p-3 pr-5 text-right"><button onclick="sendOfficialEmailAction(\'' + item.filialId + '\')" class="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold" title="Enviar Notificação ao Gerente"><i class="bi bi-envelope-fill"></i></button></td>' +
+        '</tr>';
+      });
+      tbody.innerHTML = html || '<tr><td colspan="5" class="p-8 text-center text-slate-400">Nenhum apontamento encontrado.</td></tr>';
+    }
+
+    function triggerRegionalEmail() {
+      if (confirm('Confirmar disparo de e-mail em massa para os gerentes das filiais em alerta?')) {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run.withSuccessHandler(function(res) {
+            alert(res.message || 'E-mails enviados com sucesso!');
+          }).sendEmailRegional('TODAS');
+        }
+      }
+    }
+
+    refreshData();
   </script>
 </body>
 </html>

@@ -6,21 +6,20 @@ function doGet(e) {
   var mode = e && e.parameter && e.parameter.mode ? String(e.parameter.mode) : '';
   var reqFilialId = e && e.parameter && e.parameter.filialId ? String(e.parameter.filialId) : '';
   var reqChapa = e && e.parameter && e.parameter.chapa ? String(e.parameter.chapa) : '';
-  var isAdmin = e && e.parameter && e.parameter.admin ? true : false;
 
-  // Se for o acesso do Gerente via link do e-mail (modo certificado ou filial sem admin)
-  if (mode === 'certificado' || (reqFilialId && !isAdmin)) {
-    var template = HtmlService.createTemplateFromFile('FormCertificado');
-    template.filialId = reqFilialId || '';
-    template.chapa = reqChapa || '';
+  // Se o parâmetro "mode=certificado" estiver presente, abre o formulário exclusivo do Gerente
+  if (mode === 'certificado') {
+    var templateCert = HtmlService.createTemplateFromFile('FormCertificado');
+    templateCert.filialId = reqFilialId || '';
+    templateCert.chapa = reqChapa || '';
 
-    return template.evaluate()
+    return templateCert.evaluate()
       .setTitle('Inclusão de Certificados | Magalu GP')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
   }
 
-  // Acesso padrão dos Coordenadores ao Dashboard Completo
+  // Acesso Padrão: Dashboard Principal para Coordenadores GP
   var templateIndex = HtmlService.createTemplateFromFile('Index');
   templateIndex.filialId = reqFilialId || '';
   templateIndex.chapa = reqChapa || '';
@@ -29,10 +28,6 @@ function doGet(e) {
     .setTitle('Apontamento Operações de Loja | Magalu GP')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
-}
-
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
 function sendEmailFilial(filialId, customNotes) {

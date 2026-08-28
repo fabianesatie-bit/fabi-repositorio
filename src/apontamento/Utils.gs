@@ -28,3 +28,9 @@ function parseFloatBR(val) {
   var num = parseFloat(str);
   return isNaN(num) ? 0 : num;
 }
+
+var Utils = {
+  normalizarFilialId: normalizarFilialId,
+  normalizarTextoUpper: normalizarTextoUpper,
+  parseFloatBR: parseFloatBR
+};
