@@ -1,0 +1,27 @@
+<style>
+  @layer base {
+    body {
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: contain;
+    }
+    .pt-safe {
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .magalu-gradient {
+      background: linear-gradient(90deg, #0086ff 0%, #a033ff 100%);
+    }
+  }
+  
+  /* Utilitário de scroll invisível */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+</style>
+

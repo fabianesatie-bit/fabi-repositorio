@@ -1,226 +1,254 @@
 <!DOCTYPE html>
-
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta content="width=device-width,initial-scale=1.0" name="viewport"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-    }
-  </style>
-</head>
-<body>
-<!-- STITCH_THREEJS_START:ANIMATION_8 class="fixed inset-0 w-full h-full bg-transparent" -->
-<div class="fixed inset-0 w-full h-full bg-transparent" style="display:block;">
-<script src="https://ajax.googleapis.com/ajax/libs/threejs/r125/three.min.js"></script>
-<div id="threejs-container-ANIMATION_8" style="width:100%;height:100%"></div>
-<script>
-(function() {
-  const container = document.getElementById('threejs-container-ANIMATION_8');
-  const devicePixelRatio = window.devicePixelRatio || 1;
-  <!-- DASHBOARD DE APONTAMENTO MAGALU - INDEX.HTML (ESTRUTURA COMPLETA) -->
-<!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auditoria de Ponto Magalu</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-        body {
-            font-family: 'Be+Vietnam+Pro', sans-serif;
-            background-color: #f8f9ff;
-            color: #1e293b;
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-variant": "#d3e4fe",
+            "surface": "#f8f9ff",
+            "primary-container": "#0073dd",
+            "outline": "#717785",
+            "surface-container-lowest": "#ffffff",
+            "tertiary": "#8126d1",
+            "tertiary-container": "#f3e8ff",
+            "on-tertiary-container": "#6b21a8",
+            "error-container": "#fff1f2",
+            "on-error-container": "#9f1239",
+            "error": "#f43f5e",
+            "primary": "#005bb1",
+            "on-surface": "#0b1c30",
+            "on-surface-variant": "#404754",
+            "surface-container-low": "#eff4ff",
+            "surface-container-high": "#dce9ff",
+            "surface-container-highest": "#d3e4fe"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter": "24px",
+            "stack-sm": "8px",
+            "margin-page": "32px",
+            "stack-md": "16px",
+            "stack-lg": "24px"
+          },
+          "fontFamily": {
+            "body-lg": ["Be Vietnam Pro"],
+            "headline-sm": ["Be Vietnam Pro"],
+            "headline-lg": ["Be Vietnam Pro"],
+            "headline-md": ["Be Vietnam Pro"],
+            "body-sm": ["Be Vietnam Pro"],
+            "body-md": ["Be Vietnam Pro"],
+            "label-md": ["Be Vietnam Pro"],
+            "display-lg": ["Be Vietnam Pro"]
+          },
+          "fontSize": {
+            "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+            "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+            "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+            "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+            "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+            "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+            "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+            "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+          }
         }
-        .magalu-gradient {
-            background: linear-gradient(90deg, #0086ff 0%, #a855f7 100%);
-        }
-        .card-shadow {
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-        }
-    </style>
+      }
+    };
+  </script>
 
-<body class="pb-24">
-<!-- Header -->
-<header class="magalu-gradient text-white p-4 flex justify-between items-center sticky top-0 z-50 shadow-md">
-<div class="flex items-center gap-2">
-<div class="bg-white p-1.5 rounded-lg shadow-sm">
-<i class="bi bi-bar-chart-steps text-[#0086ff] text-xl"></i>
-</div>
-<h1 class="text-xl font-bold tracking-tight">Auditoria</h1>
-</div>
-<div class="flex items-center gap-4">
-<button class="text-white/80 hover:text-white transition-colors">
-<i class="bi bi-filter-right text-2xl"></i>
-</button>
-<div class="w-10 h-10 rounded-full bg-white/20 border border-white/30 flex items-center justify-center">
-<i class="bi bi-person-circle text-xl"></i>
-</div>
-</div>
-</header>
-<main class="p-4 space-y-6 max-w-2xl mx-auto">
-<!-- Welcome Section -->
-<section>
-<h2 class="text-2xl font-bold text-slate-900">Visão Geral</h2>
-<p class="text-slate-500 text-sm mt-1">Resumo executivo de apontamentos e irregularidades.</p>
-</section>
-<!-- Dynamic Filters -->
-<div class="flex gap-2 overflow-x-auto pb-2">
-<div class="bg-[#eff4ff] border border-[#0086ff]/20 px-4 py-2 rounded-full flex items-center gap-2 whitespace-nowrap">
-<i class="bi bi-building text-[#0086ff]"></i>
-<span class="text-sm font-medium">Diretoria: Todas</span>
-<i class="bi bi-chevron-down text-xs"></i>
-</div>
-<div class="bg-[#eff4ff] border border-[#0086ff]/20 px-4 py-2 rounded-full flex items-center gap-2 whitespace-nowrap">
-<i class="bi bi-geo-alt text-[#0086ff]"></i>
-<span class="text-sm font-medium">Regional: Sul</span>
-<i class="bi bi-chevron-down text-xs"></i>
-</div>
-</div>
-<!-- KPI Cards -->
-<div class="grid grid-cols-2 gap-4">
-<div class="bg-[#fee2e2] p-4 rounded-2xl border border-red-100 relative overflow-hidden">
-<div class="absolute top-3 right-3 text-red-500 opacity-60">
-<i class="bi bi-exclamation-triangle-fill text-xl"></i>
-</div>
-<span class="text-4xl font-bold text-red-900">142</span>
-<p class="text-xs font-semibold text-red-700 mt-2 leading-tight">Colaboradores c/ Irregularidade</p>
-<div class="mt-2 flex items-center gap-1 text-[10px] text-red-600 font-bold">
-<i class="bi bi-graph-up-arrow"></i>
-<span>+12% vs. mês ant.</span>
-</div>
-</div>
-<div class="bg-[#f3e8ff] p-4 rounded-2xl border border-purple-100 relative overflow-hidden">
-<div class="absolute top-3 right-3 text-purple-500 opacity-60">
-<i class="bi bi-info-circle-fill text-xl"></i>
-</div>
-<span class="text-4xl font-bold text-purple-900">38</span>
-<p class="text-xs font-semibold text-purple-700 mt-2 leading-tight">Apontamentos Críticos</p>
-<div class="mt-2 flex items-center gap-1 text-[10px] text-purple-600 font-bold">
-<i class="bi bi-graph-down-arrow"></i>
-<span>-5% vs. mês ant.</span>
-</div>
-</div>
-</div>
-<!-- Top Regionals -->
-<div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-<div class="flex justify-between items-center">
-<h3 class="font-bold text-lg">Top Regionais (Risco)</h3>
-<i class="bi bi-three-dots-vertical text-slate-400"></i>
-</div>
-<div class="space-y-4">
-<div class="space-y-1">
-<div class="flex justify-between text-sm font-medium">
-<span class="text-slate-700">Regional Sul</span>
-<span class="text-red-600 font-bold">45 Ocorrências</span>
-</div>
-<div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-<div class="bg-red-500 h-full w-[70%]"></div>
-</div>
-</div>
-<div class="space-y-1">
-<div class="flex justify-between text-sm font-medium">
-<span class="text-slate-700">Regional Sudeste 1</span>
-<span class="text-purple-600 font-bold">32 Ocorrências</span>
-</div>
-<div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-<div class="bg-purple-500 h-full w-[50%]"></div>
-</div>
-</div>
-</div>
-</div>
-<!-- Chart Section -->
-<div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-<div class="flex justify-between items-start">
-<div>
-<h3 class="font-bold text-lg">Tendência de Irregularidades</h3>
-</div>
-<div class="text-right">
-<span class="text-red-500 font-bold text-xs flex items-center gap-1">
-<i class="bi bi-graph-up-arrow"></i> +5% vs. sem. ant.
-                    </span>
-</div>
-</div>
-<div class="h-40 w-full">
-<canvas id="trendChart"></canvas>
-</div>
-<p class="text-xs text-slate-500 italic">Aumento de 5% na última semana devido a novas auditorias em filiais do Sul.</p>
-</div>
-<!-- Action Button -->
-<button class="w-full magalu-gradient py-4 rounded-2xl text-white font-bold flex items-center justify-center gap-3 shadow-lg active:scale-[0.98] transition-transform">
-<i class="bi bi-megaphone-fill"></i>
-            Notificar Regionais Críticas
+  <?!= include('Styles'); ?>
+</head>
+<body class="bg-surface font-body-md text-on-surface">
+
+  <!-- Header Fixo Magalu -->
+  <header class="fixed top-0 w-full z-50 pt-safe magalu-gradient shadow-[0_1px_8px_rgba(0,0,0,0.12)]">
+    <div class="h-16 flex items-center justify-between px-gutter">
+      <div class="flex items-center gap-stack-sm">
+        <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+          <span class="material-symbols-outlined text-primary text-[20px]">analytics</span>
+        </div>
+        <h1 class="text-headline-sm font-headline-sm text-white">Auditoria GP360</h1>
+      </div>
+      <div class="flex items-center gap-stack-md">
+        <button class="w-10 h-10 flex items-center justify-center text-white" onclick="recarregarDados()">
+          <span class="material-symbols-outlined">sync</span>
         </button>
-<p class="text-[10px] text-center text-slate-400 px-4">Envia relatório resumido para gestores das filiais em alerta.</p>
-</main>
-<!-- Navigation Bar -->
-<nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50">
-<div class="flex flex-col items-center gap-1 text-[#0086ff]">
-<i class="bi bi-grid-fill text-xl"></i>
-<span class="text-[10px] font-bold">Geral</span>
-</div>
-<div class="flex flex-col items-center gap-1 text-slate-400">
-<i class="bi bi-file-earmark-text text-xl"></i>
-<span class="text-[10px] font-bold">Relatórios</span>
-</div>
-<div class="flex flex-col items-center gap-1 text-slate-400">
-<i class="bi bi-diagram-3 text-xl"></i>
-<span class="text-[10px] font-bold">Filtros</span>
-</div>
-<div class="flex flex-col items-center gap-1 text-slate-400">
-<i class="bi bi-gear text-xl"></i>
-<span class="text-[10px] font-bold">Ajustes</span>
-</div>
-</nav>
-<script>
-        // Chart Initialization
-        const ctx = document.getElementById('trendChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
-                datasets: [{
-                    label: 'Irregularidades',
-                    data: [12, 19, 10, 25],
-                    borderColor: '#0086ff',
-                    backgroundColor: 'rgba(0, 134, 255, 0.1)',
-                    fill: true,
-                    tension: 0.4,
-                    borderWidth: 3,
-                    pointRadius: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { display: false, beginAtZero: true },
-                    x: { grid: { display: false }, ticks: { font: { size: 10, weight: '600' }, color: '#94a3b8' } }
-                }
-            }
-        });
+        <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center border-2 border-white/30" id="user-badge" title="Usuário Logado">
+          <span class="material-symbols-outlined text-white text-[18px]">person</span>
+        </div>
+      </div>
+    </div>
+  </header>
 
-        // App Script Communication Functions (Stubs for implementation)
-        function notifyRegional() {
-            google.script.run.withSuccessHandler(res => alert(res)).sendEmailRegional();
-        }
-    </script>
-</body>
+  <!-- Conteúdo Principal -->
+  <main class="relative pt-16 min-h-screen bg-surface flex flex-col pb-[120px]">
+    <div class="flex flex-col w-full gap-stack-lg p-margin-page">
 
+      <!-- Visão Geral & Filtros Rápido -->
+      <div class="flex flex-col gap-stack-sm">
+        <h2 class="text-headline-md text-on-surface">Visão Geral</h2>
+        <p class="text-body-md text-on-surface-variant">Resumo executivo de apontamentos, jornada e irregularidades.</p>
 
-})();
+        <div class="flex gap-stack-sm overflow-x-auto pb-2 -mx-margin-page px-margin-page hide-scrollbar mt-4">
+          
+          <div class="relative">
+            <select id="filtro-diretoria" onchange="aplicarFiltros()" class="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-high text-on-surface text-label-md appearance-none pr-8 cursor-pointer hover:bg-surface-container-highest transition-colors">
+              <option value="TODAS">Diretoria: Todas</option>
+            </select>
+            <span class="material-symbols-outlined text-[18px] absolute right-2 top-2.5 pointer-events-none text-on-surface-variant">arrow_drop_down</span>
+          </div>
 
-</div>
-<!-- STITCH_THREEJS_END:ANIMATION_8 -->
+          <div class="relative">
+            <select id="filtro-regional" onchange="aplicarFiltros()" class="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-high text-on-surface text-label-md appearance-none pr-8 cursor-pointer hover:bg-surface-container-highest transition-colors">
+              <option value="TODAS">Regional: Todas</option>
+            </select>
+            <span class="material-symbols-outlined text-[18px] absolute right-2 top-2.5 pointer-events-none text-on-surface-variant">arrow_drop_down</span>
+          </div>
+
+          <div class="relative">
+            <select id="filtro-filial" onchange="aplicarFiltros()" class="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-high text-on-surface text-label-md appearance-none pr-8 cursor-pointer hover:bg-surface-container-highest transition-colors">
+              <option value="TODAS">Filial: Todas</option>
+            </select>
+            <span class="material-symbols-outlined text-[18px] absolute right-2 top-2.5 pointer-events-none text-on-surface-variant">arrow_drop_down</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- KPIs Dynamic Cards -->
+      <div class="grid grid-cols-2 gap-stack-md">
+        <div class="flex flex-col p-4 rounded-xl bg-error-container text-on-error-container shadow-sm relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-16 h-16 bg-error/10 rounded-bl-full flex items-start justify-end p-3">
+            <span class="material-symbols-outlined text-error">warning</span>
+          </div>
+          <span class="text-display-lg font-display-lg tracking-tight" id="kpi-colaboradores">--</span>
+          <span class="text-label-md mt-1">Colaboradores c/ Irregularidade</span>
+          <div class="flex items-center gap-1 mt-3 text-error">
+            <span class="material-symbols-outlined text-[14px]">trending_up</span>
+            <span class="text-label-md" id="kpi-colab-sub">Atualizado</span>
+          </div>
+        </div>
+
+        <div class="flex flex-col p-4 rounded-xl bg-tertiary-container text-on-tertiary-container shadow-sm relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-16 h-16 bg-tertiary/10 rounded-bl-full flex items-start justify-end p-3">
+            <span class="material-symbols-outlined text-tertiary">error</span>
+          </div>
+          <span class="text-display-lg font-display-lg tracking-tight" id="kpi-apontamentos">--</span>
+          <span class="text-label-md mt-1">Apontamentos Críticos</span>
+          <div class="flex items-center gap-1 mt-3 text-tertiary">
+            <span class="material-symbols-outlined text-[14px]">info</span>
+            <span class="text-label-md">Ref. Julho/2026</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Regionais -->
+      <div class="flex flex-col p-stack-lg rounded-xl bg-surface-container-lowest shadow-sm">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-headline-sm text-on-surface">Top Regionais (Risco)</h3>
+          <button class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors">
+            <span class="material-symbols-outlined text-[20px]">more_vert</span>
+          </button>
+        </div>
+        <div class="flex flex-col gap-4" id="container-top-regionais">
+          <p class="text-body-sm text-on-surface-variant">Carregando regionais...</p>
+        </div>
+      </div>
+
+      <!-- Graph: Tendência de Irregularidades -->
+      <div class="flex flex-col p-stack-lg rounded-xl bg-surface-container-lowest shadow-sm">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-headline-sm text-on-surface">Tendência de Irregularidades</h3>
+          <div class="flex items-center gap-1 text-primary">
+            <span class="material-symbols-outlined text-[14px]">show_chart</span>
+            <span class="text-label-md">Série Temporal</span>
+          </div>
+        </div>
+        <div class="relative h-32 w-full mt-2">
+          <svg class="w-full h-full" viewBox="0 0 400 100" preserveAspectRatio="none">
+            <path d="M 0 80 Q 50 75, 100 60 T 200 70 T 300 40 T 400 30" fill="none" stroke="#005bb1" stroke-width="3" stroke-linecap="round"></path>
+            <path d="M 0 80 Q 50 75, 100 60 T 200 70 T 300 40 T 400 30 V 100 H 0 Z" fill="url(#gradient-blue)" opacity="0.1"></path>
+            <defs>
+              <linearGradient id="gradient-blue" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style="stop-color:#005bb1;stop-opacity:1"></stop>
+                <stop offset="100%" style="stop-color:#005bb1;stop-opacity:0"></stop>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="flex justify-between mt-4 px-1">
+          <span class="text-label-md text-on-surface-variant">Sem 1</span>
+          <span class="text-label-md text-on-surface-variant">Sem 2</span>
+          <span class="text-label-md text-on-surface-variant">Sem 3</span>
+          <span class="text-label-md text-on-surface-variant">Sem 4</span>
+        </div>
+        <p class="text-body-sm text-on-surface-variant mt-4">Apontamentos monitorados através de batidas manuais e acessos fora do horário previsto.</p>
+      </div>
+
+      <!-- Tabela Filiais com Alertas -->
+      <div class="flex flex-col rounded-xl bg-surface-container-lowest shadow-sm overflow-hidden">
+        <div class="p-4 bg-surface-container-low flex justify-between items-center">
+          <h3 class="text-body-lg font-headline-sm text-on-surface">Filiais com Alertas</h3>
+          <span class="px-2 py-1 bg-surface-variant text-on-surface-variant text-label-md rounded-md" id="tag-qtd-filiais">Filiais</span>
+        </div>
+        
+        <div class="flex flex-col" id="container-filiais">
+          <p class="p-4 text-body-sm text-on-surface-variant">Carregando lista de filiais...</p>
+        </div>
+
+        <button id="btn-ver-todas" class="w-full py-3 text-body-sm font-medium text-primary hover:bg-surface-container-high transition-colors flex items-center justify-center gap-2" onclick="alternarExibicaoFiliais()">
+          <span>Ver todas as filiais</span>
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </button>
+      </div>
+
+      <!-- Action Button Notificação -->
+      <div class="mt-4 mb-8">
+        <button id="btn-notificar" class="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-gradient-to-r from-[#0086ff] to-[#a033ff] text-white font-headline-sm shadow-md hover:shadow-lg active:scale-[0.98] transition-all" onclick="executarNotificacao(this)">
+          <span class="material-symbols-outlined">campaign</span>
+          <span>Notificar Regionais Críticas</span>
+        </button>
+        <p class="text-center text-label-md text-on-surface-variant mt-2">Envia relatório resumido para gestores das filiais em alerta.</p>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Barra de Navegação Inferior (Fixa) -->
+  <nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface-container-highest/95 backdrop-blur-xl shadow-[0_-1px_8px_rgba(0,0,0,0.04)]">
+    <div class="h-20 flex justify-around items-center px-gutter">
+      <a class="flex flex-col items-center gap-1 transition-transform text-primary scale-110 font-bold" href="#">
+        <span class="material-symbols-outlined">dashboard</span>
+        <span class="text-label-md font-label-md">Geral</span>
+      </a>
+      <a class="flex flex-col items-center gap-1 text-on-surface-variant transition-transform" href="#">
+        <span class="material-symbols-outlined">description</span>
+        <span class="text-label-md font-label-md">Relatórios</span>
+      </a>
+      <a class="flex flex-col items-center gap-1 text-on-surface-variant transition-transform" href="#">
+        <span class="material-symbols-outlined">account_tree</span>
+        <span class="text-label-md font-label-md">Filtros</span>
+      </a>
+      <a class="flex flex-col items-center gap-1 text-on-surface-variant transition-transform" href="#">
+        <span class="material-symbols-outlined">settings</span>
+        <span class="text-label-md font-label-md">Ajustes</span>
+      </a>
+    </div>
+  </nav>
+
+  <?!= include('Scripts_UI'); ?>
 </body>
 </html>
