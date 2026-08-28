@@ -1,53 +1,82 @@
 <script>
   var appData = null;
   var activeFilter = { diretoria: 'TODAS', regional: 'TODAS', filial: 'TODAS' };
+  var searchDebounceTimer = null;
 
   window.addEventListener('DOMContentLoaded', function() {
-    refreshData();
+    var searchInput = document.getElementById('tableSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(function() {
+          renderTable();
+        }, 150);
+      });
+    }
+    // Disparo único e otimizado no carregamento
+    refreshData(false);
   });
 
   function switchTab(tab) {
-    document.getElementById('viewDashboard').classList.add('hidden');
-    document.getElementById('viewCertificados').classList.add('hidden');
-    document.getElementById('viewPedagogico').classList.add('hidden');
+    var vDash = document.getElementById('viewDashboard');
+    var vCert = document.getElementById('viewCertificados');
+    var vPed = document.getElementById('viewPedagogico');
 
-    document.getElementById('tabBtnDashboard').className = 'px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5';
-    document.getElementById('tabBtnCertificados').className = 'px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5';
-    document.getElementById('tabBtnPedagogico').className = 'px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5';
+    if (vDash) vDash.classList.add('hidden');
+    if (vCert) vCert.classList.add('hidden');
+    if (vPed) vPed.classList.add('hidden');
+
+    var btnDash = document.getElementById('tabBtnDashboard');
+    var btnCert = document.getElementById('tabBtnCertificados');
+    var btnPed = document.getElementById('tabBtnPedagogico');
+
+    var defaultBtnClass = 'px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5';
+
+    if (btnDash) btnDash.className = defaultBtnClass;
+    if (btnCert) btnCert.className = defaultBtnClass;
+    if (btnPed) btnPed.className = defaultBtnClass;
 
     if (tab === 'dashboard') {
-      document.getElementById('viewDashboard').classList.remove('hidden');
-      document.getElementById('tabBtnDashboard').className = 'px-3 py-1.5 rounded-lg bg-white text-[#0086ff] shadow-sm flex items-center gap-1.5';
+      if (vDash) vDash.classList.remove('hidden');
+      if (btnDash) btnDash.className = 'px-3 py-1.5 rounded-lg bg-white text-[#0086ff] shadow-sm flex items-center gap-1.5';
     } else if (tab === 'certificados') {
-      document.getElementById('viewCertificados').classList.remove('hidden');
-      document.getElementById('tabBtnCertificados').className = 'px-3 py-1.5 rounded-lg bg-white text-indigo-700 shadow-sm flex items-center gap-1.5';
+      if (vCert) vCert.classList.remove('hidden');
+      if (btnCert) btnCert.className = 'px-3 py-1.5 rounded-lg bg-white text-indigo-700 shadow-sm flex items-center gap-1.5';
       renderCertificadosTable();
     } else if (tab === 'pedagogico') {
-      document.getElementById('viewPedagogico').classList.remove('hidden');
-      document.getElementById('tabBtnPedagogico').className = 'px-3 py-1.5 rounded-lg bg-white text-purple-700 shadow-sm flex items-center gap-1.5';
+      if (vPed) vPed.classList.remove('hidden');
+      if (btnPed) btnPed.className = 'px-3 py-1.5 rounded-lg bg-white text-purple-700 shadow-sm flex items-center gap-1.5';
       renderPedagogicoTab();
     }
   }
 
-  function refreshData() {
+  function refreshData(force) {
+    var iconRef = document.getElementById('refreshIcon');
     var iconSync = document.getElementById('iconSync');
+    if (iconRef) iconRef.classList.add('animate-spin');
     if (iconSync) iconSync.classList.add('animate-spin');
 
     if (typeof google !== 'undefined' && google.script && google.script.run) {
       google.script.run
         .withSuccessHandler(function(resRaw) {
+          if (iconRef) iconRef.classList.remove('animate-spin');
           if (iconSync) iconSync.classList.remove('animate-spin');
-          var data = typeof resRaw === 'string' ? JSON.parse(resRaw) : resRaw;
-          if (data && data.sucesso) {
-            appData = data;
-            initDashboard();
+          try {
+            var data = typeof resRaw === 'string' ? JSON.parse(resRaw) : resRaw;
+            if (data && data.sucesso) {
+              appData = data;
+              initDashboard();
+            }
+          } catch(e) {
+            console.error('Erro ao processar dados:', e);
           }
         })
         .withFailureHandler(function(err) {
+          if (iconRef) iconRef.classList.remove('animate-spin');
           if (iconSync) iconSync.classList.remove('animate-spin');
-          console.error(err);
+          console.error('Erro ao buscar dados:', err);
         })
-        .obterDadosAuditoria();
+        .obterDadosAuditoria(!!force);
     }
   }
 
@@ -59,7 +88,7 @@
 
   function populateFilterOptions() {
     var selDir = document.getElementById('selectDiretoria');
-    if (!selDir || !appData.mapaHierarquia) return;
+    if (!selDir || !appData || !appData.mapaHierarquia) return;
 
     var opts = '<option value="TODAS">Todas as Diretorias</option>';
     var dirs = Object.keys(appData.mapaHierarquia).sort();
@@ -81,16 +110,16 @@
     var opts = '<option value="TODAS">Todas as Regionais</option>';
 
     if (appData && appData.mapaHierarquia) {
-      var regSet = new Set();
+      var regSet = {};
       if (activeFilter.diretoria === 'TODAS') {
         Object.keys(appData.mapaHierarquia).forEach(function(d) {
-          Object.keys(appData.mapaHierarquia[d]).forEach(function(r) { regSet.add(r); });
+          Object.keys(appData.mapaHierarquia[d]).forEach(function(r) { regSet[r] = true; });
         });
       } else if (appData.mapaHierarquia[activeFilter.diretoria]) {
-        Object.keys(appData.mapaHierarquia[activeFilter.diretoria]).forEach(function(r) { regSet.add(r); });
+        Object.keys(appData.mapaHierarquia[activeFilter.diretoria]).forEach(function(r) { regSet[r] = true; });
       }
 
-      Array.from(regSet).sort().forEach(function(r) {
+      Object.keys(regSet).sort().forEach(function(r) {
         opts += '<option value="' + r + '">' + r + '</option>';
       });
     }
@@ -157,10 +186,15 @@
       if (it.filialId) lojas[it.filialId] = true;
     });
 
-    document.getElementById('kpiColabDistintos').innerText = Object.keys(colabs).length;
-    document.getElementById('kpiTotalApontamentos').innerText = totalApont;
-    document.getElementById('kpiLojasAfetadas').innerText = Object.keys(lojas).length;
-    document.getElementById('kpiCertificadosQtd').innerText = appData && appData.certificados ? appData.certificados.length : 0;
+    var kpiColab = document.getElementById('kpiColabDistintos');
+    var kpiTotal = document.getElementById('kpiTotalApontamentos');
+    var kpiLojas = document.getElementById('kpiLojasAfetadas');
+    var kpiCerts = document.getElementById('kpiCertificadosQtd');
+
+    if (kpiColab) kpiColab.innerText = Object.keys(colabs).length;
+    if (kpiTotal) kpiTotal.innerText = totalApont;
+    if (kpiLojas) kpiLojas.innerText = Object.keys(lojas).length;
+    if (kpiCerts) kpiCerts.innerText = appData && appData.certificados ? appData.certificados.length : 0;
 
     renderDynamicRanking();
     renderTable();
@@ -202,11 +236,15 @@
     var tbody = document.getElementById('tableBody');
     if (!tbody) return;
 
-    var q = (document.getElementById('tableSearch').value || '').toLowerCase();
+    var searchEl = document.getElementById('tableSearch');
+    var q = searchEl ? searchEl.value.toLowerCase().trim() : '';
     var rawItems = getFilteredApontamentos();
 
     var items = rawItems.filter(function(it) {
-      return !q || (it.nome && it.nome.toLowerCase().includes(q)) || (it.filialNome && it.filialNome.toLowerCase().includes(q));
+      return !q || 
+        (it.nome && it.nome.toLowerCase().indexOf(q) !== -1) || 
+        (it.filialNome && it.filialNome.toLowerCase().indexOf(q) !== -1) ||
+        (it.chapa && String(it.chapa).toLowerCase().indexOf(q) !== -1);
     });
 
     if (items.length === 0) {
@@ -214,21 +252,23 @@
       return;
     }
 
-    var html = '';
+    var htmlBuf = [];
     items.forEach(function(item) {
-      html += '<tr class="hover:bg-slate-50/80 transition-colors">' +
-        '<td class="p-3 pl-5 font-bold text-slate-800">' + item.filialNome + '</td>' +
-        '<td class="p-3"><div class="font-bold text-slate-900">' + item.nome + '</div><div class="text-[10px] text-slate-400">Chapa: ' + (item.chapa || '-') + ' • ' + item.cargo + '</div></td>' +
-        '<td class="p-3"><span class="px-2.5 py-1 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">' + item.tipoIrregularidade + '</span></td>' +
-        '<td class="p-3 text-center font-black text-slate-800">' + (item.quantidadeMes || 1) + '</td>' +
-        '<td class="p-3 pr-5 text-right">' +
-          '<div class="flex items-center justify-end gap-1.5">' +
-            '<button onclick="openEmailAction(\'' + item.filialId + '\')" class="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold flex items-center gap-1" title="Enviar E-mail de Plano de Ação"><i class="bi bi-envelope-fill"></i> <span>Enviar Plano ao Gerente</span></button>' +
-          '</div>' +
-        '</td>' +
-      '</tr>';
+      htmlBuf.push(
+        '<tr class="hover:bg-slate-50/80 transition-colors">' +
+          '<td class="p-3 pl-5 font-bold text-slate-800">' + item.filialNome + '</td>' +
+          '<td class="p-3"><div class="font-bold text-slate-900">' + item.nome + '</div><div class="text-[10px] text-slate-400">Chapa: ' + (item.chapa || '-') + ' • ' + (item.cargo || 'Vendedor') + '</div></td>' +
+          '<td class="p-3"><span class="px-2.5 py-1 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">' + item.tipoIrregularidade + '</span></td>' +
+          '<td class="p-3 text-center font-black text-slate-800">' + (item.quantidadeMes || 1) + '</td>' +
+          '<td class="p-3 pr-5 text-right">' +
+            '<div class="flex items-center justify-end gap-1.5">' +
+              '<button onclick="sendOfficialEmailAction(\'' + item.filialId + '\')" class="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold flex items-center gap-1 transition-all" title="Enviar Notificação ao Gerente"><i class="bi bi-envelope-fill"></i> <span>Enviar Notificação</span></button>' +
+            '</div>' +
+          '</td>' +
+        '</tr>'
+      );
     });
-    tbody.innerHTML = html;
+    tbody.innerHTML = htmlBuf.join('');
   }
 
   function renderCertificadosTable() {
@@ -244,38 +284,42 @@
       return;
     }
 
-    var html = '';
+    var htmlBuf = [];
     certs.forEach(function(c) {
-      html += '<tr class="hover:bg-slate-50/80">' +
-        '<td class="p-3 pl-5 text-slate-500 font-medium">' + c.dataEnvio + '</td>' +
-        '<td class="p-3 font-bold text-slate-900">' + c.filialNome + '</td>' +
-        '<td class="p-3"><div class="font-bold text-slate-800">' + c.colaboradorNome + '</div><div class="text-[10px] text-slate-400">Chapa: ' + c.chapa + '</div></td>' +
-        '<td class="p-3 text-slate-700 font-medium">' + c.cursoNome + '</td>' +
-        '<td class="p-3"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="bi bi-check-circle-fill"></i> ' + c.status + '</span></td>' +
-        '<td class="p-3 pr-5 text-right"><a href="' + (c.linkComprovante || '#') + '" target="_blank" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-[#0086ff] text-slate-700 hover:text-white font-bold inline-flex items-center gap-1"><i class="bi bi-box-arrow-up-right"></i> Ver Link</a></td>' +
-      '</tr>';
+      htmlBuf.push(
+        '<tr class="hover:bg-slate-50/80">' +
+          '<td class="p-3 pl-5 text-slate-500 font-medium">' + c.dataEnvio + '</td>' +
+          '<td class="p-3 font-bold text-slate-900">' + c.filialNome + '</td>' +
+          '<td class="p-3"><div class="font-bold text-slate-800">' + c.colaboradorNome + '</div><div class="text-[10px] text-slate-400">Chapa: ' + c.chapa + '</div></td>' +
+          '<td class="p-3 text-slate-700 font-medium">' + (c.tipoTreinamento || c.cursoNome || 'Treinamento de Ponto') + '</td>' +
+          '<td class="p-3"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="bi bi-check-circle-fill"></i> ' + (c.status || 'Aprovado') + '</span></td>' +
+          '<td class="p-3 pr-5 text-right"><a href="' + (c.linkComprovante || '#') + '" target="_blank" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-[#0086ff] text-slate-700 hover:text-white font-bold inline-flex items-center gap-1 transition-colors"><i class="bi bi-box-arrow-up-right"></i> Ver Link</a></td>' +
+        '</tr>'
+      );
     });
-    tbody.innerHTML = html;
+    tbody.innerHTML = htmlBuf.join('');
   }
 
   function renderPedagogicoTab() {
     var container = document.getElementById('pedagogicoCardsContainer');
-    if (!container || !appData) return;
+    if (!container || !appData || !appData.filiaisAlertas) return;
 
-    var html = '';
+    var htmlBuf = [];
     appData.filiaisAlertas.slice(0, 6).forEach(function(loja) {
-      html += '<div class="bg-white p-5 rounded-2xl border border-slate-100 card-shadow space-y-3">' +
-        '<div class="flex justify-between items-start">' +
-          '<div>' +
-            '<h4 class="font-bold text-slate-900">' + loja.nomeLoja + '</h4>' +
-            '<p class="text-xs text-slate-400">' + loja.regional + ' • ' + loja.cidade + '/' + loja.estado + '</p>' +
+      htmlBuf.push(
+        '<div class="bg-white p-5 rounded-2xl border border-slate-100 card-shadow space-y-3">' +
+          '<div class="flex justify-between items-start">' +
+            '<div>' +
+              '<h4 class="font-bold text-slate-900">' + loja.nomeLoja + '</h4>' +
+              '<p class="text-xs text-slate-400">' + loja.regional + ' • ' + loja.cidade + '/' + loja.estado + '</p>' +
+            '</div>' +
+            '<span class="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">Magalu GP</span>' +
           '</div>' +
-          '<span class="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">Magalu GP</span>' +
-        '</div>' +
-        '<p class="text-xs text-slate-600 leading-relaxed">Gerente: <span class="font-bold text-slate-800">' + loja.gerenteEmail + '</span></p>' +
-      '</div>';
+          '<p class="text-xs text-slate-600 leading-relaxed">Gerente: <span class="font-bold text-slate-800">' + loja.gerenteEmail + '</span></p>' +
+        '</div>'
+      );
     });
-    container.innerHTML = html;
+    container.innerHTML = htmlBuf.join('');
   }
 
   function openModal(id) {
@@ -303,7 +347,7 @@
   function submitCertificateForm(e) {
     e.preventDefault();
     var fid = document.getElementById('certFilialSelect').value;
-    var loja = appData.filiaisAlertas.find(function(l){ return l.filial === fid; }) || { nomeLoja: 'Filial ' + fid };
+    var loja = (appData.filiaisAlertas || []).find(function(l){ return l.filial === fid; }) || { nomeLoja: 'Filial ' + fid };
 
     var payload = {
       filialId: fid,
@@ -315,7 +359,7 @@
       linkComprovante: document.getElementById('certLink').value,
       observacoes: document.getElementById('certObs').value,
       status: 'Aprovado',
-      registradoPor: appData.perfil ? appData.perfil.nome : 'Gestor GP'
+      registradoPor: (appData.perfil ? appData.perfil.nome : 'Gestor GP')
     };
 
     if (typeof google !== 'undefined' && google.script && google.script.run) {
@@ -323,20 +367,26 @@
         .withSuccessHandler(function(res) {
           alert(res.message || 'Certificado salvo na planilha!');
           closeModal('modalCertificado');
-          refreshData();
+          refreshData(true);
         })
         .saveCertificadoTreinamento(payload);
     }
   }
 
-  function openEmailAction(filialId) {
-    if (confirm('Disparar e-mail de Plano de Ação para o Gerente da Filial ' + filialId + '?')) {
+  function sendOfficialEmailAction(filialId) {
+    if (confirm('Deseja enviar a notificação oficial para o gerente da filial ' + filialId + '?')) {
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         google.script.run
-          .withSuccessHandler(function(res) { alert(res.message); })
-          .sendEmailFilial(filialId, 'Disparo efetuado via Painel GP');
+          .withSuccessHandler(function(res) {
+            alert(res.message || 'E-mail enviado!');
+          })
+          .sendEmailFilial(filialId, 'Disparo via Dashboard de Auditoria GP360');
       }
     }
+  }
+
+  function openEmailAction(filialId) {
+    sendOfficialEmailAction(filialId);
   }
 
   function triggerRegionalEmail() {

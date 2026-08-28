@@ -1,15 +1,61 @@
 /**
- * SERVIÇO DE PROCESSAMENTO E CONSOLIDAÇÃO DE DADOS DAS PLANILHAS COM CACHE EM MEMÓRIA
+ * SERVIÇO DE PROCESSAMENTO E CONSOLIDAÇÃO DE DADOS DAS PLANILHAS COM CACHE EM MEMÓRIA (CHUNKS)
  */
+
+function putLargeCache(cache, key, valueString, ttlSeconds) {
+  try {
+    var chunkSize = 85000;
+    var totalChunks = Math.ceil(valueString.length / chunkSize);
+    cache.put(key + '_META', JSON.stringify({ chunks: totalChunks }), ttlSeconds);
+    for (var i = 0; i < totalChunks; i++) {
+      var chunk = valueString.substring(i * chunkSize, (i + 1) * chunkSize);
+      cache.put(key + '_C_' + i, chunk, ttlSeconds);
+    }
+  } catch (e) {
+    Logger.log('Erro ao salvar em chunk cache: ' + e.toString());
+  }
+}
+
+function getLargeCache(cache, key) {
+  try {
+    var metaStr = cache.get(key + '_META');
+    if (!metaStr) return null;
+    var meta = JSON.parse(metaStr);
+    var result = '';
+    for (var i = 0; i < meta.chunks; i++) {
+      var chunk = cache.get(key + '_C_' + i);
+      if (chunk === null) return null;
+      result += chunk;
+    }
+    return result;
+  } catch (e) {
+    Logger.log('Erro ao ler chunk cache: ' + e.toString());
+    return null;
+  }
+}
+
+function removeLargeCache(cache, key) {
+  try {
+    var metaStr = cache.get(key + '_META');
+    if (metaStr) {
+      var meta = JSON.parse(metaStr);
+      for (var i = 0; i < meta.chunks; i++) {
+        cache.remove(key + '_C_' + i);
+      }
+      cache.remove(key + '_META');
+    }
+    cache.remove(key);
+  } catch (e) {}
+}
 
 function obterDadosAuditoria(forceRefresh) {
   try {
     var cache = CacheService.getScriptCache();
-    var cacheKey = 'AUDITORIA_DATA_CACHE_V2';
-    
-    // Se não for atualização forçada, tenta retornar do Cache primeiro
+    var cacheKey = 'AUDITORIA_DATA_CACHE_V3';
+
+    // 1. Tenta carregar dados consolidados do Cache em Chunks se não for refresh forçado
     if (!forceRefresh) {
-      var cachedData = cache.get(cacheKey);
+      var cachedData = getLargeCache(cache, cacheKey);
       if (cachedData) {
         return cachedData;
       }
@@ -19,13 +65,15 @@ function obterDadosAuditoria(forceRefresh) {
     var listaLojas = [];
     var mapaHierarquia = {};
 
-    // 1. Carregar DADOS_LOJAS da planilha DB_MASTER
+    // 2. Carregar DADOS_LOJAS da planilha DB_MASTER (com limites estritos de linha/coluna)
     try {
       var ssMaster = SpreadsheetApp.openById(SPREADSHEET_DB_MASTER_ID);
       var sheetLojas = ssMaster.getSheetByName(TAB_NAMES.LOJAS);
       if (sheetLojas) {
-        var dataLojas = sheetLojas.getDataRange().getValues();
-        if (dataLojas.length > 1) {
+        var lastRowL = sheetLojas.getLastRow();
+        var lastColL = sheetLojas.getLastColumn();
+        if (lastRowL > 1 && lastColL > 0) {
+          var dataLojas = sheetLojas.getRange(1, 1, lastRowL, lastColL).getValues();
           var h = dataLojas[0].map(function(x) { return String(x).toLowerCase().trim(); });
           var idxFid = h.findIndex(function(x) { return x.includes('filial') || x.includes('id'); });
           var idxNome = h.findIndex(function(x) { return x.includes('fantasia') || x.includes('nome'); });
@@ -70,7 +118,7 @@ function obterDadosAuditoria(forceRefresh) {
       Logger.log('Erro ao ler DADOS_LOJAS: ' + errLojas.toString());
     }
 
-    // 2. Carregar Apontamentos das Abas na Planilha de Auditoria
+    // 3. Carregar Apontamentos das Abas na Planilha de Auditoria
     var apontamentosBrutos = [];
     var totalIrregularidades = 0;
     var colabsUnicos = {};
@@ -83,8 +131,11 @@ function obterDadosAuditoria(forceRefresh) {
         var sName = sheet.getName().toLowerCase();
         if (sName.includes('comprovantes')) return;
 
-        var data = sheet.getDataRange().getValues();
-        if (data.length <= 1) return;
+        var lastRowA = sheet.getLastRow();
+        var lastColA = sheet.getLastColumn();
+        if (lastRowA <= 1 || lastColA <= 0) return;
+
+        var data = sheet.getRange(1, 1, lastRowA, lastColA).getValues();
 
         var h = data[0].map(function(x) { return String(x).toLowerCase().trim(); });
         var idxFid = h.findIndex(function(x) { return x.includes('filial') || x.includes('unidade') || x.includes('loja'); });
@@ -138,7 +189,7 @@ function obterDadosAuditoria(forceRefresh) {
       Logger.log('Erro ao ler abas de auditoria: ' + errAud.toString());
     }
 
-    // 3. Carregar Certificados Salvos
+    // 4. Carregar Certificados Salvos
     var certificados = obterCertificadosTreinamento();
 
     var payloadResult = JSON.stringify({
@@ -153,12 +204,8 @@ function obterDadosAuditoria(forceRefresh) {
       mapaHierarquia: mapaHierarquia
     });
 
-    // Salva o JSON no cache do Apps Script por 10 minutos
-    try {
-      cache.put(cacheKey, payloadResult, CACHE_TTL_SECONDS);
-    } catch (eCache) {
-      Logger.log('Aviso ao salvar no cache: ' + eCache.toString());
-    }
+    // 5. Salva no cache em chunks (suporta tamanhos > 100KB)
+    putLargeCache(cache, cacheKey, payloadResult, CACHE_TTL_SECONDS);
 
     return payloadResult;
   } catch (err) {
@@ -201,7 +248,7 @@ function saveCertificadoTreinamento(payload) {
     ]);
 
     // Invalida o cache após salvar novo certificado
-    CacheService.getScriptCache().remove('AUDITORIA_DATA_CACHE_V2');
+    removeLargeCache(CacheService.getScriptCache(), 'AUDITORIA_DATA_CACHE_V3');
 
     return { success: true, message: 'Certificado registrado com sucesso na aba Comprovantes_Treinamento!' };
   } catch (err) {
@@ -216,8 +263,11 @@ function obterCertificadosTreinamento() {
     var sheet = ss.getSheetByName(TAB_NAMES.CERTIFICADOS);
     if (!sheet) return [];
 
-    var data = sheet.getDataRange().getValues();
-    if (data.length <= 1) return [];
+    var lastRowC = sheet.getLastRow();
+    var lastColC = sheet.getLastColumn();
+    if (lastRowC <= 1 || lastColC <= 0) return [];
+
+    var data = sheet.getRange(1, 1, lastRowC, lastColC).getValues();
 
     var list = [];
     for (var i = 1; i < data.length; i++) {
