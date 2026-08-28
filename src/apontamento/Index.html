@@ -72,8 +72,8 @@
             <i class="bi bi-send-fill"></i>
             <span>Notificar Regional em Massa</span>
           </button>
-          <button onclick="refreshData()" class="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition-all">
-            <i class="bi bi-arrow-clockwise"></i>
+          <button onclick="refreshData(true)" class="px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-sm transition-all">
+            <i class="bi bi-arrow-clockwise" id="refreshIcon"></i>
             <span>Atualizar</span>
           </button>
         </div>
@@ -113,22 +113,22 @@
       <div id="kpiContainer" class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div class="bg-red-50 p-4 rounded-2xl border border-red-100 relative overflow-hidden">
           <div class="absolute top-3 right-3 text-red-400"><i class="bi bi-people-fill text-2xl"></i></div>
-          <span id="kpiColabDistintos" class="text-3xl font-black text-red-900">0</span>
+          <span id="kpiColabDistintos" class="text-3xl font-black text-red-900">...</span>
           <p class="text-xs font-bold text-red-700 mt-1 leading-tight">Colaboradores Notificados</p>
         </div>
         <div class="bg-purple-50 p-4 rounded-2xl border border-purple-100 relative overflow-hidden">
           <div class="absolute top-3 right-3 text-purple-400"><i class="bi bi-exclamation-octagon-fill text-2xl"></i></div>
-          <span id="kpiTotalApontamentos" class="text-3xl font-black text-purple-900">0</span>
+          <span id="kpiTotalApontamentos" class="text-3xl font-black text-purple-900">...</span>
           <p class="text-xs font-bold text-purple-700 mt-1 leading-tight">Total de Inconsistências</p>
         </div>
         <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 relative overflow-hidden">
           <div class="absolute top-3 right-3 text-blue-400"><i class="bi bi-shop text-2xl"></i></div>
-          <span id="kpiLojasAfetadas" class="text-3xl font-black text-blue-900">0</span>
+          <span id="kpiLojasAfetadas" class="text-3xl font-black text-blue-900">...</span>
           <p class="text-xs font-bold text-blue-700 mt-1 leading-tight">Filiais c/ Apontamentos</p>
         </div>
         <div class="bg-amber-50 p-4 rounded-2xl border border-amber-100 relative overflow-hidden">
           <div class="absolute top-3 right-3 text-amber-500"><i class="bi bi-award-fill text-2xl"></i></div>
-          <span id="kpiCertificadosQtd" class="text-3xl font-black text-amber-900">0</span>
+          <span id="kpiCertificadosQtd" class="text-3xl font-black text-amber-900">...</span>
           <p class="text-xs font-bold text-amber-700 mt-1 leading-tight">Certificados Registrados</p>
         </div>
       </div>
@@ -153,7 +153,9 @@
                 <th class="p-3 pr-5 text-right">Ações GP</th>
               </tr>
             </thead>
-            <tbody id="tableBody" class="divide-y divide-slate-100"></tbody>
+            <tbody id="tableBody" class="divide-y divide-slate-100">
+              <tr><td colspan="5" class="p-8 text-center text-slate-400 font-bold">Carregando indicadores...</td></tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -203,15 +205,26 @@
   <script>
     var appData = { filiaisAlertas: [], apontamentosBrutos: [], certificados: [], mapaHierarquia: {} };
 
-    function refreshData() {
+    function refreshData(force) {
+      var icon = document.getElementById('refreshIcon');
+      if (icon) icon.classList.add('animate-spin');
+
       if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run.withSuccessHandler(function(resRaw) {
-          var res = JSON.parse(resRaw);
-          if (res && res.sucesso) {
-            appData = res;
-            initDashboard();
-          }
-        }).obterDadosAuditoria();
+        google.script.run
+          .withSuccessHandler(function(resRaw) {
+            if (icon) icon.classList.remove('animate-spin');
+            try {
+              var res = JSON.parse(resRaw);
+              if (res && res.sucesso) {
+                appData = res;
+                initDashboard();
+              }
+            } catch(e) { console.error('Erro ao converter JSON:', e); }
+          })
+          .withFailureHandler(function() {
+            if (icon) icon.classList.remove('animate-spin');
+          })
+          .obterDadosAuditoria(!!force);
       }
     }
 
@@ -263,6 +276,16 @@
       tbody.innerHTML = html || '<tr><td colspan="5" class="p-8 text-center text-slate-400">Nenhum apontamento encontrado.</td></tr>';
     }
 
+    function sendOfficialEmailAction(filialId) {
+      if (confirm('Deseja enviar a notificação oficial para o gerente da filial ' + filialId + '?')) {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run.withSuccessHandler(function(res) {
+            alert(res.message || 'E-mail enviado!');
+          }).sendEmailFilial(filialId, 'Disparo via Dashboard de Auditoria GP360');
+        }
+      }
+    }
+
     function triggerRegionalEmail() {
       if (confirm('Confirmar disparo de e-mail em massa para os gerentes das filiais em alerta?')) {
         if (typeof google !== 'undefined' && google.script && google.script.run) {
@@ -273,7 +296,8 @@
       }
     }
 
-    refreshData();
+    // Boot rápido via Cache
+    refreshData(false);
   </script>
 </body>
 </html>

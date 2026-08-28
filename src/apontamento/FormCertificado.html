@@ -1,5 +1,4 @@
 <?
-  // Trava de segurança usando o objeto este (this) para impedir ReferenceError
   var fId = (this.filialId !== undefined && this.filialId !== null) ? String(this.filialId) : '';
   var cId = (this.chapa !== undefined && this.chapa !== null) ? String(this.chapa) : '';
 ?>
@@ -18,7 +17,6 @@
   </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
-  <!-- Header Gerente -->
   <header class="magalu-gradient text-white p-4 shadow-md">
     <div class="max-w-2xl mx-auto flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -34,7 +32,6 @@
     </div>
   </header>
 
-  <!-- Form Container Pop-up -->
   <main class="max-w-2xl mx-auto w-full p-4 sm:p-6 my-auto">
     <div class="bg-white rounded-2xl border border-slate-100 shadow-xl overflow-hidden">
       <div class="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 text-white">

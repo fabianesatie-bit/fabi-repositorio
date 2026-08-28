@@ -19,9 +19,4 @@ const TAB_NAMES = {
 
 const EMAIL_ORGANIZADOR_PADRAO = 'gplojas@magazineluiza.com.br';
 const LINK_CURSO_OBRIGATORIO = 'https://universidadeluiza.com.br/app/home/canal/magalu?section=csc-conte-sempre-comigo&trail=ponto-eletronico-o-guia-essencial-do-colaborador';
-
-const SUPER_ADMIN_EMAILS = [
-  'fabiane.satie@magazineluiza.com.br',
-  'tarcisio.maniglia@magazineluiza.com.br',
-  'gplojas@magazineluiza.com.br'
-];
+const CACHE_TTL_SECONDS = 600; // 10 minutos de cache em memória

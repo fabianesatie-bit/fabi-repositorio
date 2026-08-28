@@ -7,7 +7,6 @@ function doGet(e) {
   var reqFilialId = e && e.parameter && e.parameter.filialId ? String(e.parameter.filialId) : '';
   var reqChapa = e && e.parameter && e.parameter.chapa ? String(e.parameter.chapa) : '';
 
-  // Se o parâmetro "mode=certificado" estiver presente, abre o formulário exclusivo do Gerente
   if (mode === 'certificado') {
     var templateCert = HtmlService.createTemplateFromFile('FormCertificado');
     templateCert.filialId = reqFilialId || '';
@@ -19,7 +18,6 @@ function doGet(e) {
       .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
   }
 
-  // Acesso Padrão: Dashboard Principal para Coordenadores GP
   var templateIndex = HtmlService.createTemplateFromFile('Index');
   templateIndex.filialId = reqFilialId || '';
   templateIndex.chapa = reqChapa || '';
@@ -32,7 +30,7 @@ function doGet(e) {
 
 function sendEmailFilial(filialId, customNotes) {
   try {
-    var rawData = obterDadosAuditoria();
+    var rawData = obterDadosAuditoria(false);
     var data = JSON.parse(rawData);
     if (!data.sucesso) throw new Error(data.erro);
 
@@ -69,7 +67,7 @@ function sendEmailFilial(filialId, customNotes) {
 
 function sendEmailRegional(regionalName) {
   try {
-    var rawData = obterDadosAuditoria();
+    var rawData = obterDadosAuditoria(false);
     var data = JSON.parse(rawData);
     if (!data.sucesso) throw new Error(data.erro);
 
