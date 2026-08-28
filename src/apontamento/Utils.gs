@@ -2,9 +2,6 @@
  * UTILITÁRIOS E MIDDLEWARE ARQUITETURAL
  */
 
-/**
- * REGRA GLOBAL DE NORMALIZAÇÃO DE FILIAIS (MIDDLEWARE > 3000)
- */
 function normalizarFilialId(val) {
   if (!val && val !== 0) return "";
   var num = parseInt(String(val).replace(/\D/g, ''), 10);

@@ -8,7 +8,6 @@ function obterDadosAuditoria() {
     var ssMaster = SpreadsheetApp.openById(SPREADSHEET_DB_MASTER_ID);
     var ssAuditoria = SpreadsheetApp.openById(SPREADSHEET_AUDITORIA_ID);
 
-    // 1. DADOS_LOJAS
     var shLojas = ssMaster.getSheetByName(TAB_NAMES.LOJAS);
     var mapaLojas = {};
     var mapaHierarquia = {};
@@ -44,7 +43,6 @@ function obterDadosAuditoria() {
       }
     }
 
-    // 2. PROCESSA ABAS DE APONTAMENTO
     var sheets = ssAuditoria.getSheets();
     var shForaJornada = null;
     var shHorasExtras = null;
@@ -98,7 +96,6 @@ function obterDadosAuditoria() {
       return resumoFiliais[fid];
     }
 
-    // Acesso Fora da Jornada
     if (shForaJornada) {
       var dFora = shForaJornada.getDataRange().getValues();
       for (var i = 1; i < dFora.length; i++) {
@@ -138,7 +135,6 @@ function obterDadosAuditoria() {
       }
     }
 
-    // Horas Extras
     if (shHorasExtras) {
       var dHE = shHorasExtras.getDataRange().getValues();
       for (var j = 1; j < dHE.length; j++) {
@@ -177,7 +173,6 @@ function obterDadosAuditoria() {
       }
     }
 
-    // Ajustes Britânicos
     if (shBritanicos) {
       var dBrit = shBritanicos.getDataRange().getValues();
       for (var k = 1; k < dBrit.length; k++) {
@@ -230,7 +225,6 @@ function obterDadosAuditoria() {
 
     listaFiliais.sort(function(a, b) { return b.totalApontamentos - a.totalApontamentos; });
 
-    // 3. CERTIFICADOS
     var certificados = [];
     var shCert = ssAuditoria.getSheetByName(TAB_NAMES.CERTIFICADOS);
     if (shCert) {
@@ -272,9 +266,6 @@ function obterDadosAuditoria() {
   }
 }
 
-/**
- * Salva certificado na aba Comprovantes_Treinamento da Planilha
- */
 function saveCertificadoTreinamento(certificadoData) {
   try {
     if (!certificadoData) throw new Error('Dados do certificado inválidos.');
