@@ -40,10 +40,6 @@
           <i class="bi bi-award-fill"></i>
           <span>Certificados</span>
         </button>
-        <button id="tabBtnPedagogico" onclick="switchTab('pedagogico')" class="px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5">
-          <i class="bi bi-heart-pulse-fill"></i>
-          <span>Plano Pedagógico</span>
-        </button>
       </div>
 
       <!-- User Profile Pill -->
@@ -87,7 +83,7 @@
           </span>
           <button onclick="resetFilters()" class="text-xs text-[#0086ff] hover:underline font-bold">Limpar Filtros</button>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">Diretoria</label>
             <select id="selectDiretoria" onchange="onDiretoriaChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2.5 outline-none focus:border-[#0086ff]">
@@ -104,6 +100,12 @@
             <label class="block text-xs font-bold text-slate-600 mb-1">Filial</label>
             <select id="selectFilial" onchange="onFilialChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2.5 outline-none focus:border-[#0086ff]">
               <option value="TODAS">Todas as Filiais</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Tipo de Ocorrência</label>
+            <select id="selectTipoOcorrencia" onchange="onTipoOcorrenciaChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2.5 outline-none focus:border-[#0086ff]">
+              <option value="TODAS">Todos os Tipos</option>
             </select>
           </div>
         </div>
@@ -133,14 +135,45 @@
         </div>
       </div>
 
-      <!-- Tabela Detalhada -->
+      <!-- Tabela Consolidada de Inconsistências por Filial -->
+      <div class="bg-white rounded-2xl border border-slate-100 card-shadow overflow-hidden">
+        <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+          <div>
+            <h3 class="font-bold text-base flex items-center gap-2">
+              <i class="bi bi-shop-window text-[#0086ff]"></i>
+              <span>Resumo de Inconsistências por Filial</span>
+            </h3>
+            <p class="text-xs text-slate-300">Quantidade de colaboradores notificados e total de apontamentos críticos por loja</p>
+          </div>
+          <span id="badgeTotalFiliaisAfetadas" class="text-xs font-bold bg-[#0086ff] text-white px-3 py-1.5 rounded-xl shadow-sm">0 Filiais em Alerta</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 uppercase font-black text-[10px] tracking-wider border-b border-slate-200">
+              <tr>
+                <th class="p-3 pl-5">Filial (ID / Nome)</th>
+                <th class="p-3">Regional / Diretoria</th>
+                <th class="p-3 text-center">Colaboradores Afetados</th>
+                <th class="p-3 text-center">Total Inconsistências</th>
+                <th class="p-3 text-center">Certificados (Concluídos / Total)</th>
+                <th class="p-3 pr-5 text-right">Ação GP</th>
+              </tr>
+            </thead>
+            <tbody id="filiaisTableBody" class="divide-y divide-slate-100">
+              <tr><td colspan="6" class="p-8 text-center text-slate-400 font-bold">Carregando resumo de filiais...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tabela Detalhada por Colaborador -->
       <div class="bg-white rounded-2xl border border-slate-100 card-shadow overflow-hidden">
         <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
           <div>
-            <h3 class="font-bold text-base text-slate-900">Apontamentos Auditados</h3>
+            <h3 class="font-bold text-base text-slate-900">Apontamentos Auditados por Colaborador</h3>
             <p class="text-xs text-slate-500">Colaboradores, inconsistência identificada e ações da equipe de GP</p>
           </div>
-          <input id="tableSearch" type="text" placeholder="Buscar colaborador, filial, chapa..." oninput="renderTable()" class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-[#0086ff] w-56 sm:w-64">
+          <input id="tableSearch" type="text" placeholder="Buscar colaborador, filial, chapa..." class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:border-[#0086ff] w-56 sm:w-64">
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs text-slate-600">
@@ -191,16 +224,46 @@
         </div>
       </div>
     </div>
-
-    <!-- TAB 3: PLANO PEDAGÓGICO -->
-    <div id="viewPedagogico" class="hidden space-y-6">
-      <div class="bg-gradient-to-r from-purple-700 to-indigo-700 text-white p-6 rounded-2xl shadow-sm">
-        <h2 class="text-xl font-black">Planos de Ação e Acompanhamento Pedagógico</h2>
-        <p class="text-xs text-purple-100 mt-1">Cultura do Jeito Luiza de Ser: orientação, escuta ativa e matinais preventivas.</p>
-      </div>
-      <div id="pedagogicoCardsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-    </div>
   </main>
+
+  <!-- Modal de Envio via WhatsApp -->
+  <div id="modalWhatsApp" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-lg w-full overflow-hidden space-y-4">
+      <div class="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 text-white flex justify-between items-center">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <i class="bi bi-whatsapp text-lg"></i>
+          <span>Enviar Notificação via WhatsApp</span>
+        </h3>
+        <button onclick="closeModal('modalWhatsApp')" class="text-white/80 hover:text-white text-lg font-bold">&times;</button>
+      </div>
+
+      <div class="p-5 space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Filial Selecionada:</label>
+          <input type="text" id="waFilialNome" readonly class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 font-bold text-slate-700 cursor-not-allowed">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Número do Telefone do Gerente (Editável) *:</label>
+          <input type="tel" id="whatsappPhone" placeholder="Ex: 16999998888" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-bold text-slate-800 outline-none focus:border-emerald-500">
+          <p class="text-[10px] text-slate-400 mt-1">Insira o DDD e o número do celular do gerente. Ex: 16999998888.</p>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Prévia da Mensagem:</label>
+          <textarea id="waPreviewText" rows="5" readonly class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-[11px] text-slate-700 font-mono resize-none"></textarea>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button onclick="closeModal('modalWhatsApp')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-all">Cancelar</button>
+          <button onclick="dispararWhatsAppWeb()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-md transition-all flex items-center gap-1.5">
+            <i class="bi bi-whatsapp"></i>
+            <span>Abrir no WhatsApp</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <?!= HtmlService.createHtmlOutputFromFile('Scripts_UI').getContent() ?>
 </body>

@@ -51,7 +51,7 @@ function removeLargeCache(cache, key) {
 function obterDadosAuditoria(forceRefresh) {
   try {
     var cache = CacheService.getScriptCache();
-    var cacheKey = 'AUDITORIA_DATA_CACHE_V3';
+    var cacheKey = 'APONTAMENTO_DATA_CACHE_V5';
 
     // 1. Tenta carregar dados consolidados do Cache em Chunks se não for refresh forçado
     if (!forceRefresh) {
@@ -138,10 +138,10 @@ function obterDadosAuditoria(forceRefresh) {
         var data = sheet.getRange(1, 1, lastRowA, lastColA).getValues();
 
         var h = data[0].map(function(x) { return String(x).toLowerCase().trim(); });
-        var idxFid = h.findIndex(function(x) { return x.includes('filial') || x.includes('unidade') || x.includes('loja'); });
-        var idxNome = h.findIndex(function(x) { return x.includes('nome') || x.includes('colaborador'); });
+        var idxFid = h.findIndex(function(x) { return x === 'unidai' || x === 'unidade' || x.includes('filial') || x.includes('unidai') || x.includes('unidade') || x.includes('loja'); });
+        var idxNome = h.findIndex(function(x) { return x === 'nome' || x === 'colaborador' || x.includes('colaborador') || (x.includes('nome') && !x.includes('regional')); });
         var idxCargo = h.findIndex(function(x) { return x.includes('cargo') || x.includes('funcao') || x.includes('função'); });
-        var idxChapa = h.findIndex(function(x) { return x.includes('chapa') || x.includes('cdi') || x.includes('contratado') || x.includes('matricula'); });
+        var idxChapa = h.findIndex(function(x) { return x === 'cdi' || x.includes('chapa') || x.includes('cdi') || x.includes('contratado') || x.includes('matricula'); });
         var idxIrreg = h.findIndex(function(x) { return x.includes('irregularidade') || x.includes('tipo') || x.includes('documento'); });
 
         var isForaJornada = sName.includes('acesso') || sName.includes('jornada');
@@ -288,5 +288,162 @@ function obterCertificadosTreinamento() {
     return list;
   } catch (err) {
     return [];
+  }
+}
+
+/**
+ * UPLOAD DE CERTIFICADO DO COMPUTADOR PARA O GOOGLE DRIVE E INSERÇÃO NA PLANILHA
+ */
+function uploadCertificadoFile(payload) {
+  try {
+    if (!payload || !payload.fileData) {
+      throw new Error('Nenhum arquivo enviado.');
+    }
+
+    var filialId = String(payload.filialId || '');
+    var filialNome = String(payload.filialNome || ('Filial ' + filialId));
+    var chapa = String(payload.chapa || '');
+    var colabNome = String(payload.colaboradorNome || 'Colaborador');
+    var cargo = String(payload.cargo || 'Vendedor');
+    var curso = String(payload.tipoTreinamento || 'Ponto Eletrônico - O Guia Essencial do Colaborador');
+    var obs = String(payload.observacoes || '');
+
+    // 1. Obter ou criar pasta no Google Drive para os certificados
+    var folderName = 'Certificados_Treinamento_GP360';
+    var targetFolder;
+    try {
+      var folders = DriveApp.getFoldersByName(folderName);
+      if (folders.hasNext()) {
+        targetFolder = folders.next();
+      } else {
+        targetFolder = DriveApp.createFolder(folderName);
+      }
+    } catch (eDriveFolder) {
+      targetFolder = DriveApp.getRootFolder();
+    }
+
+    // 2. Converter Base64 do cliente para Blob
+    var base64Data = payload.fileData.split(',')[1] || payload.fileData;
+    var ext = payload.extension || 'pdf';
+    var fileName = 'Certificado_' + filialId + '_' + chapa + '_' + new Date().getTime() + '.' + ext;
+    var contentType = payload.mimeType || 'application/pdf';
+    var decodedBytes = Utilities.base64Decode(base64Data);
+    var blob = Utilities.newBlob(decodedBytes, contentType, fileName);
+
+    // 3. Salvar no Drive e ajustar permissão de leitura
+    var driveFile = targetFolder.createFile(blob);
+    try {
+      driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (eSharing) {
+      Logger.log('Aviso ao ajustar compartilhamento do Drive: ' + eSharing.toString());
+    }
+    var fileUrl = driveFile.getUrl();
+
+    // 4. Salvar registro na planilha
+    var certPayload = {
+      filialId: filialId,
+      filialNome: filialNome,
+      chapa: chapa,
+      colaboradorNome: colabNome,
+      cargo: cargo,
+      tipoTreinamento: curso,
+      linkComprovante: fileUrl,
+      status: 'Aprovado',
+      registradoPor: payload.registradoPor || 'Gerente de Loja (Portal Exclusivo)',
+      observacoes: obs
+    };
+
+    var resultSave = saveCertificadoTreinamento(certPayload);
+    if (!resultSave.success) throw new Error(resultSave.error);
+
+    return {
+      success: true,
+      fileUrl: fileUrl,
+      message: 'Certificado do colaborador ' + colabNome + ' enviado e registrado com sucesso!'
+    };
+  } catch (err) {
+    Logger.log('Erro em uploadCertificadoFile: ' + err.toString());
+    return { success: false, error: err.message || err.toString() };
+  }
+}
+
+/**
+ * RETORNA A LISTA DE COLABORADORES PENDENTES DE UMA FILIAL ESPECÍFICA (DEDUPLICADA POR CHAPA)
+ */
+function obterColaboradoresPendentesFilial(filialId) {
+  try {
+    var rawData = obterDadosAuditoria(false);
+    var data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+    if (!data.sucesso) return { sucesso: false, erro: data.erro };
+
+    var fNorm = normalizarFilialId(filialId);
+    var pendentes = (data.apontamentosBrutos || []).filter(function(a) {
+      return normalizarFilialId(a.filialId) === fNorm || String(a.filialId) === String(filialId);
+    });
+
+    var certs = data.certificados || [];
+    var certsMap = {};
+    certs.forEach(function(c) {
+      if (normalizarFilialId(c.filialId) === fNorm || String(c.filialId) === String(filialId)) {
+        certsMap[c.chapa] = c;
+      }
+    });
+
+    // Agrupar colaboradores por chapa para exibir 1 única linha por funcionário
+    var mapaColabs = {};
+    pendentes.forEach(function(p) {
+      var key = p.chapa || p.nome;
+      if (!mapaColabs[key]) {
+        mapaColabs[key] = {
+          filialId: p.filialId,
+          filialNome: p.filialNome,
+          chapa: p.chapa,
+          nome: p.nome,
+          cargo: p.cargo,
+          irregularidadesMap: {},
+          totalOcorrencias: 0
+        };
+      }
+      var tipo = p.tipoIrregularidade || 'Apontamento em Aberto';
+      mapaColabs[key].irregularidadesMap[tipo] = (mapaColabs[key].irregularidadesMap[tipo] || 0) + 1;
+      mapaColabs[key].totalOcorrencias += (p.quantidadeMes || 1);
+    });
+
+    var resultado = Object.keys(mapaColabs).map(function(k) {
+      var c = mapaColabs[k];
+      var certEnviado = certsMap[c.chapa];
+      var tiposFormatados = Object.keys(c.irregularidadesMap).map(function(t) {
+        var qtd = c.irregularidadesMap[t];
+        return qtd > 1 ? (t + ' (' + qtd + 'x)') : t;
+      }).join(', ');
+
+      return {
+        filialId: c.filialId,
+        filialNome: c.filialNome,
+        chapa: c.chapa,
+        nome: c.nome,
+        cargo: c.cargo,
+        tipoIrregularidade: tiposFormatados,
+        totalOcorrencias: c.totalOcorrencias,
+        concluido: !!certEnviado,
+        linkCertificado: certEnviado ? certEnviado.linkComprovante : ''
+      };
+    });
+
+    var infoLoja = (data.filiaisAlertas || []).find(function(l) { 
+      return normalizarFilialId(l.filial) === fNorm || String(l.filial) === String(filialId); 
+    }) || {
+      filial: fNorm,
+      nomeLoja: 'Filial ' + fNorm
+    };
+
+    return {
+      sucesso: true,
+      loja: infoLoja,
+      colaboradores: resultado
+    };
+  } catch (err) {
+    Logger.log('Erro em obterColaboradoresPendentesFilial: ' + err.toString());
+    return { sucesso: false, erro: err.toString() };
   }
 }

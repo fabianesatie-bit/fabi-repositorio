@@ -44,7 +44,7 @@ function sendEmailFilial(filialId, customNotes) {
     }
 
     var recipient = loja.gerenteEmail || EMAIL_ORGANIZADOR_PADRAO;
-    var subject = '[Magalu GP] Auditoria de Ponto e Jornada - ' + loja.nomeLoja;
+    var subject = '[Magalu GP] Apontamento de Ponto Eletrônico - ' + loja.nomeLoja;
     var htmlBody = buildEmailHtml(loja, irregularidadesLoja, customNotes);
 
     MailApp.sendEmail({
@@ -80,7 +80,7 @@ function sendEmailRegional(regionalName) {
       var irregularidades = data.apontamentosBrutos.filter(function(a) { return a.filialId === loja.filial; });
       if (irregularidades.length > 0) {
         var recipient = loja.gerenteEmail || EMAIL_ORGANIZADOR_PADRAO;
-        var subject = '[Magalu GP] Auditoria de Ponto e Jornada - ' + loja.nomeLoja;
+        var subject = '[Magalu GP] Apontamento de Ponto Eletrônico - ' + loja.nomeLoja;
         var htmlBody = buildEmailHtml(loja, irregularidades, 'Disparo automático em massa da Regional ' + loja.regional);
 
         MailApp.sendEmail({
