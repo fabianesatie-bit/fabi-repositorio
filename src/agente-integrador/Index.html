@@ -7,15 +7,14 @@
     <title>Dashboard de Impacto do Feedback | Magalu</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
                         magalu: {
                             blue: '#00529b',
@@ -29,204 +28,269 @@
         }
     </script>
     <style>
-        body {
-            background-color: theme('colors.magalu.bg');
-            -webkit-font-smoothing: antialiased;
+        body { background-color: theme('colors.magalu.bg'); -webkit-font-smoothing: antialiased; }
+        .sticky-top-container {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: rgba(248, 250, 252, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #e2e8f0;
         }
-        .glass-header {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+        .kpi-card-compact {
+            transition: all 0.2s ease;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 14px;
         }
-        .kpi-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .kpi-card-compact:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
         }
-        .kpi-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.08);
-        }
-        .loader-spinner {
-            border: 3px solid rgba(0, 82, 155, 0.1);
-            border-left-color: #00529b;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
+        .loader-spinner { border: 3px solid rgba(0, 82, 155, 0.1); border-left-color: #00529b; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .table-scroll::-webkit-scrollbar { height: 8px; }
+        .table-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
         .table-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
         .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .table-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .tab-btn { position: relative; padding-bottom: 10px; font-weight: 500; color: #64748b; }
+        .tab-btn.active { color: #00529b; font-weight: 700; }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: #0086ff;
+            border-radius: 3px 3px 0 0;
+        }
     </style>
 </head>
 <body class="text-slate-800 min-h-screen flex flex-col">
 
+    <!-- OVERLAY DE CARREGAMENTO -->
     <div id="loading" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center transition-opacity duration-300">
         <div class="loader-spinner mb-4"></div>
-        <h2 class="text-xl font-semibold text-slate-800 tracking-tight">Analisando Performance</h2>
-        <p class="text-sm text-slate-500 mt-2">Agrupando Diretorias e projetando faturamento...</p>
+        <h2 class="text-lg font-semibold text-slate-800 tracking-tight">Carregando Indicadores</h2>
+        <p class="text-xs text-slate-500 mt-1">Sincronizando regionais, filiais e contatos...</p>
     </div>
 
-    <header class="glass-header sticky top-0 z-40 px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-            <div class="text-magalu-blue font-black text-2xl tracking-tighter">magalu</div>
-            <div class="h-6 w-px bg-slate-300"></div>
-            <h1 class="text-lg font-semibold text-slate-700 tracking-tight">Impacto do Feedback</h1>
-        </div>
-        <div class="flex items-center gap-3 bg-white border border-slate-200 px-3 py-1.5 rounded-full shadow-sm hidden sm:flex">
-            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-            <span class="text-xs font-medium text-slate-600">Dados Sincronizados</span>
-        </div>
-    </header>
-
-    <main class="flex-1 w-full max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- ESTRUTURA FIXA NO TOPO -->
+    <div class="sticky-top-container shadow-sm">
         
-        <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-4 mb-8">
-            <div class="flex-1">
-                <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Análise Executiva</h2>
-                <p id="visaoAtivaText" class="text-slate-500 text-sm mt-1">Visão Atual: Companhia (Global)</p>
+        <!-- TOPBAR MARCA MAGALU -->
+        <div class="px-6 py-2.5 flex items-center justify-between border-b border-slate-200/60 bg-white">
+            <div class="flex items-center gap-3">
+                <div class="text-magalu-blue font-black text-xl tracking-tighter">magalu</div>
+                <div class="h-4 w-px bg-slate-300"></div>
+                <h1 class="text-sm font-semibold text-slate-700 tracking-tight">Impacto do Feedback</h1>
             </div>
+            <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-full">
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span class="text-[11px] font-medium text-slate-600">Dados Sincronizados</span>
+            </div>
+        </div>
+
+        <div class="max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-2">
             
-            <div class="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-                <div class="w-full sm:w-64">
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Filtrar Diretoria</label>
-                    <div class="relative">
-                        <select id="fDiretoria" class="w-full appearance-none bg-white border border-slate-300 text-slate-700 py-2.5 px-4 pr-10 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-magalu-light focus:border-magalu-light font-medium transition-shadow cursor-pointer disabled:bg-slate-50 disabled:text-slate-400">
+            <!-- LINHA 1: TÍTULO VISÃO ATIVA & FILTROS -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 tracking-tight leading-none">Análise Executiva</h2>
+                    <p id="visaoAtivaText" class="text-slate-500 text-xs mt-0.5">Visão Atual: Companhia (Global)</p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <div class="w-48 sm:w-56">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Filtrar Diretoria</label>
+                        <select id="fDiretoria" class="w-full bg-white border border-slate-300 text-slate-700 py-1 px-3 text-xs rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-magalu-light font-medium cursor-pointer">
                             <option value="">Todas as Diretorias</option>
                         </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
                     </div>
-                </div>
-                
-                <div class="w-full sm:w-64">
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Filtrar Regional</label>
-                    <div class="relative">
-                        <select id="fRegional" disabled class="w-full appearance-none bg-white border border-slate-300 text-slate-700 py-2.5 px-4 pr-10 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-magalu-light focus:border-magalu-light font-medium transition-shadow cursor-pointer disabled:bg-slate-50 disabled:text-slate-400">
+                    <div class="w-48 sm:w-56">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Filtrar Regional</label>
+                        <select id="fRegional" disabled class="w-full bg-white border border-slate-300 text-slate-700 py-1 px-3 text-xs rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-magalu-light font-medium cursor-pointer disabled:bg-slate-50 disabled:text-slate-400">
                             <option value="">Todas as Regionais</option>
                         </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div id="dashboardContent" class="space-y-6 opacity-0 transition-opacity duration-500">
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                
-                <!-- KPI 0: Volumetria de Pessoas -->
-                <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden group">
+            <!-- LINHA 2: CARDS EXECUTIVOS COMPACTOS -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                <!-- KPI 0 -->
+                <div class="kpi-card-compact relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-full h-1 bg-slate-400"></div>
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Time de Vendas</h3>
-                        <div class="p-1.5 bg-slate-50 text-slate-400 rounded-lg">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                        </div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">TIME DE VENDAS</span>
+                    <div class="flex items-baseline gap-2 mt-0.5">
+                        <span id="k0_total" class="text-xl font-black text-slate-800">0</span>
+                        <span class="text-[11px] text-slate-500"><b id="k0_pendentes" class="text-red-500">0</b> pendentes</span>
                     </div>
-                    <p id="k0_total" class="text-3xl font-black text-slate-800">0</p>
-                    <p class="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                        <span id="k0_pendentes" class="font-bold text-red-500">0</span> com pendências
-                    </p>
                 </div>
 
                 <!-- KPI 1 -->
-                <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden group">
+                <div class="kpi-card-compact relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-full h-1 bg-magalu-blue"></div>
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Ating. Em Dia</h3>
-                        <div class="p-1.5 bg-blue-50 text-magalu-blue rounded-lg">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                        </div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">ATING. EM DIA</span>
+                    <div class="flex items-baseline gap-2 mt-0.5">
+                        <span id="k2" class="text-xl font-black text-magalu-blue">0%</span>
+                        <span class="text-[10px] text-slate-400">Média Global</span>
                     </div>
-                    <p id="k2" class="text-3xl font-black text-slate-800">0%</p>
-                    <p class="text-[11px] text-slate-400 mt-2">Média Ponderada Global</p>
                 </div>
 
                 <!-- KPI 2 -->
-                <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden group">
+                <div class="kpi-card-compact relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-full h-1 bg-slate-300"></div>
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Ating. Pendente</h3>
-                        <div class="p-1.5 bg-slate-50 text-slate-400 rounded-lg">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
-                        </div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">ATING. PENDENTE</span>
+                    <div class="flex items-baseline gap-2 mt-0.5">
+                        <span id="k5" class="text-xl font-black text-slate-500">0%</span>
+                        <span class="text-[10px] text-slate-400">Média Global</span>
                     </div>
-                    <p id="k5" class="text-3xl font-black text-slate-500">0%</p>
-                    <p class="text-[11px] text-slate-400 mt-2">Média Ponderada Global</p>
                 </div>
 
                 <!-- KPI 3 -->
-                <div class="kpi-card bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden group lg:col-span-2">
+                <div class="kpi-card-compact relative overflow-hidden border-orange-200 bg-orange-50/30">
                     <div class="absolute top-0 left-0 w-full h-1 bg-magalu-orange"></div>
-                    <div class="absolute right-0 bottom-0 opacity-10 group-hover:scale-105 transition-transform duration-500 transform translate-x-4 translate-y-4">
-                        <svg class="w-32 h-32 text-magalu-orange" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.64-2.25 1.64-1.74 0-2.1-.96-2.17-1.92H8c.06 1.4 1.05 2.5 2.87 2.85V19h2.33v-1.67c1.47-.31 2.85-1.35 2.85-3.03-.01-2.27-1.87-2.99-3.74-3.44z"></path></svg>
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-bold text-magalu-orange uppercase tracking-wider block">FATURAMENTO PERDIDO</span>
+                        <span class="bg-red-100 text-red-700 text-[9px] font-bold px-1.5 py-0.2 rounded-full" id="k4">+0%</span>
                     </div>
-                    <div class="flex items-start justify-between">
+                    <div class="mt-0.5">
+                        <span id="k3" class="text-xl font-black text-magalu-orange">R$ 0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LINHA 3: NAVEGAÇÃO DE ABAS FIXA -->
+            <div class="flex gap-8 border-b border-slate-200/80 pt-1">
+                <button id="btnAbaGeral" onclick="alternarAba('geral')" class="tab-btn active text-xs">
+                    Visão Geral & Regionais
+                </button>
+                <button id="btnAbaAnalitico" onclick="alternarAba('analitico')" class="tab-btn text-xs">
+                    Analítico Filiais
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="flex-1 w-full max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        
+        <div id="dashboardContent" class="space-y-4 opacity-0 transition-opacity duration-300">
+            
+            <!-- ABA 1: VISÃO GERAL & REGIONAIS -->
+            <div id="abaGeral">
+                <!-- INSIGHT ESTRATÉGICO -->
+                <div id="insightCard" class="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl p-3.5 shadow-sm hidden mb-4">
+                    <div class="flex items-start gap-3">
+                        <span class="text-lg">💡</span>
                         <div>
-                            <div class="flex items-center gap-2 mb-2">
-                                <h3 class="text-[11px] font-bold text-magalu-orange uppercase tracking-wider">Faturamento Perdido</h3>
-                                <span class="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full" id="k4">+0%</span>
-                            </div>
-                            <p id="k3" class="text-4xl font-black text-magalu-orange relative z-10">R$ 0</p>
-                            <p class="text-xs text-slate-500 mt-2 max-w-[200px]">Projeção baseada na eficiência real da equipe regularizada.</p>
+                            <h4 class="text-orange-900 font-bold text-xs uppercase tracking-wide mb-0.5">Oportunidade Estratégica</h4>
+                            <p id="insightText" class="text-orange-800/90 text-xs leading-relaxed"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    <!-- Tabela por Regional -->
+                    <div class="lg:col-span-7 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Desempenho por Regional (% Feedbacks em Dia)</h3>
+                        <div class="overflow-x-auto table-scroll max-h-[420px]">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="sticky top-0 bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase">
+                                    <tr>
+                                        <th class="py-2.5 px-3">Regional</th>
+                                        <th class="py-2.5 px-3">Diretoria</th>
+                                        <th class="py-2.5 px-3 text-center">% Em Dia</th>
+                                        <th class="py-2.5 px-3 text-center">Concluídos / Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tblRegionaisBody" class="divide-y divide-slate-100 text-xs">
+                                    <!-- Injetado via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico da Regional -->
+                    <div class="lg:col-span-5 bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+                        <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Acompanhamento Visual</h3>
+                        <div class="relative flex-1 min-h-[260px] flex items-center justify-center">
+                            <canvas id="chartRegionais"></canvas>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div id="insightCard" class="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-2xl p-5 shadow-sm hidden">
-                <div class="flex items-start gap-4">
-                    <div class="bg-orange-100 p-2.5 rounded-full flex-shrink-0 mt-0.5">
-                        <span class="text-xl leading-none block">💡</span>
+            <!-- ABA 2: ANALÍTICO FILIAIS -->
+            <div id="abaAnalitico" class="hidden">
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Detalhamento por Filial</h2>
+                            <p class="text-xs text-slate-500">Ações diretas do GP, notificação por WhatsApp e lista nominal de colaboradores.</p>
+                        </div>
+                        <span id="txtTotalFiliaisVisiveis" class="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                            Mostrando 0 filiais
+                        </span>
                     </div>
-                    <div class="flex-1">
-                        <h4 class="text-orange-900 font-bold text-sm uppercase tracking-wide mb-1">Oportunidade Estratégica</h4>
-                        <p id="insightText" class="text-orange-800/90 text-sm leading-relaxed"></p>
+
+                    <div class="overflow-x-auto table-scroll max-h-[550px]">
+                        <table class="w-full text-left border-collapse whitespace-nowrap">
+                            <thead class="sticky top-0 bg-slate-50 border-y border-slate-200 text-[11px] font-semibold text-slate-500 uppercase">
+                                <tr>
+                                    <th class="py-2.5 px-2 text-center" style="width: 36px;"></th>
+                                    <th class="py-2.5 px-3">Filial (ID / Nome)</th>
+                                    <th class="py-2.5 px-3">Regional / Diretoria</th>
+                                    <th class="py-2.5 px-3 text-center">Novos Colab.</th>
+                                    <th class="py-2.5 px-3 text-center">Inconsistências</th>
+                                    <th class="py-2.5 px-3 text-center">% Realizado</th>
+                                    <th class="py-2.5 px-3">Telefone Gerente</th>
+                                    <th class="py-2.5 px-3 text-center">Ação GP</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tblFiliaisBody" class="divide-y divide-slate-100 text-xs">
+                                <!-- Injetado via JS -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
-            
-            <div id="pendentesSection" class="bg-white rounded-2xl border border-slate-200 shadow-sm hidden flex-col">
-                <div class="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                        <h3 class="text-lg font-bold text-slate-800">Action List: Feedbacks Pendentes</h3>
-                        <p class="text-sm text-slate-500 mt-1">Lista nominal para ação imediata da liderança correspondente.</p>
-                    </div>
-                </div>
-                
-                <div class="w-full overflow-x-auto table-scroll max-h-[500px]">
-                    <table class="w-full text-left border-collapse whitespace-nowrap relative">
-                        <thead class="sticky top-0 bg-slate-50 z-10">
-                            <tr class="border-y border-slate-200">
-                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Colaborador</th>
-                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Filial</th>
-                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Tempo de Casa</th>
-                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Atrasos</th>
-                                <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Atingimento</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pendentesBody" class="divide-y divide-slate-100 bg-white">
-                            <!-- Injetado via JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+
         </div>
     </main>
 
     <script>
         let APP_DATA = {};
+        let myChart = null;
+        const URL_UNIV_LUIZA = "https://universidadeluiza.com.br/app/menu/acompanhamento-do-periodo-de-experiencia-novos-colaboradores-de-loja";
+
+        function alternarAba(aba) {
+            const btnGeral = document.getElementById('btnAbaGeral');
+            const btnAnalitico = document.getElementById('btnAbaAnalitico');
+            const abaGeral = document.getElementById('abaGeral');
+            const abaAnalitico = document.getElementById('abaAnalitico');
+
+            if (aba === 'geral') {
+                btnGeral.classList.add('active');
+                btnAnalitico.classList.remove('active');
+                abaGeral.classList.remove('hidden');
+                abaAnalitico.classList.add('hidden');
+            } else {
+                btnAnalitico.classList.add('active');
+                btnGeral.classList.remove('active');
+                abaAnalitico.classList.remove('hidden');
+                abaGeral.classList.add('hidden');
+            }
+        }
 
         function carregarDadosDoServidor() {
             if (typeof google === 'undefined') {
                 document.getElementById('loading').style.display = 'none';
-                showFatalError("Ambiente Google Apps Script não detectado. Execute este código através de um Web App publicado.");
+                showFatalError("Ambiente Google Apps Script não detectado. Publique este script como Web App.");
                 return;
             }
 
@@ -250,8 +314,10 @@
                         }
                         
                         setupFiltros();
-                        // Inicializa visualizando a companhia total
                         renderDashboard(APP_DATA.global, 'Companhia (Global)');
+                        renderRegionaisTabelaEGrafico();
+                        renderFiliaisAnalitico();
+                        
                         document.getElementById('dashboardContent').style.opacity = '1';
 
                     } catch(e) {
@@ -269,9 +335,9 @@
             loadingEl.style.opacity = '1';
             loadingEl.style.display = 'flex';
             loadingEl.innerHTML = `
-                <div class="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg max-w-lg shadow-lg">
-                    <h3 class="text-red-800 font-bold text-lg mb-2">Falha na Execução</h3>
-                    <p class="text-red-700 text-sm">${msg}</p>
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg max-w-lg shadow-lg">
+                    <h3 class="text-red-800 font-bold text-sm mb-1">Falha na Execução</h3>
+                    <p class="text-red-700 text-xs">${msg}</p>
                 </div>
             `;
         }
@@ -280,44 +346,50 @@
             const elDiretoria = document.getElementById('fDiretoria');
             const elRegional = document.getElementById('fRegional');
             
-            // Popula Diretorias
-            const diretorias = Object.keys(APP_DATA.mapa).sort();
+            if (!elDiretoria || !elRegional) return;
+
+            elDiretoria.innerHTML = '<option value="">Todas as Diretorias</option>';
+            elRegional.innerHTML = '<option value="">Todas as Regionais</option>';
+            
+            const diretorias = Object.keys(APP_DATA.mapa || {}).sort();
             diretorias.forEach(d => elDiretoria.add(new Option(d, d)));
 
-            // Listener Cascata: Diretoria -> Regional
-            elDiretoria.addEventListener('change', function() {
+            elDiretoria.onchange = function() {
                 const diretoria = this.value;
-                
-                // Resetar Regionais
                 elRegional.innerHTML = '<option value="">Todas as Regionais</option>';
                 
                 if (!diretoria) {
                     elRegional.disabled = true;
                     renderDashboard(APP_DATA.global, 'Companhia (Global)');
+                    renderRegionaisTabelaEGrafico();
+                    renderFiliaisAnalitico();
                     return;
                 }
                 
-                // Popula Regionais da Diretoria
-                const regionais = APP_DATA.mapa[diretoria].sort();
+                const regionais = (APP_DATA.mapa[diretoria] || []).sort();
                 regionais.forEach(r => elRegional.add(new Option(r, r)));
                 elRegional.disabled = false;
                 
                 renderDashboard(APP_DATA.diretorias[diretoria], `Diretoria: ${diretoria}`);
-            });
+                renderRegionaisTabelaEGrafico(diretoria);
+                renderFiliaisAnalitico(diretoria, "");
+            };
 
-            // Listener Regional
-            elRegional.addEventListener('change', function() {
+            elRegional.onchange = function() {
                 const regional = this.value;
                 const diretoria = elDiretoria.value;
                 
                 if (regional) {
                     renderDashboard(APP_DATA.regionais[regional], `Regional: ${regional}`);
+                    renderFiliaisAnalitico(diretoria, regional);
                 } else if (diretoria) {
                     renderDashboard(APP_DATA.diretorias[diretoria], `Diretoria: ${diretoria}`);
+                    renderFiliaisAnalitico(diretoria, "");
                 } else {
                     renderDashboard(APP_DATA.global, 'Companhia (Global)');
+                    renderFiliaisAnalitico();
                 }
-            });
+            };
         }
 
         function formatCurrency(value) {
@@ -328,10 +400,8 @@
             if (!dadosScope) return;
             
             document.getElementById('visaoAtivaText').textContent = `Visão Atual: ${tituloScope}`;
-
             const faturamentoPerdido = dadosScope.faturamentoPerdido;
 
-            // Atualiza KPIs
             document.getElementById('k0_total').textContent = dadosScope.totalVendedores;
             document.getElementById('k0_pendentes').textContent = dadosScope.totalPendentes;
             document.getElementById('k2').textContent = `${dadosScope.mediaAtingimentoEmDia.toFixed(1)}%`;
@@ -339,101 +409,204 @@
             document.getElementById('k3').textContent = formatCurrency(faturamentoPerdido > 0 ? faturamentoPerdido : 0);
             document.getElementById('k4').textContent = `+${dadosScope.incrementoPotencialPercentual.toFixed(1)}%`;
             
-            // Insight Inteligente
             const insightCard = document.getElementById('insightCard');
             const insightText = document.getElementById('insightText');
             insightText.innerHTML = ''; 
             
             if (faturamentoPerdido > 1) {
                 insightCard.style.display = 'block';
-                
-                const bScope = document.createElement('b');
-                bScope.className = 'font-bold text-orange-900';
-                bScope.textContent = tituloScope;
-                
-                const bValor = document.createElement('b');
-                bValor.className = 'font-bold text-orange-900 px-1';
-                bValor.textContent = formatCurrency(faturamentoPerdido);
-                
-                insightText.appendChild(document.createTextNode('Focando na liderança de '));
-                insightText.appendChild(bScope);
-                insightText.appendChild(document.createTextNode(', destrava-se '));
-                insightText.appendChild(bValor);
-                insightText.appendChild(document.createTextNode(` apenas regularizando o quadro dos ${dadosScope.totalPendentes} vendedores pendentes.`));
+                insightText.innerHTML = `Focando na liderança de <b>${tituloScope}</b>, destrava-se <b class="px-1 text-orange-900">${formatCurrency(faturamentoPerdido)}</b> apenas regularizando o quadro dos ${dadosScope.totalPendentes} vendedores pendentes.`;
             } else {
                 insightCard.style.display = 'none';
             }
-
-            renderPendentesTable(dadosScope.colaboradoresPendentes);
         }
 
-        // Blindagem XSS: Criação via API DOM
-        function renderPendentesTable(colaboradoresPendentes) {
-            const tableSection = document.getElementById('pendentesSection');
-            const tableBody = document.getElementById('pendentesBody');
-            tableBody.innerHTML = '';
+        function renderRegionaisTabelaEGrafico(diretoriaFiltro = "") {
+            const tbody = document.getElementById("tblRegionaisBody");
+            tbody.innerHTML = "";
 
-            if (!colaboradoresPendentes || colaboradoresPendentes.length === 0) {
-                tableSection.style.display = 'none';
+            const labelsChart = [];
+            const dataChart = [];
+            const regionaisKeys = Object.keys(APP_DATA.regionais || {}).sort();
+
+            regionaisKeys.forEach(regName => {
+                const regData = APP_DATA.regionais[regName];
+                if (diretoriaFiltro && regData.diretoria !== diretoriaFiltro) return;
+
+                labelsChart.push(regName);
+                dataChart.push(regData.pctEmDia);
+
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50";
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 font-semibold text-slate-800">${regName}</td>
+                    <td class="py-2.5 px-3 text-slate-500">${regData.diretoria || '-'}</td>
+                    <td class="py-2.5 px-3 text-center font-bold ${regData.pctEmDia >= 60 ? 'text-green-600' : 'text-red-500'}">
+                        ${regData.pctEmDia.toFixed(1)}%
+                    </td>
+                    <td class="py-2.5 px-3 text-center text-slate-600">
+                        ${regData.totalConcluidos} / ${regData.totalVendedores}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            renderChart(labelsChart, dataChart);
+        }
+
+        function renderChart(labels, dataValues) {
+            const ctx = document.getElementById('chartRegionais').getContext('2d');
+            if (myChart) myChart.destroy();
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '% Feedback em Dia',
+                        data: dataValues,
+                        backgroundColor: '#0086ff',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 100 }
+                    }
+                }
+            });
+        }
+
+        function renderFiliaisAnalitico(diretoriaFiltro = "", regionalFiltro = "") {
+            const tbody = document.getElementById("tblFiliaisBody");
+            tbody.innerHTML = "";
+
+            const filiaisKeys = Object.keys(APP_DATA.filiais || {}).sort((a,b) => Number(a) - Number(b));
+            let totalVisiveis = 0;
+
+            filiaisKeys.forEach((filialId, index) => {
+                const filData = APP_DATA.filiais[filialId];
+
+                if (diretoriaFiltro && filData.diretoria !== diretoriaFiltro) return;
+                if (regionalFiltro && filData.regional !== regionalFiltro) return;
+
+                totalVisiveis++;
+                const subRowId = `sub-filial-${index}`;
+
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-slate-50 border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="py-2 px-2 text-center">
+                        <button onclick="toggleSubRow('${subRowId}')" class="w-5 h-5 rounded border border-slate-300 bg-white font-bold text-slate-600 hover:bg-slate-100 flex items-center justify-center text-[11px]">
+                            +
+                        </button>
+                    </td>
+                    <td class="py-2 px-3 font-bold text-slate-800">${filialId}</td>
+                    <td class="py-2 px-3 text-slate-600">${filData.regional} <br><small class="text-slate-400">${filData.diretoria}</small></td>
+                    <td class="py-2 px-3 text-center font-semibold text-slate-700">${filData.totalVendedores}</td>
+                    <td class="py-2 px-3 text-center">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-600 border border-red-100">
+                            ${filData.totalPendentes}
+                        </span>
+                    </td>
+                    <td class="py-2 px-3 text-center font-bold ${filData.pctEmDia >= 60 ? 'text-green-600' : 'text-slate-700'}">
+                        ${filData.pctEmDia.toFixed(1)}%
+                    </td>
+                    <td class="py-2 px-3">
+                        <input type="text" id="tel-${filialId}" value="${filData.telefoneGerente || ''}" 
+                               placeholder="DDD + Número" 
+                               onchange="salvarTelefone('${filialId}', this.value)"
+                               class="bg-white border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-magalu-light w-36" />
+                    </td>
+                    <td class="py-2 px-3 text-center">
+                        <button onclick="dispararWhatsApp('${filialId}', '${filData.regional}')" 
+                                class="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-500 font-semibold text-[11px] px-2.5 py-1 rounded-lg transition-colors">
+                            WhatsApp
+                        </button>
+                    </td>
+                `;
+
+                // Sub-tabela com os Colaboradores
+                const trSub = document.createElement("tr");
+                trSub.id = subRowId;
+                trSub.className = "hidden bg-slate-50/80 border-b border-slate-200";
+                
+                let subHtml = `
+                    <td colspan="8" class="p-3">
+                        <div class="bg-white rounded-lg p-3 border border-slate-200">
+                            <h4 class="font-bold text-slate-700 text-[11px] uppercase tracking-wider mb-2">Colaboradores com Pendências na Filial ${filialId}:</h4>
+                `;
+
+                if (filData.colaboradoresPendentes && filData.colaboradoresPendentes.length > 0) {
+                    subHtml += `<ul class="space-y-1 text-xs text-slate-600">`;
+                    filData.colaboradoresPendentes.forEach(c => {
+                        subHtml += `
+                            <li class="flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                <strong>${c.nome}</strong> - Tempo de Casa: ${c.diasContratados} dias | Atraso: <span class="text-red-600 font-bold">${c.quaisPendentes} (${c.diasAtraso} dias)</span>
+                            </li>
+                        `;
+                    });
+                    subHtml += `</ul>`;
+                } else {
+                    subHtml += `<p class="text-xs text-green-600 font-semibold">Nenhuma pendência nominal encontrada para esta filial!</p>`;
+                }
+
+                subHtml += `</div></td>`;
+                trSub.innerHTML = subHtml;
+
+                tbody.appendChild(tr);
+                tbody.appendChild(trSub);
+            });
+
+            document.getElementById("txtTotalFiliaisVisiveis").textContent = `Mostrando ${totalVisiveis} filiais`;
+        }
+
+        function toggleSubRow(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle("hidden");
+        }
+
+        function salvarTelefone(filialId, telefone) {
+            google.script.run
+                .withSuccessHandler(res => {
+                    if(!res.sucesso) alert("Aviso ao salvar telefone: " + res.mensagem);
+                })
+                .salvarTelefoneGerente(filialId, telefone);
+        }
+
+        function dispararWhatsApp(filialId, regional) {
+            const inputTel = document.getElementById(`tel-${filialId}`);
+            const telefone = inputTel ? inputTel.value.replace(/\D/g, "") : "";
+
+            if (!telefone) {
+                alert("Por favor, preencha o telefone do gerente antes de enviar a mensagem.");
                 return;
             }
 
-            colaboradoresPendentes.forEach((row, index) => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-50 transition-colors duration-150';
-                
-                const tdNome = document.createElement('td');
-                tdNome.className = 'px-6 py-4 font-medium text-slate-800';
-                tdNome.textContent = row.nome;
-                
-                const tdFilial = document.createElement('td');
-                tdFilial.className = 'px-6 py-4 text-sm text-slate-500';
-                tdFilial.textContent = row.filial;
-                
-                const tdDias = document.createElement('td');
-                tdDias.className = 'px-6 py-4 text-center';
-                const spanDias = document.createElement('span');
-                spanDias.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700';
-                spanDias.textContent = `${row.diasContratados} dias`;
-                tdDias.appendChild(spanDias);
-                
-                const tdPendentes = document.createElement('td');
-                tdPendentes.className = 'px-6 py-4';
-                const divTags = document.createElement('div');
-                divTags.className = 'flex gap-2 flex-wrap';
-                
-                const tags = row.quaisPendentes.split(', ');
-                tags.forEach(tag => {
-                    if(!tag) return;
-                    const spanTag = document.createElement('span');
-                    spanTag.className = 'inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-red-50 text-red-700 border border-red-100';
-                    spanTag.textContent = tag;
-                    divTags.appendChild(spanTag);
+            const filData = APP_DATA.filiais && APP_DATA.filiais[filialId];
+            const colaboradores = (filData && filData.colaboradoresPendentes) ? filData.colaboradoresPendentes : [];
+
+            let mensagem = `*Acompanhamento de Feedbacks - Magalu*\n\n`;
+            mensagem += `Olá Gerente da *Filial ${filialId} (${regional})*, tudo bem?\n`;
+            mensagem += `Constatamos pendências na realização do alinhamento/feedback dos novos colaboradores da sua equipe:\n\n`;
+
+            if (colaboradores.length > 0) {
+                colaboradores.forEach(c => {
+                    mensagem += `• *${c.nome}* - ${c.quaisPendentes} (${c.diasAtraso} dias de atraso)\n`;
                 });
-                tdPendentes.appendChild(divTags);
-                
-                const tdAting = document.createElement('td');
-                tdAting.className = 'px-6 py-4 text-right';
-                const atingValue = Math.round(row.atingimento);
-                const isSuccess = atingValue >= 100;
-                
-                const spanAting = document.createElement('span');
-                spanAting.className = `inline-flex items-center justify-center min-w-[3rem] px-2.5 py-1 rounded-full text-sm font-bold ${
-                    isSuccess ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
-                }`;
-                spanAting.textContent = `${atingValue}%`;
-                tdAting.appendChild(spanAting);
+                mensagem += `\n`;
+            } else {
+                mensagem += `• _Nenhuma pendência nominal mapeada._\n\n`;
+            }
 
-                tr.appendChild(tdNome);
-                tr.appendChild(tdFilial);
-                tr.appendChild(tdDias);
-                tr.appendChild(tdPendentes);
-                tr.appendChild(tdAting);
-                
-                tableBody.appendChild(tr);
-            });
+            mensagem += `*Link público de acesso à Universidade Luiza:*\n${URL_UNIV_LUIZA}\n\n`;
+            mensagem += `_Nota: Este é um acompanhamento oficial de gestão de pessoas. Lembramos que os detalhes completos também foram encaminhados por e-mail._`;
 
-            tableSection.style.display = 'flex';
+            const url = `https://api.whatsapp.com/send?phone=55${telefone}&text=${encodeURIComponent(mensagem)}`;
+            window.open(url, "_blank");
         }
 
         window.onload = carregarDadosDoServidor;
