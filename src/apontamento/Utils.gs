@@ -1,16 +1,21 @@
 /**
- * UTILITÁRIOS E MIDDLEWARE ARQUITETURAL
+ * UTILITÁRIOS E MIDDLEWARE ARQUITETURAL - ECOSSISTEMA GP360
  */
 
+/**
+ * Normaliza o ID de qualquer filial do ecossistema.
+ * Converte para número limpo e aplica a regra de borda para séries 3000/4000.
+ * Exemplo: Filial 4164 vira 1164.
+ * 
+ * @param {string|number} val - ID bruto da filial.
+ * @return {string} ID da filial normalizado.
+ */
 function normalizarFilialId(val) {
-  if (val === null || val === undefined || val === '') return "";
-  var str = String(val).trim();
-  var digits = str.replace(/\D/g, '');
-  if (digits.length > 0) {
-    var num = parseInt(digits, 10);
-    if (!isNaN(num)) return String(num);
-  }
-  return str;
+  if (!val && val !== 0) return "";
+  var num = parseInt(String(val).replace(/\D/g, ''), 10);
+  if (isNaN(num)) return String(val).trim();
+  if (num > 3000) { num -= 3000; }
+  return String(num);
 }
 
 function normalizarTextoUpper(texto) {

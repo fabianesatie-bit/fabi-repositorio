@@ -42,7 +42,7 @@
       <div class="bg-gradient-to-r from-emerald-600 to-teal-600 p-5 text-white flex flex-col sm:flex-row justify-between sm:items-center gap-3">
         <div>
           <h2 class="font-black text-base flex items-center gap-2">
-            <i class="bi bi-[#0086ff] bi-card-checklist text-lg"></i>
+            <i class="bi bi-card-checklist text-lg"></i>
             <span>Colaboradores Notificados para Treinamento</span>
           </h2>
           <p class="text-xs text-emerald-100 mt-0.5">Selecione o arquivo do certificado direto do seu computador/celular para regularização na planilha.</p>
@@ -185,15 +185,6 @@
             tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-red-500 font-bold">Erro de comunicação com o servidor.</td></tr>';
           })
           .obterColaboradoresPendentesFilial(reqFilialId);
-      } else {
-        // Dados simulados em ambiente local
-        if (icon) icon.classList.remove('animate-spin');
-        document.getElementById('nomeLojaTxt').innerText = 'Filial ' + reqFilialId + ' - Loja Franca Centro';
-        listaColabs = [
-          { filialId: reqFilialId, filialNome: 'Filial ' + reqFilialId, chapa: '317861', nome: 'Adriana Santana Ribeiro', cargo: 'Vendedor', tipoIrregularidade: 'Acesso Fora da Jornada', concluido: false },
-          { filialId: reqFilialId, filialNome: 'Filial ' + reqFilialId, chapa: '452109', nome: 'Carlos Eduardo Silva', cargo: 'Assistente de Vendas', tipoIrregularidade: 'Horas Extras Não Autorizadas', concluido: false }
-        ];
-        renderTableColaboradores();
       }
     }
 
@@ -296,14 +287,6 @@
               btn.innerHTML = '<i class="bi bi-cloud-arrow-up-fill"></i> Enviar';
             })
             .uploadCertificadoFile(payload);
-        } else {
-          // Simulação ambiente local
-          setTimeout(function() {
-            alert('Simulação: Certificado do colaborador ' + item.nome + ' enviado com sucesso!');
-            item.concluido = true;
-            item.linkCertificado = '#';
-            renderTableColaboradores();
-          }, 1000);
         }
       };
 
@@ -353,10 +336,6 @@
               btn.innerHTML = '<i class="bi bi-cloud-upload-fill"></i> Enviar Certificado Manual';
             })
             .uploadCertificadoFile(payload);
-        } else {
-          alert('Simulação: Certificado manual enviado!');
-          btn.disabled = false;
-          btn.innerHTML = '<i class="bi bi-cloud-upload-fill"></i> Enviar Certificado Manual';
         }
       };
       reader.readAsDataURL(file);

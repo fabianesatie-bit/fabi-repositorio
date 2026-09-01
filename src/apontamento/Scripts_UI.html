@@ -1,21 +1,36 @@
 <script>
+  /**
+   * ESTADO GLOBAL DA APLICAÇÃO (CLIENT-SIDE)
+   * ECOSSISTEMA GP360 - MÓDULO APONTAMENTO
+   */
   var appData = null;
-  var activeFilter = { diretoria: 'TODAS', regional: 'TODAS', filial: 'TODAS', tipoOcorrencia: 'TODAS' };
-  var searchDebounceTimer = null;
+  var currentPage = 1;
+  var itemsPerPage = 100;
+  var webAppBaseUrl = '';
+  var activeFilter = { 
+    diretoria: 'TODAS', 
+    regional: 'TODAS', 
+    filial: 'TODAS',
+    tipo: 'TODOS'
+  };
 
+  /**
+   * INICIALIZAÇÃO CONTROLADA
+   */
   window.addEventListener('DOMContentLoaded', function() {
-    var searchInput = document.getElementById('tableSearch');
-    if (searchInput) {
-      searchInput.addEventListener('input', function() {
-        if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
-        searchDebounceTimer = setTimeout(function() {
-          renderTable();
-        }, 150);
-      });
-    }
-    // Disparo único e otimizado no carregamento
-    refreshData(false);
+    fetchBaseUrl();
+    refreshData(true);
   });
+
+  function fetchBaseUrl() {
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(function(url) {
+          if (url) webAppBaseUrl = url;
+        })
+        .getWebAppUrl();
+    }
+  }
 
   function switchTab(tab) {
     var vDash = document.getElementById('viewDashboard');
@@ -30,88 +45,108 @@
     var btnCert = document.getElementById('tabBtnCertificados');
     var btnPed = document.getElementById('tabBtnPedagogico');
 
-    var defaultBtnClass = 'px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5';
-
-    if (btnDash) btnDash.className = defaultBtnClass;
-    if (btnCert) btnCert.className = defaultBtnClass;
-    if (btnPed) btnPed.className = defaultBtnClass;
+    if (btnDash) btnDash.className = 'px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5 transition-all';
+    if (btnCert) btnCert.className = 'px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5 transition-all';
+    if (btnPed) btnPed.className = 'px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5 transition-all';
 
     if (tab === 'dashboard') {
       if (vDash) vDash.classList.remove('hidden');
-      if (btnDash) btnDash.className = 'px-3 py-1.5 rounded-lg bg-white text-[#0086ff] shadow-sm flex items-center gap-1.5';
+      if (btnDash) btnDash.className = 'px-3 py-1.5 rounded-lg bg-white text-[#7C3AED] font-bold shadow-sm flex items-center gap-1.5 transition-all';
     } else if (tab === 'certificados') {
       if (vCert) vCert.classList.remove('hidden');
-      if (btnCert) btnCert.className = 'px-3 py-1.5 rounded-lg bg-white text-indigo-700 shadow-sm flex items-center gap-1.5';
+      if (btnCert) btnCert.className = 'px-3 py-1.5 rounded-lg bg-white text-indigo-700 font-bold shadow-sm flex items-center gap-1.5 transition-all';
       renderCertificadosTable();
     } else if (tab === 'pedagogico') {
       if (vPed) vPed.classList.remove('hidden');
-      if (btnPed) btnPed.className = 'px-3 py-1.5 rounded-lg bg-white text-purple-700 shadow-sm flex items-center gap-1.5';
+      if (btnPed) btnPed.className = 'px-3 py-1.5 rounded-lg bg-white text-purple-700 font-bold shadow-sm flex items-center gap-1.5 transition-all';
       renderPedagogicoTab();
     }
   }
 
-  function refreshData(force) {
-    var iconRef = document.getElementById('refreshIcon');
+  function refreshData(forceRefresh) {
     var iconSync = document.getElementById('iconSync');
-    if (iconRef) iconRef.classList.add('animate-spin');
     if (iconSync) iconSync.classList.add('animate-spin');
 
     if (typeof google !== 'undefined' && google.script && google.script.run) {
       google.script.run
         .withSuccessHandler(function(resRaw) {
-          if (iconRef) iconRef.classList.remove('animate-spin');
           if (iconSync) iconSync.classList.remove('animate-spin');
-          try {
-            var data = typeof resRaw === 'string' ? JSON.parse(resRaw) : resRaw;
-            if (data && data.sucesso) {
-              appData = data;
-              initDashboard();
+          
+          var data = typeof resRaw === 'string' ? JSON.parse(resRaw) : resRaw;
+          if (data && data.sucesso) {
+            
+            if (data.apontamentosBrutos && data.mapaLojas) {
+              data.apontamentosBrutos.forEach(function(item) {
+                var infoLoja = data.mapaLojas[item.filialId] || {
+                  nomeLoja: 'Filial ' + item.filialId,
+                  regional: 'Regional SP Interior',
+                  diretoria: 'Diretoria Lojas Sul/Sudeste'
+                };
+                item.filialNome = infoLoja.nomeLoja;
+                item.regional = infoLoja.regional;
+                item.diretoria = infoLoja.diretoria;
+              });
             }
-          } catch(e) {
-            console.error('Erro ao processar dados:', e);
+
+            appData = data;
+            initDashboard();
+          } else {
+            console.error('Erro retornado pelo servidor:', data ? data.erro : 'Erro desconhecido');
           }
         })
         .withFailureHandler(function(err) {
-          if (iconRef) iconRef.classList.remove('animate-spin');
           if (iconSync) iconSync.classList.remove('animate-spin');
-          console.error('Erro ao buscar dados:', err);
+          console.error('Erro na requisição Apps Script:', err);
         })
-        .obterDadosAuditoria(!!force);
+        .obterDadosAuditoria(!!forceRefresh);
     }
   }
 
   function initDashboard() {
     if (!appData) return;
     populateFilterOptions();
+    renderTipoOcorrenciaOptions();
     updateDashboard();
   }
 
   function populateFilterOptions() {
     var selDir = document.getElementById('selectDiretoria');
-    var selTipo = document.getElementById('selectTipoOcorrencia');
+    if (!selDir || !appData.mapaHierarquia) return;
 
-    if (selDir && appData && appData.mapaHierarquia) {
-      var opts = '<option value="TODAS">Todas as Diretorias</option>';
-      var dirs = Object.keys(appData.mapaHierarquia).sort();
-      dirs.forEach(function(d) {
-        opts += '<option value="' + d + '">' + d + '</option>';
-      });
-      selDir.innerHTML = opts;
-    }
+    var opts = '<option value="TODAS">Todas as Diretorias</option>';
+    var dirs = Object.keys(appData.mapaHierarquia).sort();
+    dirs.forEach(function(d) {
+      opts += '<option value="' + d + '">' + d + '</option>';
+    });
+    selDir.innerHTML = opts;
 
-    if (selTipo && appData && appData.apontamentosBrutos) {
-      var tiposSet = {};
-      appData.apontamentosBrutos.forEach(function(a) {
-        if (a.tipoIrregularidade) tiposSet[a.tipoIrregularidade] = true;
-      });
-      var optsTipo = '<option value="TODAS">Todos os Tipos</option>';
-      Object.keys(tiposSet).sort().forEach(function(t) {
-        optsTipo += '<option value="' + t + '">' + t + '</option>';
-      });
-      selTipo.innerHTML = optsTipo;
-    }
+    renderRegionalOptions();
+    renderFilialOptions();
+  }
 
-    onDiretoriaChange();
+  function renderTipoOcorrenciaOptions() {
+    var selTipo = document.getElementById('selectTipoOcorrencia') || document.querySelector('select[id*="Tipo"]');
+    if (!selTipo || !appData || !appData.apontamentosBrutos) return;
+
+    var tiposSet = new Set();
+    appData.apontamentosBrutos.forEach(function(item) {
+      if (item.tipoIrregularidade) tiposSet.add(item.tipoIrregularidade.trim());
+    });
+
+    var opts = '<option value="TODOS">Todos os Tipos</option>';
+    Array.from(tiposSet).sort().forEach(function(t) {
+      opts += '<option value="' + t + '">' + t + '</option>';
+    });
+    selTipo.innerHTML = opts;
+    selTipo.value = activeFilter.tipo;
+    selTipo.onchange = onTipoOcorrenciaChange;
+  }
+
+  function onTipoOcorrenciaChange() {
+    var selTipo = document.getElementById('selectTipoOcorrencia') || document.querySelector('select[id*="Tipo"]');
+    activeFilter.tipo = selTipo ? selTipo.value : 'TODOS';
+    currentPage = 1;
+    updateDashboard();
   }
 
   function onDiretoriaChange() {
@@ -120,26 +155,33 @@
     activeFilter.regional = 'TODAS';
     activeFilter.filial = 'TODAS';
 
-    var selReg = document.getElementById('selectRegional');
-    var opts = '<option value="TODAS">Todas as Regionais</option>';
+    renderRegionalOptions();
+    renderFilialOptions();
+    currentPage = 1;
+    updateDashboard();
+  }
 
+  function renderRegionalOptions() {
+    var selReg = document.getElementById('selectRegional');
+    if (!selReg) return;
+
+    var opts = '<option value="TODAS">Todas as Regionais</option>';
     if (appData && appData.mapaHierarquia) {
-      var regSet = {};
+      var regSet = new Set();
       if (activeFilter.diretoria === 'TODAS') {
         Object.keys(appData.mapaHierarquia).forEach(function(d) {
-          Object.keys(appData.mapaHierarquia[d]).forEach(function(r) { regSet[r] = true; });
+          Object.keys(appData.mapaHierarquia[d]).forEach(function(r) { regSet.add(r); });
         });
       } else if (appData.mapaHierarquia[activeFilter.diretoria]) {
-        Object.keys(appData.mapaHierarquia[activeFilter.diretoria]).forEach(function(r) { regSet[r] = true; });
+        Object.keys(appData.mapaHierarquia[activeFilter.diretoria]).forEach(function(r) { regSet.add(r); });
       }
 
-      Object.keys(regSet).sort().forEach(function(r) {
+      Array.from(regSet).sort().forEach(function(r) {
         opts += '<option value="' + r + '">' + r + '</option>';
       });
     }
-    if (selReg) selReg.innerHTML = opts;
-
-    onRegionalChange();
+    selReg.innerHTML = opts;
+    selReg.value = activeFilter.regional;
   }
 
   function onRegionalChange() {
@@ -147,9 +189,16 @@
     activeFilter.regional = selReg ? selReg.value : 'TODAS';
     activeFilter.filial = 'TODAS';
 
-    var selFil = document.getElementById('selectFilial');
-    var opts = '<option value="TODAS">Todas as Filiais</option>';
+    renderFilialOptions();
+    currentPage = 1;
+    updateDashboard();
+  }
 
+  function renderFilialOptions() {
+    var selFil = document.getElementById('selectFilial');
+    if (!selFil) return;
+
+    var opts = '<option value="TODAS">Todas as Filiais</option>';
     if (appData && appData.filiaisAlertas) {
       var filiais = appData.filiaisAlertas.filter(function(f) {
         var matchDir = activeFilter.diretoria === 'TODAS' || f.diretoria === activeFilter.diretoria;
@@ -157,42 +206,31 @@
         return matchDir && matchReg;
       });
 
-      // Ordena numericamente pelo número da filial (ID)
-      filiais.sort(function(a, b) {
-        var numA = parseInt(String(a.filial).replace(/\D/g, ''), 10) || 0;
-        var numB = parseInt(String(b.filial).replace(/\D/g, ''), 10) || 0;
-        return numA - numB;
-      });
-
       filiais.forEach(function(f) {
-        var label = f.filial + ' - ' + f.nomeLoja;
-        opts += '<option value="' + f.filial + '">' + label + '</option>';
+        opts += '<option value="' + f.filial + '">' + f.filial + ' - ' + f.nomeLoja + '</option>';
       });
     }
-    if (selFil) selFil.innerHTML = opts;
-
-    updateDashboard();
+    selFil.innerHTML = opts;
+    selFil.value = activeFilter.filial;
   }
 
   function onFilialChange() {
     var selFil = document.getElementById('selectFilial');
     activeFilter.filial = selFil ? selFil.value : 'TODAS';
-    updateDashboard();
-  }
-
-  function onTipoOcorrenciaChange() {
-    var selTipo = document.getElementById('selectTipoOcorrencia');
-    activeFilter.tipoOcorrencia = selTipo ? selTipo.value : 'TODAS';
+    currentPage = 1;
     updateDashboard();
   }
 
   function resetFilters() {
+    activeFilter = { diretoria: 'TODAS', regional: 'TODAS', filial: 'TODAS', tipo: 'TODOS' };
     var selDir = document.getElementById('selectDiretoria');
-    var selTipo = document.getElementById('selectTipoOcorrencia');
+    var selTipo = document.getElementById('selectTipoOcorrencia') || document.querySelector('select[id*="Tipo"]');
     if (selDir) selDir.value = 'TODAS';
-    if (selTipo) selTipo.value = 'TODAS';
-    activeFilter.tipoOcorrencia = 'TODAS';
-    onDiretoriaChange();
+    if (selTipo) selTipo.value = 'TODOS';
+    populateFilterOptions();
+    renderTipoOcorrenciaOptions();
+    currentPage = 1;
+    updateDashboard();
   }
 
   function getFilteredApontamentos() {
@@ -201,7 +239,7 @@
       var matchDir = activeFilter.diretoria === 'TODAS' || a.diretoria === activeFilter.diretoria;
       var matchReg = activeFilter.regional === 'TODAS' || a.regional === activeFilter.regional;
       var matchFil = activeFilter.filial === 'TODAS' || a.filialId === activeFilter.filial;
-      var matchTipo = activeFilter.tipoOcorrencia === 'TODAS' || a.tipoIrregularidade === activeFilter.tipoOcorrencia;
+      var matchTipo = activeFilter.tipo === 'TODOS' || (a.tipoIrregularidade && a.tipoIrregularidade.trim() === activeFilter.tipo);
       return matchDir && matchReg && matchFil && matchTipo;
     });
   }
@@ -228,77 +266,9 @@
     if (kpiLojas) kpiLojas.innerText = Object.keys(lojas).length;
     if (kpiCerts) kpiCerts.innerText = appData && appData.certificados ? appData.certificados.length : 0;
 
-    renderFiliaisTable();
     renderDynamicRanking();
+    renderFiliaisSummaryTable();
     renderTable();
-  }
-
-  function renderFiliaisTable() {
-    var tbody = document.getElementById('filiaisTableBody');
-    var badge = document.getElementById('badgeTotalFiliaisAfetadas');
-    if (!tbody) return;
-
-    var items = getFilteredApontamentos();
-    var mapFiliais = {};
-
-    items.forEach(function(it) {
-      var fid = it.filialId || '0';
-      if (!mapFiliais[fid]) {
-        mapFiliais[fid] = {
-          filialId: fid,
-          filialNome: it.filialNome || ('Filial ' + fid),
-          regional: it.regional || 'Regional SP Interior',
-          diretoria: it.diretoria || 'Diretoria Lojas Sul/Sudeste',
-          colabsMap: {},
-          totalApontamentos: 0
-        };
-      }
-      if (it.nome) mapFiliais[fid].colabsMap[it.nome] = true;
-      mapFiliais[fid].totalApontamentos += (it.quantidadeMes || 1);
-    });
-
-    var keys = Object.keys(mapFiliais).sort(function(a, b) {
-      return mapFiliais[b].totalApontamentos - mapFiliais[a].totalApontamentos;
-    });
-
-    if (badge) badge.innerText = keys.length + ' Filiais em Alerta';
-
-    if (keys.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 font-bold">Nenhuma filial com inconsistência encontrada para o filtro atual.</td></tr>';
-      return;
-    }
-
-    var certs = (appData && appData.certificados) ? appData.certificados : [];
-    var certsPerFilial = {};
-    certs.forEach(function(c) {
-      var fid = c.filialId;
-      certsPerFilial[fid] = (certsPerFilial[fid] || 0) + 1;
-    });
-
-    var htmlBuf = [];
-    keys.forEach(function(fid) {
-      var f = mapFiliais[fid];
-      var totalColabs = Object.keys(f.colabsMap).length;
-      var certsEnviados = certsPerFilial[fid] || 0;
-
-      htmlBuf.push(
-        '<tr class="hover:bg-slate-50/80 transition-colors">' +
-          '<td class="p-3 pl-5 font-bold text-slate-900">' + f.filialNome + ' <span class="text-[10px] text-slate-400 font-normal">(ID: ' + f.filialId + ')</span></td>' +
-          '<td class="p-3 text-slate-600 font-medium">' + f.regional + '<br><span class="text-[10px] text-slate-400">' + f.diretoria + '</span></td>' +
-          '<td class="p-3 text-center font-bold text-red-600">' + totalColabs + ' colaboradores</td>' +
-          '<td class="p-3 text-center font-black text-slate-800">' + f.totalApontamentos + '</td>' +
-          '<td class="p-3 text-center font-medium"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ' + (certsEnviados >= totalColabs ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700') + '">' + certsEnviados + ' de ' + totalColabs + ' entregues</span></td>' +
-          '<td class="p-3 pr-5 text-right">' +
-            '<div class="flex items-center justify-end gap-1.5">' +
-              '<button onclick="sendOfficialEmailAction(\'' + f.filialId + '\')" class="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold inline-flex items-center gap-1 transition-all" title="Notificar por E-mail"><i class="bi bi-envelope-fill"></i> <span>E-mail</span></button>' +
-              '<button onclick="openWhatsAppModal(\'' + f.filialId + '\')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white font-bold inline-flex items-center gap-1 transition-all" title="Enviar via WhatsApp"><i class="bi bi-whatsapp"></i> <span>WhatsApp</span></button>' +
-            '</div>' +
-          '</td>' +
-        '</tr>'
-      );
-    });
-
-    tbody.innerHTML = htmlBuf.join('');
   }
 
   function renderDynamicRanking() {
@@ -322,10 +292,10 @@
       html += '<div class="space-y-1">' +
         '<div class="flex justify-between text-xs font-semibold">' +
           '<span class="text-slate-700">' + r + '</span>' +
-          '<span class="text-red-600 font-bold">' + cnt + ' apontamentos</span>' +
+          '<span class="text-rose-600 font-bold">' + cnt + ' apontamentos</span>' +
         '</div>' +
         '<div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">' +
-          '<div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-full" style="width: ' + pct + '%"></div>' +
+          '<div class="bg-gradient-to-r from-purple-500 to-indigo-600 h-full" style="width: ' + pct + '%"></div>' +
         '</div>' +
       '</div>';
     });
@@ -333,43 +303,256 @@
     list.innerHTML = html || '<p class="text-xs text-slate-400">Nenhum dado encontrado.</p>';
   }
 
+  function renderFiliaisSummaryTable() {
+    var tbody = document.getElementById('summaryTableBody');
+    var badgeCount = document.getElementById('filiaisAlertaBadge');
+    if (!tbody) {
+      tbody = document.querySelector('#viewDashboard table tbody');
+    }
+    if (!tbody) return;
+
+    var items = getFilteredApontamentos();
+    var certs = (appData && appData.certificados) ? appData.certificados : [];
+
+    var summaryMap = {};
+    items.forEach(function(it) {
+      var fid = it.filialId;
+      if (!summaryMap[fid]) {
+        var infoLoja = (appData && appData.mapaLojas) ? appData.mapaLojas[fid] : null;
+        var telEncontrado = infoLoja ? (infoLoja.telefone || infoLoja.gerenteTelefone || infoLoja.tel || '') : '';
+
+        summaryMap[fid] = {
+          filialId: fid,
+          nomeLoja: it.filialNome || (infoLoja ? infoLoja.nomeLoja : 'Filial ' + fid),
+          regional: it.regional || (infoLoja ? infoLoja.regional : '-'),
+          diretoria: it.diretoria || (infoLoja ? infoLoja.diretoria : '-'),
+          telefone: String(telEncontrado).trim(),
+          colaboradoresMap: {},
+          totalInconsistencias: 0
+        };
+      }
+
+      var colabKey = String(it.chapa || it.nome);
+      if (!summaryMap[fid].colaboradoresMap[colabKey]) {
+        summaryMap[fid].colaboradoresMap[colabKey] = {
+          nome: it.nome,
+          chapa: it.chapa,
+          ocorrenciasMap: {}
+        };
+      }
+      var tipo = it.tipoIrregularidade || 'Ajuste de Ponto';
+      summaryMap[fid].colaboradoresMap[colabKey].ocorrenciasMap[tipo] = (summaryMap[fid].colaboradoresMap[colabKey].ocorrenciasMap[tipo] || 0) + (it.quantidadeMes || 1);
+
+      summaryMap[fid].totalInconsistencias += (it.quantidadeMes || 1);
+    });
+
+    var certsMap = {};
+    certs.forEach(function(c) {
+      var fid = c.filialId;
+      certsMap[fid] = (certsMap[fid] || 0) + 1;
+    });
+
+    var keys = Object.keys(summaryMap).sort(function(a,b) {
+      return summaryMap[b].totalInconsistencias - summaryMap[a].totalInconsistencias;
+    });
+
+    if (badgeCount) {
+      badgeCount.innerText = keys.length + ' Filiais em Alerta';
+    }
+
+    if (keys.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 text-xs font-bold">Nenhuma filial com alertas para o filtro selecionado.</td></tr>';
+      return;
+    }
+
+    var html = '';
+    keys.forEach(function(fid) {
+      var item = summaryMap[fid];
+      var totalColabs = Object.keys(item.colaboradoresMap).length;
+      var totalCerts = certsMap[fid] || 0;
+
+      html += '<tr class="hover:bg-slate-50/80 transition-colors border-b border-slate-100 text-xs">' +
+        '<td class="p-3 pl-5 font-bold text-slate-900">' + item.filialId + '</td>' +
+        '<td class="p-3 text-slate-600 font-medium">' + item.regional + '<div class="text-[10px] text-slate-400">' + item.diretoria + '</div></td>' +
+        '<td class="p-3 text-center font-bold text-slate-800">' + totalColabs + '</td>' +
+        '<td class="p-3 text-center"><span class="px-2.5 py-1 rounded-full font-black bg-rose-50 text-rose-700 border border-rose-100">' + item.totalInconsistencias + '</span></td>' +
+        '<td class="p-3 text-center font-bold text-slate-700">' + totalCerts + ' / ' + totalColabs + '</td>' +
+        '<td class="p-3 pr-5 text-right">' +
+          '<div class="flex items-center justify-end gap-2">' +
+            '<div class="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">' +
+              '<i class="bi bi-whatsapp text-emerald-600 pl-1 text-sm"></i>' +
+              '<input type="text" id="inputTel_' + item.filialId + '" value="' + item.telefone + '" onchange="salvarTelefoneBlur(\'' + item.filialId + '\', this.value)" onblur="salvarTelefoneBlur(\'' + item.filialId + '\', this.value)" placeholder="DDD + Número" class="w-28 px-1.5 py-0.5 text-[11px] bg-white border border-slate-300 rounded font-semibold text-slate-800 focus:outline-none focus:border-emerald-500" />' +
+            '</div>' +
+            '<button onclick="dispararWhatsAppFilial(\'' + item.filialId + '\')" class="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white font-bold flex items-center gap-1.5 transition-colors shadow-sm" title="Notificar Gerente via WhatsApp"><i class="bi bi-whatsapp"></i> <span>WhatsApp</span></button>' +
+          '</div>' +
+        '</td>' +
+      '</tr>';
+    });
+
+    tbody.innerHTML = html;
+  }
+
+  function salvarTelefoneBlur(filialId, novoTel) {
+    var telLimpo = String(novoTel || '').replace(/\D/g, '').trim();
+    if (!telLimpo) return;
+
+    if (appData && appData.mapaLojas && appData.mapaLojas[filialId]) {
+      appData.mapaLojas[filialId].gerenteTelefone = telLimpo;
+      appData.mapaLojas[filialId].telefone = telLimpo;
+      appData.mapaLojas[filialId].tel = telLimpo;
+    }
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res && res.success) {
+            console.log('Telefone gravado na Coluna H do DB_MASTER:', filialId, telLimpo);
+          }
+        })
+        .salvarTelefoneGerente(filialId, telLimpo);
+    }
+  }
+
+  /**
+   * MONTAGEM DO WHATSAPP COM O TERMO DE COMPLIANCE DESTAQUEDO LOGO NO INÍCIO DA MENSAGEM
+   */
+  function dispararWhatsAppFilial(filialId) {
+    var inputTel = document.getElementById('inputTel_' + filialId);
+    var numDigitado = inputTel ? inputTel.value.replace(/\D/g, '').trim() : '';
+
+    var items = getFilteredApontamentos().filter(function(it) { return it.filialId === filialId; });
+    if (items.length === 0) {
+      alert('Nenhum apontamento encontrado para a filial ' + filialId);
+      return;
+    }
+
+    var infoLoja = (appData && appData.mapaLojas) ? appData.mapaLojas[filialId] : null;
+    var nomeLoja = infoLoja ? infoLoja.nomeLoja : ('Filial ' + filialId);
+
+    // Agrupamento por colaborador e contabilização de multiplicadores [Nx]
+    var colabsMap = {};
+    items.forEach(function(it) {
+      var cKey = String(it.chapa || it.nome);
+      if (!colabsMap[cKey]) {
+        colabsMap[cKey] = {
+          nome: it.nome,
+          chapa: it.chapa,
+          ocorrencias: {}
+        };
+      }
+      var t = it.tipoIrregularidade || 'Ajuste de Ponto';
+      colabsMap[cKey].ocorrencias[t] = (colabsMap[cKey].ocorrencias[t] || 0) + (it.quantidadeMes || 1);
+    });
+
+    var listaTextoColabs = [];
+    Object.keys(colabsMap).forEach(function(ck) {
+      var colab = colabsMap[ck];
+      var olist = [];
+      Object.keys(colab.ocorrencias).forEach(function(oc) {
+        var qtd = colab.ocorrencias[oc];
+        olist.push(oc + (qtd > 1 ? ' [' + qtd + 'x]' : ''));
+      });
+      listaTextoColabs.push('• *' + colab.nome + '* (Chapa: ' + (colab.chapa || '-') + ') - ' + olist.join(', '));
+    });
+
+    var targetUrl = webAppBaseUrl || 'https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbwtc018whIZD34s5Tlx9s8I6Pg3HFJUT068XyUqVynM/exec';
+    if (targetUrl.indexOf('?') !== -1) {
+      targetUrl = targetUrl.split('?')[0];
+    }
+
+    var linkGerente = targetUrl + '?mode=certificado&filialId=' + filialId;
+    var linkCurso = 'https://universidadeluiza.com.br/app/home/canal/magalu?section=csc-conte-sempre-comigo&trail=ponto-eletronico-o-guia-essencial-do-colaborador';
+
+    // TEXTO DO WHATSAPP RECONFIGURADO COM TERMO DE COMPLIANCE LOGO NO INÍCIO
+    var txt = 'Olá, Gerente!\n\n' +
+      'Identificamos apontamentos de jornada na sua filial (*' + nomeLoja + '*).\n\n' +
+      '⚠️ *TERMO DE COMPLIANCE E CONFIDENCIALIDADE:*\n' +
+      'Esta mensagem destina-se exclusivamente à gestão da loja. É *estritamente proibido* compartilhar este conteúdo em grupos de WhatsApp, redes sociais ou encaminhar listas de inconsistências diretamente ao colaborador. Faça o alinhamento presencial e forneça unicamente o link do curso.\n\n' +
+      '📋 *Colaboradores Notificados e Inconsistências:*\n' +
+      listaTextoColabs.join('\n') + '\n\n' +
+      '🎓 *1. Treinamento Obrigatório dos Colaboradores:*\n' +
+      'Encaminhe o link do treinamento para os colaboradores afetados realizarem na Universidade Luiza:\n' +
+      linkCurso + '\n\n' +
+      '📎 *2. Envio dos Certificados pelo Gerente:*\n' +
+      'Após a conclusão, acesse o link abaixo para incluir os comprovantes:\n' +
+      linkGerente + '\n\n' +
+      '📧 *Nota:* Por favor, verifique também o e-mail oficial enviado para o gerente com os detalhes completos do acompanhamento.';
+
+    if (numDigitado) {
+      salvarTelefoneBlur(filialId, numDigitado);
+    }
+
+    var urlWa = 'https://api.whatsapp.com/send?' + (numDigitado ? 'phone=55' + numDigitado + '&' : '') + 'text=' + encodeURIComponent(txt);
+    window.open(urlWa, '_blank');
+  }
+
   function renderTable() {
     var tbody = document.getElementById('tableBody');
     if (!tbody) return;
 
-    var searchEl = document.getElementById('tableSearch');
-    var q = searchEl ? searchEl.value.toLowerCase().trim() : '';
+    var inputSearch = document.getElementById('tableSearch');
+    var q = inputSearch ? (inputSearch.value || '').toLowerCase() : '';
     var rawItems = getFilteredApontamentos();
 
-    var items = rawItems.filter(function(it) {
-      return !q || 
-        (it.nome && it.nome.toLowerCase().indexOf(q) !== -1) || 
-        (it.filialNome && it.filialNome.toLowerCase().indexOf(q) !== -1) ||
-        (it.filialId && String(it.filialId).toLowerCase().indexOf(q) !== -1) ||
-        (it.chapa && String(it.chapa).toLowerCase().indexOf(q) !== -1);
+    var groupedMap = {};
+    rawItems.forEach(function(it) {
+      var key = String(it.filialId) + '_' + String(it.chapa || it.nome) + '_' + String(it.tipoIrregularidade);
+      if (!groupedMap[key]) {
+        groupedMap[key] = {
+          filialId: it.filialId,
+          nome: it.nome,
+          chapa: it.chapa,
+          cargo: it.cargo,
+          tipoIrregularidade: it.tipoIrregularidade,
+          quantidadeMes: 0
+        };
+      }
+      groupedMap[key].quantidadeMes += (it.quantidadeMes || 1);
     });
 
-    if (items.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-400 text-xs font-bold">Nenhum apontamento encontrado com o filtro atual.</td></tr>';
+    var groupedList = Object.keys(groupedMap).map(function(k) { return groupedMap[k]; });
+
+    var filteredItems = groupedList.filter(function(it) {
+      return !q || 
+        (it.nome && it.nome.toLowerCase().includes(q)) || 
+        (it.chapa && it.chapa.toLowerCase().includes(q)) || 
+        (it.filialId && String(it.filialId).includes(q)) || 
+        (it.tipoIrregularidade && it.tipoIrregularidade.toLowerCase().includes(q));
+    });
+
+    if (filteredItems.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="p-8 text-center text-slate-400 text-xs font-bold">Nenhum colaborador encontrado para o filtro atual.</td></tr>';
       return;
     }
 
-    var htmlBuf = [];
-    items.forEach(function(item) {
-      htmlBuf.push(
-        '<tr class="hover:bg-slate-50/80 transition-colors">' +
-          '<td class="p-3 pl-5 font-bold text-slate-800">' + item.filialNome + '</td>' +
-          '<td class="p-3"><div class="font-bold text-slate-900">' + item.nome + '</div><div class="text-[10px] text-slate-400">Chapa: ' + (item.chapa || '-') + ' • ' + (item.cargo || 'Vendedor') + '</div></td>' +
-          '<td class="p-3"><span class="px-2.5 py-1 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">' + item.tipoIrregularidade + '</span></td>' +
-          '<td class="p-3 text-center font-black text-slate-800">' + (item.quantidadeMes || 1) + '</td>' +
-            '<div class="flex items-center justify-end gap-1.5">' +
-              '<button onclick="sendOfficialEmailAction(\'' + item.filialId + '\')" class="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold flex items-center gap-1 transition-all" title="Enviar Notificação por E-mail"><i class="bi bi-envelope-fill"></i> <span>E-mail</span></button>' +
-              '<button onclick="openWhatsAppModal(\'' + item.filialId + '\')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white font-bold flex items-center gap-1 transition-all" title="Enviar Notificação via WhatsApp"><i class="bi bi-whatsapp"></i> <span>WhatsApp</span></button>' +
-            '</div>' +
-        '</tr>'
-      );
+    var startIndex = 0;
+    var endIndex = currentPage * itemsPerPage;
+    var pageItems = filteredItems.slice(startIndex, endIndex);
+
+    var html = '';
+    pageItems.forEach(function(item) {
+      html += '<tr class="hover:bg-slate-50/80 transition-colors border-b border-slate-100 text-xs">' +
+        '<td class="p-3 pl-5 font-bold text-slate-800">' + item.filialId + '</td>' +
+        '<td class="p-3"><div class="font-bold text-slate-900">' + item.nome + '</div><div class="text-[10px] text-slate-400">Chapa: ' + (item.chapa || '-') + ' • ' + item.cargo + '</div></td>' +
+        '<td class="p-3"><span class="px-2.5 py-1 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100">' + item.tipoIrregularidade + '</span></td>' +
+        '<td class="p-3 pr-5 text-center font-black text-slate-800">' + item.quantidadeMes + '</td>' +
+      '</tr>';
     });
-    tbody.innerHTML = htmlBuf.join('');
+
+    if (filteredItems.length > endIndex) {
+      html += '<tr><td colspan="4" class="p-4 text-center bg-slate-50">' +
+        '<button onclick="loadMoreItems()" class="px-4 py-2 bg-[#7C3AED] hover:bg-purple-700 text-white font-bold rounded-xl text-xs shadow-sm transition-all">' +
+          'Carregar Mais Registros (' + endIndex + ' de ' + filteredItems.length + ')' +
+        '</button>' +
+      '</td></tr>';
+    }
+
+    tbody.innerHTML = html;
+  }
+
+  function loadMoreItems() {
+    currentPage++;
+    renderTable();
   }
 
   function renderCertificadosTable() {
@@ -381,46 +564,42 @@
     if (badge) badge.innerText = certs.length + ' registros';
 
     if (certs.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 font-bold">Nenhum certificado registrado ainda.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-400 font-bold text-xs">Nenhum certificado registrado ainda.</td></tr>';
       return;
     }
 
-    var htmlBuf = [];
+    var html = '';
     certs.forEach(function(c) {
-      htmlBuf.push(
-        '<tr class="hover:bg-slate-50/80">' +
-          '<td class="p-3 pl-5 text-slate-500 font-medium">' + c.dataEnvio + '</td>' +
-          '<td class="p-3 font-bold text-slate-900">' + c.filialNome + '</td>' +
-          '<td class="p-3"><div class="font-bold text-slate-800">' + c.colaboradorNome + '</div><div class="text-[10px] text-slate-400">Chapa: ' + c.chapa + '</div></td>' +
-          '<td class="p-3 text-slate-700 font-medium">' + (c.tipoTreinamento || c.cursoNome || 'Treinamento de Ponto') + '</td>' +
-          '<td class="p-3"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="bi bi-check-circle-fill"></i> ' + (c.status || 'Aprovado') + '</span></td>' +
-          '<td class="p-3 pr-5 text-right"><a href="' + (c.linkComprovante || '#') + '" target="_blank" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-[#0086ff] text-slate-700 hover:text-white font-bold inline-flex items-center gap-1 transition-colors"><i class="bi bi-box-arrow-up-right"></i> Ver Link</a></td>' +
-        '</tr>'
-      );
+      html += '<tr class="hover:bg-slate-50/80 border-b border-slate-100 text-xs">' +
+        '<td class="p-3 pl-5 text-slate-500 font-medium">' + c.dataEnvio + '</td>' +
+        '<td class="p-3 font-bold text-slate-900">' + c.filialNome + '</td>' +
+        '<td class="p-3"><div class="font-bold text-slate-800">' + c.colaboradorNome + '</div><div class="text-[10px] text-slate-400">Chapa: ' + c.chapa + '</div></td>' +
+        '<td class="p-3 text-slate-700 font-medium">' + (c.tipoTreinamento || c.cursoNome || '-') + '</td>' +
+        '<td class="p-3"><span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="bi bi-check-circle-fill"></i> ' + c.status + '</span></td>' +
+        '<td class="p-3 pr-5 text-right"><a href="' + (c.linkComprovante || '#') + '" target="_blank" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-[#7C3AED] text-slate-700 hover:text-white font-bold inline-flex items-center gap-1 transition-colors"><i class="bi bi-box-arrow-up-right"></i> Ver Link</a></td>' +
+      '</tr>';
     });
-    tbody.innerHTML = htmlBuf.join('');
+    tbody.innerHTML = html;
   }
 
   function renderPedagogicoTab() {
     var container = document.getElementById('pedagogicoCardsContainer');
     if (!container || !appData || !appData.filiaisAlertas) return;
 
-    var htmlBuf = [];
+    var html = '';
     appData.filiaisAlertas.slice(0, 6).forEach(function(loja) {
-      htmlBuf.push(
-        '<div class="bg-white p-5 rounded-2xl border border-slate-100 card-shadow space-y-3">' +
-          '<div class="flex justify-between items-start">' +
-            '<div>' +
-              '<h4 class="font-bold text-slate-900">' + loja.nomeLoja + '</h4>' +
-              '<p class="text-xs text-slate-400">' + loja.regional + ' • ' + loja.cidade + '/' + loja.estado + '</p>' +
-            '</div>' +
-            '<span class="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">Magalu GP</span>' +
+      html += '<div class="bg-white p-5 rounded-2xl border border-slate-100 card-shadow space-y-3">' +
+        '<div class="flex justify-between items-start">' +
+          '<div>' +
+            '<h4 class="font-bold text-slate-900 text-sm">' + loja.nomeLoja + '</h4>' +
+            '<p class="text-xs text-slate-400">' + loja.regional + ' • ' + loja.cidade + '/' + loja.estado + '</p>' +
           '</div>' +
-          '<p class="text-xs text-slate-600 leading-relaxed">Gerente: <span class="font-bold text-slate-800">' + loja.gerenteEmail + '</span></p>' +
-        '</div>'
-      );
+          '<span class="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full border border-purple-100">GP360</span>' +
+        '</div>' +
+        '<p class="text-xs text-slate-600 leading-relaxed">Gerente: <span class="font-bold text-slate-800">' + loja.gerenteEmail + '</span></p>' +
+      '</div>';
     });
-    container.innerHTML = htmlBuf.join('');
+    container.innerHTML = html;
   }
 
   function openModal(id) {
@@ -433,26 +612,16 @@
     if (m) { m.classList.remove('flex'); m.classList.add('hidden'); }
   }
 
-  function openCertificateModal() {
-    var sel = document.getElementById('certFilialSelect');
-    if (sel && appData && appData.filiaisAlertas) {
-      var opts = '';
-      appData.filiaisAlertas.forEach(function(l) {
-        opts += '<option value="' + l.filial + '">' + l.nomeLoja + '</option>';
-      });
-      sel.innerHTML = opts;
-    }
-    openModal('modalCertificado');
-  }
-
   function submitCertificateForm(e) {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+    
     var fid = document.getElementById('certFilialSelect').value;
-    var loja = (appData.filiaisAlertas || []).find(function(l){ return l.filial === fid; }) || { nomeLoja: 'Filial ' + fid };
+    var loja = (appData && appData.filiaisAlertas) ? appData.filiaisAlertas.find(function(l){ return l.filial === fid; }) : null;
+    var nomeLoja = loja ? loja.nomeLoja : ('Filial ' + fid);
 
     var payload = {
       filialId: fid,
-      filialNome: loja.nomeLoja,
+      filialNome: nomeLoja,
       colaboradorNome: document.getElementById('certColaborador').value,
       chapa: document.getElementById('certChapa').value,
       cargo: document.getElementById('certCargo').value,
@@ -460,43 +629,26 @@
       linkComprovante: document.getElementById('certLink').value,
       observacoes: document.getElementById('certObs').value,
       status: 'Aprovado',
-      registradoPor: (appData.perfil ? appData.perfil.nome : 'Gestor GP')
+      registradoPor: (appData && appData.perfil) ? appData.perfil.nome : 'Gestor GP'
     };
 
     if (typeof google !== 'undefined' && google.script && google.script.run) {
       google.script.run
         .withSuccessHandler(function(res) {
-          alert(res.message || 'Certificado salvo na planilha!');
+          alert(res.message || 'Certificado salvo com sucesso!');
           closeModal('modalCertificado');
           refreshData(true);
+        })
+        .withFailureHandler(function(err) {
+          alert('Erro ao salvar certificado: ' + err);
         })
         .saveCertificadoTreinamento(payload);
     }
   }
 
-  function sendOfficialEmailAction(filialId) {
-    if (confirm('Deseja enviar a notificação oficial para o gerente da filial ' + filialId + '?')) {
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            alert(res.message || 'E-mail enviado!');
-          })
-          .sendEmailFilial(filialId, 'Disparo via Dashboard de Auditoria GP360');
-      }
-    }
-  }
-
-  function openEmailAction(filialId) {
-    sendOfficialEmailAction(filialId);
-  }
-
   function triggerRegionalEmail() {
     var reg = activeFilter.regional;
-    var msg = reg === 'TODAS' 
-      ? 'Confirmar disparo de relatórios em massa para TODAS as regionais?' 
-      : 'Confirmar disparo de relatórios em massa para os gerentes da ' + reg + '?';
-
-    if (confirm(msg)) {
+    if (confirm('Confirmar disparo de e-mails de notificação em massa para TODOS os gerentes das lojas da ' + reg + '?')) {
       if (typeof google !== 'undefined' && google.script && google.script.run) {
         google.script.run
           .withSuccessHandler(function(res) { alert(res.message || 'E-mails enviados com sucesso!'); })
@@ -504,102 +656,5 @@
           .sendEmailRegional(reg);
       }
     }
-  }
-
-  var currentWaFilialId = '';
-
-  function openWhatsAppModal(filialId) {
-    currentWaFilialId = filialId;
-    var fNorm = (typeof normalizarFilialId === 'function') ? normalizarFilialId(filialId) : String(filialId);
-    var loja = (appData && appData.filiaisAlertas) 
-      ? appData.filiaisAlertas.find(function(l) { return String(l.filial) === String(filialId) || String(l.filial) === fNorm; }) 
-      : null;
-
-    var nomeLoja = loja ? loja.nomeLoja : ('Filial ' + filialId);
-
-    var elFilial = document.getElementById('waFilialNome');
-    if (elFilial) elFilial.value = nomeLoja + ' (Filial ' + filialId + ')';
-
-    // Buscar os apontamentos/colaboradores desta filial específica
-    var apontamentosFilial = (appData && appData.apontamentosBrutos) 
-      ? appData.apontamentosBrutos.filter(function(a) { 
-          return String(a.filialId) === String(filialId) || String(a.filialId) === fNorm; 
-        })
-      : [];
-
-    // Agrupar por colaborador para listar sem duplicar
-    var mapaColabMsg = {};
-    apontamentosFilial.forEach(function(a) {
-      var key = a.chapa || a.nome;
-      if (!mapaColabMsg[key]) {
-        mapaColabMsg[key] = {
-          nome: a.nome,
-          chapa: a.chapa,
-          cargo: a.cargo,
-          tiposMap: {},
-          totalCount: 0
-        };
-      }
-      var t = a.tipoIrregularidade || 'Apontamento em Aberto';
-      mapaColabMsg[key].tiposMap[t] = (mapaColabMsg[key].tiposMap[t] || 0) + 1;
-      mapaColabMsg[key].totalCount += (a.quantidadeMes || 1);
-    });
-
-    var colabsListaText = '';
-    var colabsKeys = Object.keys(mapaColabMsg);
-
-    if (colabsKeys.length > 0) {
-      colabsListaText = "\n📋 *Colaboradores Notificados e Inconsistências:*\n";
-      colabsKeys.forEach(function(k) {
-        var c = mapaColabMsg[k];
-        var resumoTipos = Object.keys(c.tiposMap).map(function(t) {
-          var q = c.tiposMap[t];
-          return q > 1 ? (t + ' [' + q + 'x]') : t;
-        }).join(', ');
-
-        colabsListaText += "• *" + c.nome + "* (Chapa: " + (c.chapa || '-') + ") - " + resumoTipos + "\n";
-      });
-    }
-
-    var linkCurso = 'https://universidadeluiza.com.br/app/home/canal/magalu?section=csc-conte-sempre-comigo&trail=ponto-eletronico-o-guia-essencial-do-colaborador';
-    var baseUrl = (window.location.href || '').split('?')[0];
-    var linkPortal = baseUrl + '?mode=certificado&filialId=' + filialId;
-
-    var previewMsg = "Olá, Gerente!\n\n" +
-      "Identificamos apontamentos de jornada na sua filial (*" + nomeLoja + "*).\n" +
-      colabsListaText + "\n" +
-      "🎓 *1. Treinamento Obrigatório dos Colaboradores:*\n" +
-      "Encaminhe o link do treinamento para os colaboradores afetados realizarem na Universidade Luiza:\n" +
-      linkCurso + "\n\n" +
-      "📎 *2. Envio dos Certificados pelo Gerente:*\n" +
-      "Após a conclusão, acesse o link abaixo para incluir os comprovantes:\n" +
-      linkPortal + "\n\n" +
-      "📧 *Nota:* Por favor, verifique também o e-mail oficial enviado para o gerente com os detalhes completos do acompanhamento.";
-
-    var elPreview = document.getElementById('waPreviewText');
-    if (elPreview) elPreview.value = previewMsg;
-
-    openModal('modalWhatsApp');
-  }
-
-  function dispararWhatsAppWeb() {
-    var phoneInput = document.getElementById('whatsappPhone');
-    var rawPhone = phoneInput ? phoneInput.value.trim() : '';
-
-    var digits = rawPhone.replace(/\D/g, '');
-    if (!digits) {
-      alert('Por favor, informe o número de telefone do gerente com DDD no campo de texto.');
-      return;
-    }
-
-    if (digits.length <= 11 && !digits.startsWith('55')) {
-      digits = '55' + digits;
-    }
-
-    var text = document.getElementById('waPreviewText').value;
-    var waUrl = 'https://api.whatsapp.com/send?phone=' + digits + '&text=' + encodeURIComponent(text);
-
-    window.open(waUrl, '_blank');
-    closeModal('modalWhatsApp');
   }
 </script>
