@@ -464,7 +464,34 @@ function processarNovaApuracao(dados) {
 
       if (emailGerenteLoja) enviarEmailGerenteFeedback(emailGerenteLoja, feedbackId, dados.feedback_gerente, feedbackLink, filial, copiasCC);
     }
+// === CÓDIGO A INSERIR: AGENDAMENTO AUTOMÁTICO NA AGENDA DO COORDENADOR ===
+    if (dados.agendar_intervencao === 'sim' && dados.data_intervencao && emailCoord) {
+      try {
+        var dataPartes = dados.data_intervencao.split('-');
+        var dataEvento = new Date(dataPartes[0], dataPartes[1] - 1, dataPartes[2], 9, 0, 0); // Define às 09:00 AM
+        var dataFim = new Date(dataPartes[0], dataPartes[1] - 1, dataPartes[2], 10, 0, 0);
 
+        var emailsCoordList = emailCoord.split(',');
+        emailsCoordList.forEach(function(emailC) {
+          var cal = CalendarApp.getCalendarById(emailC.trim());
+          if (!cal) cal = CalendarApp.getDefaultCalendar();
+          
+          cal.createEvent(
+            "[GP360] Intervenção / Monitoramento - Filial " + filial,
+            dataEvento,
+            dataFim,
+            {
+              description: "Detalhes da Intervenção: " + (dados.detalhes_intervencao || 'Sem detalhes'),
+              guests: emailC.trim(),
+              sendInvites: true
+            }
+          );
+        });
+      } catch (errCal) {
+        Logger.log("Erro ao agendar no Google Calendar: " + errCal.toString());
+      }
+    }
+    // =========================================================================
     return { sucesso: true, link: docLink, id: idApuracaoDefinitiva };
   } catch (err) { 
     return { sucesso: false, erro: err.toString() }; 

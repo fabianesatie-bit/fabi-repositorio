@@ -282,7 +282,50 @@ function processarNovaIntervencao(dados) {
     } else {
       sheet.appendRow(rowData);
     }
+// === CÓDIGO A INSERIR: ENVIO DE E-MAIL E CRIAÇÃO DE FEEDBACK NA ABA CLIMA ===
+    if (dados.enviar_feedback_gerente === 'sim' || dados.gerente_alvo_id) {
+      var fbSheet = ss.getSheetByName('Feedbacks_Gerentes') || ss.insertSheet('Feedbacks_Gerentes');
+      if (fbSheet.getLastRow() === 0) {
+        fbSheet.appendRow(['ID Feedback', 'Filial', 'Data Envio', 'Feedback Solicitado', 'E-mail Gerente', 'Status', 'Data Resposta', 'Considerações Gerente', 'Links Anexos', 'Nome Gerente', 'ID Gerente']);
+      }
+      
+      var feedbackId = 'FB-' + Utilities.getUuid().substring(0, 8).toUpperCase();
+      var emailGerenteLoja = contatos ? (contatos.gerenteEmail || contatos.gerenteLoja) : '';
+      
+      fbSheet.appendRow([feedbackId, filial, new Date(), dados.detalhes_intervencao, emailGerenteLoja || 'Não cadastrado', 'Pendente', '', '', '', dados.gerente_alvo_nome || '', dados.gerente_alvo_id || '']);
 
+      var webAppUrl = ScriptApp.getService().getUrl();
+      var feedbackLink = webAppUrl + "?page=gerente&idFeedback=" + feedbackId;
+      
+      var emailRegGP = contatos ? contatos.regionalEmail : '';
+      var copiados = [Session.getActiveUser().getEmail()];
+      if (emailRegGP) emailRegGP.split(',').forEach(function(e) { if (e.trim()) copiados.push(e.trim()); });
+      var copiasCC = [...new Set(copiados)].join(',');
+
+      if (emailGerenteLoja) {
+        enviarEmailGerenteFeedback(emailGerenteLoja, feedbackId, dados.detalhes_intervencao, feedbackLink, filial, copiasCC);
+      }
+    }
+
+    // Agendamento automático na agenda do Coordenador se houver 'data_intervencao'
+    if (dados.data_intervencao && contatos && contatos.coordenador) {
+      try {
+        var dataPartes = dados.data_intervencao.split('-');
+        var dataEvento = new Date(dataPartes[0], dataPartes[1] - 1, dataPartes[2], 9, 0, 0);
+        var dataFim = new Date(dataPartes[0], dataPartes[1] - 1, dataPartes[2], 10, 0, 0);
+
+        contatos.coordenador.split(',').forEach(function(emailC) {
+          var cal = CalendarApp.getCalendarById(emailC.trim());
+          if (!cal) cal = CalendarApp.getDefaultCalendar();
+          cal.createEvent("[GP360 Clima] Nova Ação Programada - Filial " + filial, dataEvento, dataFim, {
+            description: "Detalhes: " + dados.detalhes_intervencao,
+            guests: emailC.trim(),
+            sendInvites: true
+          });
+        });
+      } catch(eCal){}
+    }
+    // =========================================================================
     return { sucesso: true, id: idIntervencao };
   } catch (err) { 
     return { sucesso: false, erro: err.toString() }; 
@@ -387,7 +430,26 @@ function processarRespostaGerente(idFeedback, consideracoes, arquivosBase64) {
     sheet.getRange(rowIndex, 7).setValue(new Date());
     sheet.getRange(rowIndex, 8).setValue(consideracoes);
     sheet.getRange(rowIndex, 9).setValue(linksAnexos.join(' \n'));
+// === CÓDIGO A INSERIR: ENVIAR PLANO DE AÇÃO E TERMO AO COORDENADOR ===
+    var contatosFilial = obterContatosPorFilial(filial);
+    if (contatosFilial && contatosFilial.coordenador) {
+      var assuntoCoord = "[GP360] Plano de Ação & Termo de Ciência Recebidos - Filial " + filial;
+      var htmlCoord = 
+        '<div style="font-family: Arial, sans-serif; color: #1a1a1a; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">' +
+        '<h3 style="color: #0086FF;">Plano de Ação Concluído pelo Gerente</h3>' +
+        '<p><strong>Filial:</strong> ' + filial + '</p>' +
+        '<p><strong>Gestor:</strong> ' + nomeFinalGestor + '</p>' +
+        '<p><strong>Plano de Ação / Considerações:</strong><br>' + consideracoes + '</p>' +
+        '<p><strong>Termo de Ciência & Anexos:</strong><br><a href="' + pdfFile.getUrl() + '" target="_blank">Acessar Termo de Ciência (PDF)</a></p>' +
+        '</div>';
 
+      MailApp.sendEmail({
+        to: contatosFilial.coordenador,
+        subject: assuntoCoord,
+        htmlBody: htmlCoord
+      });
+    }
+    // =========================================================================
     return { sucesso: true };
   } catch (err) { 
     return { sucesso: false, erro: err.toString() }; 
