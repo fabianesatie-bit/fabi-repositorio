@@ -189,10 +189,11 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
     let userMoedasMes = placarMoedasMes[emailLogado] || 0;
     let userMoedasMesAnterior = placarMoedasMesAnterior[emailLogado] || 0;
 
+    // === NOVA REGRA: FASE BASEADA APENAS NO MÊS VIGENTE ===
     let faseMontanha = 1;
-    if (userMoedasTotal >= 120) faseMontanha = 4;
-    else if (userMoedasTotal >= 80) faseMontanha = 3;
-    else if (userMoedasTotal >= 40) faseMontanha = 2;
+    if (userMoedasMes >= 120) faseMontanha = 4;
+    else if (userMoedasMes >= 80) faseMontanha = 3;
+    else if (userMoedasMes >= 40) faseMontanha = 2;
 
     let ranking = Object.keys(placarMoedasTotal).map(email => {
         let nomeExibicao = 'GP';
@@ -204,20 +205,24 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
             let partesEmail = email.split('@')[0].split('.');
             nomeExibicao = partesEmail.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
         }
+        
         let totalU = placarMoedasTotal[email] || 0;
+        let moedasMesU = placarMoedasMes[email] || 0;
+        let moedasMesAnteriorU = placarMoedasMesAnterior[email] || 0;
 
+        // === NOVA REGRA RANKING: FASE BASEADA APENAS NO MÊS VIGENTE ===
         let faseU = 1;
-        if (totalU >= 120) faseU = 4;
-        else if (totalU >= 80) faseU = 3;
-        else if (totalU >= 40) faseU = 2;
+        if (moedasMesU >= 120) faseU = 4;
+        else if (moedasMesU >= 80) faseU = 3;
+        else if (moedasMesU >= 40) faseU = 2;
 
         return { 
           email: email, 
           nome: nomeExibicao, 
           foto: fotoExibicao, 
           moedas: totalU,
-          moedasMes: placarMoedasMes[email] || 0,
-          moedasMesAnterior: placarMoedasMesAnterior[email] || 0,
+          moedasMes: moedasMesU,
+          moedasMesAnterior: moedasMesAnteriorU,
           fase: faseU
         };
     });

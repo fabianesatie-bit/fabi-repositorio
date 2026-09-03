@@ -42,10 +42,11 @@ function registrarAtividade(dados, fileData) {
       const mesReg = dObj.getMonth() + 1; // 1 a 12
       const horasGastas = parseFloat(dados.tempoGasto) || 0;
 
-      // Aplica a regra (1 moeda a cada 2h) se for >= Setembro de 2026 e houver tempo preenchido
+      // Se for >= Setembro de 2026 e houver tempo preenchido
       if (anoReg > 2026 || (anoReg === 2026 && mesReg >= 9)) {
         if (horasGastas > 0) {
-          moedasFinais = Math.floor(horasGastas / 2);
+          // Math.ceil arredonda para cima: 0.5h a 2h = 1 moeda / 2.5h a 4h = 2 moedas
+          moedasFinais = Math.ceil(horasGastas / 2);
         }
       }
     }
@@ -64,7 +65,7 @@ function registrarAtividade(dados, fileData) {
     arrayInsert[6] = "";
     arrayInsert[7] = ""; 
     arrayInsert[8] = "";
-    arrayInsert[9] = moedasFinais; // Variável processada com a nova regra
+    arrayInsert[9] = moedasFinais; 
     arrayInsert[10] = dados.observacoes || "";
     arrayInsert[11] = linkEvidencia;
     arrayInsert[12] = dados.dataViagem || dados.dataAtividade || "";
