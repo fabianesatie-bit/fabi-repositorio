@@ -565,6 +565,7 @@
           <div id="container-casos" class="grid gap-2"></div>
         </div>
       </div>
+
       <form id="form-intervencao" onsubmit="salvarIntervencao(event)" class="hidden space-y-6">
         <input type="hidden" id="int_id_edicao">
         <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
@@ -632,8 +633,11 @@
             </div>
           </div>
         </div>
-        <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
-          <h3 class="text-lg font-bold border-b pb-2">Acompanhamento e Clima</h3>
+
+        <!-- BLOCO ACOMPANHAMENTO E CLIMA REESTRUTURADO -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-6">
+          <h3 class="text-lg font-bold border-b pb-2 text-orange-600"><i class="fa-solid fa-chart-line"></i> Acompanhamento e Clima</h3>
+          
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nota Humor (Depois)</label>
@@ -642,19 +646,57 @@
             <div>
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Evolução *</label>
               <select id="int_status_evolucao" onchange="toggleBlock('int_agenda_block', this.value !== 'Evoluiu', 'int_proxima_data')" class="w-full border p-3 rounded-lg focus:ring-[#FF5A00] outline-none font-semibold">
-                <option value="Evoluiu">Evoluiu</option><option value="Manter monitoramento">Manter monitoramento</option><option value="Regrediu">Regrediu</option>
+                <option value="Evoluiu">Evoluiu</option>
+                <option value="Manter monitoramento">Manter monitoramento</option>
+                <option value="Regrediu">Regrediu</option>
               </select>
             </div>
           </div>
+
           <div>
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Detalhes e Percepções Locais *</label>
             <textarea id="int_detalhes" required rows="3" class="w-full border p-3 rounded-lg focus:ring-[#FF5A00] outline-none text-sm"></textarea>
           </div>
+
           <div id="int_agenda_block" class="hidden">
             <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nova Data de Agenda *</label>
             <input type="date" id="int_proxima_data" class="w-full border p-3 rounded-lg focus:ring-[#FF5A00] outline-none">
           </div>
         </div>
+
+        <!-- BLOCO DESDOBRAMENTO E LIDERANÇA -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
+          <h3 class="text-lg font-bold border-b pb-2 text-orange-600"><i class="fa-solid fa-user-tie"></i> Desdobramento e Liderança</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Enviar Feedback de Clima ao Gerente? *</label>
+              <select id="int_enviar_feedback" onchange="toggleFeedbackGerente(this.value, 'int')" class="w-full border p-3 rounded-lg focus:ring-[#FF5A00] outline-none font-semibold">
+                <option value="nao">Não, encerrar sem pendência</option>
+                <option value="sim">Sim, enviar diretrizes para Ciência</option>
+              </select>
+            </div>
+            
+            <div id="int_feedback_gerente_block" class="hidden bg-red-50 border-2 border-red-300 p-4 rounded-xl shadow-inner md:col-span-2">
+              <label class="block text-xs font-black text-red-700 uppercase mb-1"><i class="fa-solid fa-triangle-exclamation"></i> Feedback Estruturado *</label>
+              <textarea id="int_feedback_texto" rows="4" class="w-full border border-red-200 p-3 rounded-lg focus:ring-red-500 outline-none text-sm"></textarea>
+              
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+                <div>
+                  <label class="block text-xs font-bold text-red-700 uppercase mb-1">ID do Gerente *</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="int_gerente_id" class="w-full border border-red-200 p-3 rounded-lg outline-none font-bold">
+                    <button type="button" onclick="buscarDadosIDGerente('int')" class="bg-red-500 text-white px-3 rounded-lg font-bold btn-busca"><i class="fa-solid fa-search"></i></button>
+                  </div>
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block text-xs font-bold text-red-700 uppercase mb-1">Nome do Gerente</label>
+                  <input type="text" id="int_gerente_nome" disabled class="w-full bg-white border border-red-200 p-3 rounded-lg text-gray-800 font-semibold shadow-inner">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div id="botoes-salvar-int">
           <button type="submit" class="w-full bg-[#FF5A00] text-white py-4 rounded-xl font-bold shadow-md transition">Registrar Desenvolvimento / Feedback</button>
         </div>
@@ -767,32 +809,33 @@
         <p id="msg-fechar-janela" class="hidden text-gray-500 text-sm font-bold mt-2">Processo finalizado. Você já pode fechar esta aba/janela com segurança.</p>
       </div>
     </section>
+
     <!-- MODAL POP-UP RESTREITO PARA INCLUSÃO DO PLANO DE AÇÃO PELO GERENTE -->
-  <div id="modal-plano-acao-gerente" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[80]">
-    <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full mx-4 border-t-8 border-[#FF5A00]">
-      <div class="flex justify-between items-center border-b pb-3 mb-4">
-        <h3 class="text-base font-black uppercase text-gray-800"><i class="fa-solid fa-user-tie text-[#FF5A00] mr-2"></i> Inclusão de Plano de Ação</h3>
-        <button type="button" onclick="fecharModalPlanoAcaoGerente()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+    <div id="modal-plano-acao-gerente" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-[80]">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full mx-4 border-t-8 border-[#FF5A00]">
+        <div class="flex justify-between items-center border-b pb-3 mb-4">
+          <h3 class="text-base font-black uppercase text-gray-800"><i class="fa-solid fa-user-tie text-[#FF5A00] mr-2"></i> Inclusão de Plano de Ação</h3>
+          <button type="button" onclick="fecharModalPlanoAcaoGerente()" class="text-gray-400 hover:text-gray-600 text-xl font-bold">&times;</button>
+        </div>
+        <form id="form-modal-plano-acao" onsubmit="enviarPlanoAcaoModal(event)" class="space-y-4">
+          <input type="hidden" id="modal_id_feedback">
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Ações Adotadas e Plano de Ação *</label>
+            <textarea id="modal_consideracoes" required rows="4" class="w-full border p-3 rounded-xl focus:ring-[#FF5A00] outline-none text-sm" placeholder="Descreva aqui o plano de ação detalhado..."></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Anexar Comprovante / Termo (Opcional)</label>
+            <input type="file" id="modal_arquivos" multiple accept="image/*,application/pdf" class="w-full text-xs text-gray-500 border p-2 rounded-lg">
+          </div>
+          <div class="flex gap-3 pt-2">
+            <button type="button" onclick="fecharModalPlanoAcaoGerente()" class="w-1/3 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-xl font-bold text-xs uppercase">Cancelar</button>
+            <button type="submit" class="w-2/3 bg-[#FF5A00] hover:bg-orange-600 text-white py-3 rounded-xl font-bold text-xs uppercase shadow-md flex justify-center items-center gap-2">
+              <i class="fa-solid fa-paper-plane"></i> Enviar ao Coordenador
+            </button>
+          </div>
+        </form>
       </div>
-      <form id="form-modal-plano-acao" onsubmit="enviarPlanoAcaoModal(event)" class="space-y-4">
-        <input type="hidden" id="modal_id_feedback">
-        <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Ações Adotadas e Plano de Ação *</label>
-          <textarea id="modal_consideracoes" required rows="4" class="w-full border p-3 rounded-xl focus:ring-[#FF5A00] outline-none text-sm" placeholder="Descreva aqui o plano de ação detalhado..."></textarea>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Anexar Comprovante / Termo (Opcional)</label>
-          <input type="file" id="modal_arquivos" multiple accept="image/*,application/pdf" class="w-full text-xs text-gray-500 border p-2 rounded-lg">
-        </div>
-        <div class="flex gap-3 pt-2">
-          <button type="button" onclick="fecharModalPlanoAcaoGerente()" class="w-1/3 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-xl font-bold text-xs uppercase">Cancelar</button>
-          <button type="submit" class="w-2/3 bg-[#FF5A00] hover:bg-orange-600 text-white py-3 rounded-xl font-bold text-xs uppercase shadow-md flex justify-center items-center gap-2">
-            <i class="fa-solid fa-paper-plane"></i> Enviar ao Coordenador
-          </button>
-        </div>
-      </form>
     </div>
-  </div>
   </main>
 
   <script>
@@ -1054,9 +1097,9 @@
        if (!id) return;
        showEl('global-loader'); setVal('loader-msg', 'Buscando cadastro...');
        runBackend('buscarColaboradorAtivo', [id], function(res) {
-          hideEl('global-loader');
-          if (res) { setVal('ap_den_nome_' + idx, res.nome); setVal('ap_den_filial_' + idx, res.filial); } 
-          else mostrarAlerta('Colaborador não encontrado. Preencha manualmente.');
+         hideEl('global-loader');
+         if (res) { setVal('ap_den_nome_' + idx, res.nome); setVal('ap_den_filial_' + idx, res.filial); } 
+         else mostrarAlerta('Colaborador não encontrado. Preencha manualmente.');
        });
     }
 
@@ -1065,9 +1108,9 @@
        if (!id) return;
        showEl('global-loader'); setVal('loader-msg', 'Buscando cadastro...');
        runBackend('buscarColaboradorAtivo', [id], function(res) {
-          hideEl('global-loader');
-          if (res) { setVal('int_colab_nome_' + idx, res.nome); setVal('int_colab_filial_' + idx, res.filial); } 
-          else mostrarAlerta('Não encontrado. Preencha manualmente.');
+         hideEl('global-loader');
+         if (res) { setVal('int_colab_nome_' + idx, res.nome); setVal('int_colab_filial_' + idx, res.filial); } 
+         else mostrarAlerta('Não encontrado. Preencha manualmente.');
        });
     }
 
@@ -1076,13 +1119,13 @@
        if (!id) return;
        showEl('global-loader'); setVal('loader-msg', 'Buscando cadastro...');
        runBackend('buscarColaboradorAtivo', [id], function(res) {
-          hideEl('global-loader');
-          if (res) { 
-             setVal('des_colaborador', res.nome); 
-             setVal('des_cargo', res.cargo);
-             setVal('des_tempo', res.tempo);
-          } 
-          else mostrarAlerta('Colaborador não encontrado. Preencha manualmente.');
+         hideEl('global-loader');
+         if (res) { 
+            setVal('des_colaborador', res.nome); 
+            setVal('des_cargo', res.cargo);
+            setVal('des_tempo', res.tempo);
+         } 
+         else mostrarAlerta('Colaborador não encontrado. Preencha manualmente.');
        });
     }
 
@@ -1091,9 +1134,9 @@
        if (!id) return;
        showEl('global-loader'); setVal('loader-msg', 'Buscando gerente...');
        runBackend('buscarColaboradorAtivo', [id], function(res) {
-          hideEl('global-loader');
-          if (res) { setVal(prefix + '_gerente_nome', res.nome); } 
-          else mostrarAlerta('Gerente não encontrado.');
+         hideEl('global-loader');
+         if (res) { setVal(prefix + '_gerente_nome', res.nome); } 
+         else mostrarAlerta('Gerente não encontrado.');
        });
     }
 
@@ -1276,13 +1319,13 @@
        showEl('global-loader');
        setVal('loader-msg', "Salvando parecer e vinculando ao Dossiê...");
        runBackend('salvarParecerDesligamentoLideranca', [id, texto], function(res) {
-          hideEl('global-loader');
-          if (res && res.sucesso) {
-             mostrarAlerta("Parecer inserido e aprovado com sucesso!");
-             irParaAprovacaoDesligamentos();
-          } else {
-             mostrarAlerta(res ? (res.erro || "Falha ao gravar parecer.") : "Erro de Conexão");
-          }
+         hideEl('global-loader');
+         if (res && res.sucesso) {
+            mostrarAlerta("Parecer inserido e aprovado com sucesso!");
+            irParaAprovacaoDesligamentos();
+         } else {
+            mostrarAlerta(res ? (res.erro || "Falha ao gravar parecer.") : "Erro de Conexão");
+         }
        });
     }
 
@@ -1513,7 +1556,6 @@
       var badgeDisp = getEl('display-filial-gerente-badge');
       if (badgeDisp) badgeDisp.textContent = 'F. ' + normalizedFilial;
 
-      // TRAVA FRONTEND RIGOROSA: Apenas Coord, DiretorRH, GTGP/GP ou Master tem acesso aos botões de Novo Cadastro
       var cargo = DADOS_USUARIO && DADOS_USUARIO.cargo ? DADOS_USUARIO.cargo.toLowerCase() : '';
       var podeLancarClima = false;
       
@@ -1657,7 +1699,6 @@
         
         container.innerHTML = '';
 
-        // TRAVA FRONTEND RIGOROSA: Apenas Coord, DiretorRH, GTGP/GP ou Master
         var cargo = DADOS_USUARIO && DADOS_USUARIO.cargo ? DADOS_USUARIO.cargo.toLowerCase() : '';
         var podeLancarClima = false;
         
@@ -1783,13 +1824,13 @@
         denunciados: [
           { id: getEl('ap_den_id_1') ? getEl('ap_den_id_1').value : '', nome: getEl('ap_den_nome_1') ? getEl('ap_den_nome_1').value : '', filial: getEl('ap_den_filial_1') ? getEl('ap_den_filial_1').value : '' },
           { id: getEl('ap_den_id_2') ? getEl('ap_den_id_2').value : '', nome: getEl('ap_den_nome_2') ? getEl('ap_den_nome_2').value : '', filial: getEl('ap_den_filial_2') ? getEl('ap_den_filial_2').value : '' },
-          { id: getEl('ap_den_id_3') ? getEl('ap_den_id_3').value : '', nome: getEl('ap_den_nome_3') ? getEl('ap_den_nome_3').value : '', filial: getEl('ap_den_filial_3') ? getEl('ap_den_filial_3').value : '' }
+          { id: getEl('ap_den_id_3') ? getEl('ap_den_id_3') ? getEl('ap_den_id_3').value : '' : '', nome: getEl('ap_den_nome_3') ? getEl('ap_den_nome_3').value : '', filial: getEl('ap_den_filial_3') ? getEl('ap_den_filial_3').value : '' }
         ]
       };
     }
 
     function salvarApuracaoDefinitiva(e) {
-      e.preventDefault();
+      if (e && e.preventDefault) e.preventDefault();
       showEl('global-loader');
       setVal('loader-msg', "Salvando apuração, gerando dossiê e anexando evidências no Drive...");
 
@@ -1823,7 +1864,7 @@
     }
 
     function salvarIntervencao(e) {
-      e.preventDefault();
+      if (e && e.preventDefault) e.preventDefault();
       showEl('global-loader');
       setVal('loader-msg', "Salvando feedback de clima e registrando para o gerente...");
 
@@ -1835,15 +1876,17 @@
         status_evolucao: getEl('int_status_evolucao') ? getEl('int_status_evolucao').value : '',
         detalhes_intervencao: getEl('int_detalhes') ? getEl('int_detalhes').value : '',
         data_intervencao: getEl('int_proxima_data') ? getEl('int_proxima_data').value : '',
-        enviar_feedback_gerente: 'nao', 
-        gerente_alvo_id: getEl('int_gerente_alvo_id') ? getEl('int_gerente_alvo_id').value : '',
-        gerente_alvo_nome: getEl('int_gerente_alvo_nome') ? getEl('int_gerente_alvo_nome').value : '',
+        enviar_feedback_gerente: getEl('int_enviar_feedback') ? getEl('int_enviar_feedback').value : 'nao',
+        feedback_gerente: getEl('int_feedback_texto') ? getEl('int_feedback_texto').value : '',
+        gerente_alvo_id: getEl('int_gerente_id') ? getEl('int_gerente_id').value : (getEl('int_gerente_alvo_id') ? getEl('int_gerente_alvo_id').value : ''),
+        gerente_alvo_nome: getEl('int_gerente_nome') ? getEl('int_gerente_nome').value : (getEl('int_gerente_alvo_nome') ? getEl('int_gerente_alvo_nome').value : ''),
         colaboradores: [
           { id: getEl('int_colab_id_1') ? getEl('int_colab_id_1').value : '', nome: getEl('int_colab_nome_1') ? getEl('int_colab_nome_1').value : '', filial: getEl('int_colab_filial_1') ? getEl('int_colab_filial_1').value : '' },
           { id: getEl('int_colab_id_2') ? getEl('int_colab_id_2').value : '', nome: getEl('int_colab_nome_2') ? getEl('int_colab_nome_2').value : '', filial: getEl('int_colab_filial_2') ? getEl('int_colab_filial_2').value : '' },
           { id: getEl('int_colab_id_3') ? getEl('int_colab_id_3').value : '', nome: getEl('int_colab_nome_3') ? getEl('int_colab_nome_3').value : '', filial: getEl('int_colab_filial_3') ? getEl('int_colab_filial_3').value : '' }
         ]
       };
+
       runBackend('processarNovaIntervencao', [dados], function(res) {
         if (res && res.sucesso) {
           finalizar('Feedback de Desenvolvimento Registrado com Sucesso.');
@@ -1855,7 +1898,7 @@
     }
 
     function salvarDesligamento(e) {
-      e.preventDefault();
+      if (e && e.preventDefault) e.preventDefault();
       showEl('global-loader');
       setVal('loader-msg', "Disparando dossiê de desligamento e notificando alçadas...");
 
@@ -1966,6 +2009,37 @@
         if (el) el.classList.add('hidden'); 
         if (input) input.removeAttribute('required'); 
       }
+    }
+
+    function abrirModalPlanoAcaoGerente(idFeedback) {
+      setVal('modal_id_feedback', idFeedback);
+      setVal('modal_consideracoes', '');
+      var m = getEl('modal-plano-acao-gerente');
+      if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+    }
+
+    function fecharModalPlanoAcaoGerente() {
+      var m = getEl('modal-plano-acao-gerente');
+      if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+    }
+
+    function enviarPlanoAcaoModal(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      var idFB = getEl('modal_id_feedback') ? getEl('modal_id_feedback').value : '';
+      var consideracoes = getEl('modal_consideracoes') ? getEl('modal_consideracoes').value : '';
+
+      showEl('global-loader');
+      setVal('loader-msg', "Enviando Plano de Ação e notificando Coordenador...");
+
+      runBackend('processarRespostaGerente', [idFB, consideracoes, ARQUIVOS_GERENTE_PASTED], function(res) {
+        hideEl('global-loader');
+        if (res && res.sucesso) {
+          fecharModalPlanoAcaoGerente();
+          finalizar("Plano de Ação e Termo de Ciência enviados ao Coordenador com sucesso!");
+        } else {
+          mostrarAlerta(res ? res.erro : "Falha ao enviar Plano de Ação.");
+        }
+      });
     }
 
     function finalizar(msg, link) {
