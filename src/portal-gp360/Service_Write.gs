@@ -32,7 +32,7 @@ function registrarAtividade(dados, fileData) {
       linkEvidencia = dados.linkEvidenciaExterna;
     }
 
-    // --- NOVA REGRA DE MOEDAS (A partir de Setembro/2026) ---
+    // --- NOVA REGRA DE MOEDAS: SEM TEMPO MÍNIMO (A partir de Setembro/2026) ---
     let moedasFinais = (dados.moedas !== undefined) ? dados.moedas : 1;
     const dataAlvo = dados.dataViagem || dados.dataAtividade || "";
     
@@ -42,15 +42,19 @@ function registrarAtividade(dados, fileData) {
       const mesReg = dObj.getMonth() + 1; // 1 a 12
       const horasGastas = parseFloat(dados.tempoGasto) || 0;
 
-      // Se for >= Setembro de 2026 e houver tempo preenchido
+      // Se o lançamento for de Setembro de 2026 em diante
       if (anoReg > 2026 || (anoReg === 2026 && mesReg >= 9)) {
-        if (horasGastas > 0) {
-          // Math.ceil arredonda para cima: 0.5h a 2h = 1 moeda / 2.5h a 4h = 2 moedas
-          moedasFinais = Math.ceil(horasGastas / 2);
+        // Divide as horas por 2 e arredonda para cima
+        // Ex: 1.5h = 1 moeda | 2.0h = 1 moeda | 2.5h = 2 moedas
+        moedasFinais = Math.ceil(horasGastas / 2);
+        
+        // TRAVA DE PISO: Se der menos de 1 (ex: usuário deixou vazio ou zero), garante 1 moeda.
+        if (moedasFinais < 1) {
+          moedasFinais = 1;
         }
       }
     }
-    // --------------------------------------------------------
+    // -------------------------------------------------------------------------
 
     const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('DADOS_LANCAMENTOS');
     const arrayInsert = new Array(27).fill("");
