@@ -40,6 +40,10 @@
           <i class="bi bi-award-fill"></i>
           <span>Certificados</span>
         </button>
+        <button id="tabBtnAnalitica" onclick="switchTab('analitica')" class="hidden px-3 py-1.5 rounded-lg text-white/90 hover:bg-white/10 flex items-center gap-1.5 transition-all text-xs font-semibold">
+          <i class="bi bi-bar-chart-line-fill"></i>
+          <span>Visão Analítica GP</span>
+        </button>
       </div>
 
       <!-- User Profile Pill -->
@@ -223,6 +227,11 @@
           </table>
         </div>
       </div>
+    </div>
+
+    <!-- TAB 3: VISÃO ANALÍTICA GP E ORIENTAÇÃO DO COORDENADOR -->
+    <div id="viewAnalitica" class="hidden space-y-6">
+      <!-- Conteúdo renderizado dinamicamente pela função renderVisaoAnaliticaCoordenador() -->
     </div>
   </main>
 

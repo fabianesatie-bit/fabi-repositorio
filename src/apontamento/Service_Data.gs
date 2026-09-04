@@ -16,7 +16,7 @@ var Service_Data = (function() {
   function obterDadosAuditoria(forceRefresh) {
     try {
       var cache = CacheService.getScriptCache();
-      var cacheKey = 'AUDITORIA_DATA_CACHE_V20';
+      var cacheKey = 'AUDITORIA_DATA_CACHE_V21';
       
       if (!forceRefresh) {
         var cachedData = cache.get(cacheKey);
@@ -181,6 +181,10 @@ var Service_Data = (function() {
 
       var payloadObj = {
         sucesso: true,
+        perfil: {
+          nome: 'Coordenador GP',
+          role: 'CoordenadorGP' // Atribui perfil Padrão
+        },
         kpisGlobais: {
           colaboradoresIrregulares: Object.keys(colabsUnicos).length,
           apontamentosCriticos: totalIrregularidades
@@ -251,7 +255,7 @@ var Service_Data = (function() {
       }
 
       if (alterou) {
-        CacheService.getScriptCache().remove('AUDITORIA_DATA_CACHE_V20');
+        CacheService.getScriptCache().remove('AUDITORIA_DATA_CACHE_V21');
         return { success: true, message: 'Telefone salvo com sucesso em todas as linhas da filial!' };
       }
 
@@ -264,9 +268,6 @@ var Service_Data = (function() {
     }
   }
 
-  /**
-   * DISPARO DE E-MAIL EM MASSA COM DESTAQUE DE COMPLIANCE NO INÍCIO DO CORPO
-   */
   function sendEmailRegional(regionalNome) {
     var lock = LockService.getScriptLock();
     try {
@@ -305,7 +306,6 @@ var Service_Data = (function() {
           '<div style="padding: 24px; background-color: #FFFFFF;">' +
             '<p style="font-size: 14px; margin-top: 0;">Olá, <b>Gerente de Loja</b>,</p>' +
 
-            '<!-- BLOCO DE CONFIDENCIALIDADE NO TOPO -->' +
             '<div style="background-color: #FFF1F2; border-left: 5px solid #F43F5E; padding: 14px 18px; margin: 16px 0 20px 0; border-radius: 8px;">' +
               '<p style="margin: 0; font-size: 12px; color: #9F1239; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">⚠️ TERMO DE COMPLIANCE E CONFIDENCIALIDADE:</p>' +
               '<p style="margin: 6px 0 0 0; font-size: 11px; color: #881337; line-height: 1.5; font-weight: 500;">' +
@@ -480,7 +480,7 @@ var Service_Data = (function() {
         String(payload.observacoes || '')
       ]);
 
-      CacheService.getScriptCache().remove('AUDITORIA_DATA_CACHE_V20');
+      CacheService.getScriptCache().remove('AUDITORIA_DATA_CACHE_V21');
 
       return { success: true, message: 'Certificado de treinamento registrado com sucesso!' };
     } catch (err) {
