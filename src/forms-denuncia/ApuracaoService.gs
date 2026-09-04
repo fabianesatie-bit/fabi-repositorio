@@ -169,7 +169,7 @@ function salvarRascunhoApuracao(dados, tipoAcao) {
     }
 
     if (tipoAcao === 'comite' && contatos) {
-      dispararAlertaComitePreliminar(contatos, filial, statusEstado, linkDoc, dados.origem, stringDenunciadosUnificada);
+      dispararAlertaComitePreliminar(contatos, filial, statusEstado, linkDoc, dados.origem, stringDenunciadosUnificada, dados.protocolo);
     }
     
     return { sucesso: true, idRascunho: idRascunho, linkDoc: linkDoc, tipoAcao: tipoAcao };
@@ -185,6 +185,7 @@ function criarOuAtualizarDocPreliminarComite(idRascunho, linkExistente, dados, f
     const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
     let doc = null;
     let docId = '';
+    const numProtocolo = dados.protocolo || idRascunho;
 
     if (linkExistente && linkExistente.includes('document/d/')) {
       const match = linkExistente.match(/[-\w]{25,}/);
@@ -194,7 +195,7 @@ function criarOuAtualizarDocPreliminarComite(idRascunho, linkExistente, dados, f
 
     if (!doc) {
       const templateFile = DriveApp.getFileById(TEMPLATE_DOC_ID);
-      const newFileName = "[PRELIMINAR - COMITÊ] Relatorio F." + filial + " - " + denunciadosStr + " - " + new Date().toLocaleDateString('pt-BR');
+      const newFileName = "[PRELIMINAR COMITÊ - PROT: " + numProtocolo + "] Relatorio F." + filial + " - " + denunciadosStr + " - " + new Date().toLocaleDateString('pt-BR');
       const copiedFile = templateFile.makeCopy(newFileName, folder);
       docId = copiedFile.getId();
       doc = DocumentApp.openById(docId);
@@ -204,6 +205,7 @@ function criarOuAtualizarDocPreliminarComite(idRascunho, linkExistente, dados, f
     body.setText(''); 
 
     body.appendParagraph("REGISTRO PRELIMINAR - REVISÃO DE COMITÊ").setHeading(DocumentApp.ParagraphHeading.HEADING1);
+    body.appendParagraph("PROTOCOLO: " + numProtocolo).setHeading(DocumentApp.ParagraphHeading.HEADING3);
     body.appendParagraph("Atenção: Este documento é um RASCUNHO EM ANÁLISE e não possui validade de encerramento definitivo.\n");
 
     body.appendParagraph("1. DADOS DE CONTROLE").setHeading(DocumentApp.ParagraphHeading.HEADING2);
@@ -226,39 +228,26 @@ function criarOuAtualizarDocPreliminarComite(idRascunho, linkExistente, dados, f
 
     doc.saveAndClose();
 
-    if (contatos) {
-      aplicarPermissoesArquivo(docId, contatos.coordenador, 'LEITOR');
-      aplicarPermissoesArquivo(docId, contatos.regionalEmail, 'LEITOR');
-      if (dados.origem !== 'Interna') {
-        aplicarPermissoesArquivo(docId, contatos.gerenteGP, 'LEITOR');
-        aplicarPermissoesArquivo(docId, contatos.compliance, 'LEITOR');
-        aplicarPermissoesArquivo(docId, contatos.diretorRH, 'LEITOR');
-      }
-    }
-
     return DriveApp.getFileById(docId).getUrl();
   } catch (e) {
     return '';
   }
 }
 
-function dispararAlertaComitePreliminar(contatos, filial, status, linkDoc, origem, denunciadosStr) {
+function dispararAlertaComitePreliminar(contatos, filial, status, linkDoc, origem, denunciadosStr, protocolo) {
   const lista = [];
-  if (origem === 'Interna') {
-    if (contatos.coordenador) contatos.coordenador.split(',').forEach(e => lista.push(e.trim()));
-    if (contatos.regionalEmail) contatos.regionalEmail.split(',').forEach(e => lista.push(e.trim()));
-  } else {
-    if (contatos.coordenador) contatos.coordenador.split(',').forEach(e => lista.push(e.trim()));
-    if (contatos.gerenteGP) contatos.gerenteGP.split(',').forEach(e => lista.push(e.trim()));
-    if (contatos.regionalEmail) contatos.regionalEmail.split(',').forEach(e => lista.push(e.trim()));
-    if (contatos.compliance) contatos.compliance.split(',').forEach(e => lista.push(e.trim()));
-    if (contatos.diretorRH) contatos.diretorRH.split(',').forEach(e => lista.push(e.trim()));
-  }
+  const numProtocolo = protocolo || 'N/A';
 
-  const destinatarios = [...new Set(lista)].filter(e => e);
+  // COMITÊ CANAL: Gerente GP, Diretor RH, Regional e Compliance
+  if (contatos.gerenteGP) contatos.gerenteGP.split(',').forEach(e => lista.push(e.trim()));
+  if (contatos.diretorRH) contatos.diretorRH.split(',').forEach(e => lista.push(e.trim()));
+  if (contatos.regionalEmail) contatos.regionalEmail.split(',').forEach(e => lista.push(e.trim()));
+  if (contatos.compliance) contatos.compliance.split(',').forEach(e => lista.push(e.trim()));
+
+  const destinatarios = [...new Set(lista)].filter(e => e && e.indexOf('@') !== -1);
   if (destinatarios.length === 0) return;
 
-  const assunto = "[ANÁLISE COMITÊ] Apuração Pendente F." + filial + " (" + denunciadosStr + ")";
+  const assunto = "[ANÁLISE COMITÊ - PROT: " + numProtocolo + "] Apuração Pendente F." + filial + " (" + denunciadosStr + ")";
   const htmlBody = 
     '<div style="font-family: Arial, sans-serif; color: #1a1a1a; max-width: 600px; margin: 0 auto; border: 1px solid #c3dafe; border-radius: 8px; overflow: hidden;">' +
       '<div style="background-color: #4C51BF; padding: 20px; color: white; text-align: center;">' +
@@ -266,15 +255,20 @@ function dispararAlertaComitePreliminar(contatos, filial, status, linkDoc, orige
         '<h2 style="margin: 0; font-size: 18px; text-transform: uppercase;">Apreciação de Comitê</h2>' +
         '<p style="margin: 4px 0 0 0; font-size: 12px; font-weight: bold; opacity: 0.9;">GP & GOVERNANÇA</p>' +
       '</div><div style="padding: 24px;">' +
-        '<p style="font-size: 15px;">Um relatório de apuração da <strong>Filial ' + filial + '</strong> foi enviado para avaliação e parecer do Comitê de Ética / GP.</p>' +
+        '<p style="font-size: 15px;">Um relatório de apuração da <strong>Filial ' + filial + '</strong> foi enviado para avaliação do Comitê de Ética / GP.</p>' +
         '<div style="background-color: #EBF8FF; padding: 18px; border-radius: 8px; border-left: 4px solid #3182CE; margin: 20px 0;">' +
+          '<p style="margin:0 0 8px 0;"><strong>Nº do Protocolo:</strong> ' + numProtocolo + '</p>' +
           '<p style="margin:0 0 8px 0;"><strong>Envolvido(s):</strong> ' + denunciadosStr + '</p>' +
           '<p style="margin:0;"><strong>Origem:</strong> ' + origem + '</p>' +
         '</div>' +
         '<div style="text-align: center; margin: 30px 0;"><a href="' + linkDoc + '" target="_blank" rel="noopener noreferrer" style="background-color: #4C51BF; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold;">Visualizar Rascunho do Comitê</a></div>' +
       '</div></div>';
 
-  MailApp.sendEmail({ to: destinatarios.join(','), subject: assunto, htmlBody: htmlBody });
+  try {
+    MailApp.sendEmail({ to: destinatarios.join(','), subject: assunto, htmlBody: htmlBody });
+  } catch(eComite) {
+    Logger.log("Erro e-mail comitê: " + eComite.toString());
+  }
 }
 
 function processarNovaApuracao(dados) {
@@ -309,7 +303,7 @@ function processarNovaApuracao(dados) {
 
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let apuracaoSheet = ss.getSheetByName('HISTORICO_APURACAO') || ss.insertSheet('HISTORICO_APURACAO');
-    
+
     if (apuracaoSheet.getLastRow() === 0) {
       apuracaoSheet.appendRow([
         'ID Apuracao', 'Data Registro', 'Origem', 'Filial', 'Diretoria', 'Regional', 'Apurador', 'Conclusao', 'Link Doc', 'Nota Humor Antes', 
@@ -318,13 +312,14 @@ function processarNovaApuracao(dados) {
         'ID Denunciado 1', 'Nome Denunciado 1', 'Filial Denunciado 1',
         'ID Denunciado 2', 'Nome Denunciado 2', 'Filial Denunciado 2',
         'ID Denunciado 3', 'Nome Denunciado 3', 'Filial Denunciado 3',
-        'Data Ultima Alteracao', 'Email Criador'
+        'Data Ultima Alteracao', 'Email Criador', 'Numero Protocolo'
       ]);
     }
 
     const dataRegistro = new Date().toLocaleDateString('pt-BR');
     const nomesDenunciadosArray = dados.denunciados.map(d => d.nome).filter(n => n);
     const stringDenunciadosUnificada = nomesDenunciadosArray.join(', ') || 'Não Informado';
+    const numeroProtocolo = dados.protocolo || dados.idApuracao || 'N/A'; // PROTOCOLO PRINCIPAL
 
     let idApuracaoDefinitiva = dados.idApuracao || dados.idRascunho || '';
     let rowIndex = -1;
@@ -352,7 +347,8 @@ function processarNovaApuracao(dados) {
           body.setText(''); 
 
           body.appendParagraph("RELATÓRIO DE APURAÇÃO E DOSSIÊ FINAL").setHeading(DocumentApp.ParagraphHeading.HEADING1);
-          body.appendParagraph("1. DADOS DE CONTROLE").setHeading(DocumentApp.ParagraphHeading.HEADING2);
+          body.appendParagraph("PROTOCOLO: " + numeroProtocolo).setHeading(DocumentApp.ParagraphHeading.HEADING3);
+          body.appendParagraph("\n1. DADOS DE CONTROLE").setHeading(DocumentApp.ParagraphHeading.HEADING2);
           body.appendParagraph("Filial: " + filial + " | Diretoria: " + diretoria + " | Regional: " + regional);
           body.appendParagraph("Apurador: " + (dados.apurador || 'GP'));
           body.appendParagraph("Origem: " + (dados.origem || 'Canal'));
@@ -377,13 +373,16 @@ function processarNovaApuracao(dados) {
     } else {
       const templateFile = DriveApp.getFileById(TEMPLATE_DOC_ID);
       const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
-      const newFileName = "Relatorio de Apuração F." + filial + " - " + stringDenunciadosUnificada + " - " + dataRegistro;
+      const newFileName = "Relatorio de Apuração F." + filial + " - Prot " + numeroProtocolo + " - " + dataRegistro;
       const copiedFile = templateFile.makeCopy(newFileName, folder);
       const newDocId = copiedFile.getId();
 
       const doc = DocumentApp.openById(newDocId);
       const body = doc.getBody();
 
+      // SUBSTITUIÇÃO DUPLA PARA ATENDER AO MODELO VISUAL EXISTENTE ({{id}} E {{protocolo}})
+      body.replaceText('{{id}}', numeroProtocolo);
+      body.replaceText('{{protocolo}}', numeroProtocolo);
       body.replaceText('{{filial}}', filial);
       body.replaceText('{{diretoria}}', diretoria);
       body.replaceText('{{regional}}', regional);
@@ -402,20 +401,13 @@ function processarNovaApuracao(dados) {
       doc.saveAndClose();
       
       docLink = copiedFile.getUrl();
-
-      aplicarPermissoesArquivo(newDocId, emailCoord, 'LEITOR');
-      aplicarPermissoesArquivo(newDocId, emailGerGP, 'LEITOR');
-      if (dados.origem === 'Canal') {
-        aplicarPermissoesArquivo(newDocId, emailCompliance, 'LEITOR');
-        aplicarPermissoesArquivo(newDocId, emailDirRH, 'LEITOR');
-      }
-      if (emailRegGP) aplicarPermissoesArquivo(newDocId, emailRegGP, 'LEITOR');
     }
 
     if (!idApuracaoDefinitiva || rowIndex === -1) {
       idApuracaoDefinitiva = 'APU-' + Utilities.getUuid().substring(0, 8).toUpperCase();
     }
 
+    // NÚMERO DO PROTOCOLO GRAVADO NA ÚLTIMA COLUNA (34)
     const rowData = [
       idApuracaoDefinitiva, dataRegistro, dados.origem || 'Canal', filial, diretoria, regional, dados.apurador || 'GP', dados.conclusao,
       docLink, dados.nota_humor_antes || '', dados.tratativa, dados.data_recebimento, dados.data_finalizacao, dados.resumo,
@@ -424,7 +416,7 @@ function processarNovaApuracao(dados) {
       dados.denunciados[0]?.id || '', dados.denunciados[0]?.nome || '', dados.denunciados[0]?.filial || '',
       dados.denunciados[1]?.id || '', dados.denunciados[1]?.nome || '', dados.denunciados[1]?.filial || '',
       dados.denunciados[2]?.id || '', dados.denunciados[2]?.nome || '', dados.denunciados[2]?.filial || '',
-      new Date().toLocaleString('pt-BR'), emailLogado
+      new Date().toLocaleString('pt-BR'), emailLogado, numeroProtocolo
     ];
 
     if (rowIndex !== -1) {
@@ -446,6 +438,49 @@ function processarNovaApuracao(dados) {
       }
     }
 
+   
+    // REGRA DE DESTINATÁRIOS DE E-MAIL CONFORME ORIGEM DA APURAÇÃO
+    const listaNotificados = [];
+    if (dados.origem === 'Interna') {
+      // Apuração Interna: Envia para Coordenador e Regional (OP)
+      if (emailCoord) emailCoord.split(',').forEach(e => listaNotificados.push(e.trim()));
+      if (emailRegGP) emailRegGP.split(',').forEach(e => listaNotificados.push(e.trim()));
+    } else {
+      // Apuração Canal / Comitê: Envia para Gerente GP, Diretor RH, Diretor OP, Regional (OP) e Compliance
+      if (emailGerGP) emailGerGP.split(',').forEach(e => listaNotificados.push(e.trim()));
+      if (emailDirRH) emailDirRH.split(',').forEach(e => listaNotificados.push(e.trim()));
+      if (emailDirOp) emailDirOp.split(',').forEach(e => listaNotificados.push(e.trim())); // INCLUÍDO DIRETOR OP
+      if (emailRegGP) emailRegGP.split(',').forEach(e => listaNotificados.push(e.trim()));
+      if (emailCompliance) emailCompliance.split(',').forEach(e => listaNotificados.push(e.trim()));
+    }
+
+    const emailsUnicos = [...new Set(listaNotificados)].filter(x => x && x.indexOf('@') !== -1);
+
+    if (emailsUnicos.length > 0) {
+      const assunto = "[APURAÇÃO - PROT: " + numeroProtocolo + "] Relatório de Apuração - Filial " + filial;
+      const htmlBody = 
+        '<div style="font-family: Arial, sans-serif; color: #1a1a1a; max-width: 600px; margin: 0 auto; border: 1px solid #c3dafe; border-radius: 8px; padding: 20px;">' +
+        '<h3 style="color: #0086FF; margin-top: 0;">Relatório de Apuração Finalizado</h3>' +
+        '<p><strong>Nº do Protocolo:</strong> ' + numeroProtocolo + '</p>' +
+        '<p><strong>Filial:</strong> ' + filial + ' | <strong>Origem:</strong> ' + (dados.origem || 'Canal') + '</p>' +
+        '<p><strong>Apurador:</strong> ' + (dados.apurador || 'GP') + '</p>' +
+        '<p><strong>Envolvidos:</strong> ' + stringDenunciadosUnificada + '</p>' +
+        '<p><strong>Parecer Conclusivo:</strong> ' + (dados.conclusao || 'Concluído') + '</p>' +
+        '<div style="text-align: center; margin: 25px 0;"><a href="' + docLink + '" target="_blank" style="background-color: #0086FF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Visualizar Dossiê no Google Docs</a></div>' +
+        '</div>';
+
+      try {
+        MailApp.sendEmail({
+          to: emailsUnicos.join(','),
+          subject: assunto,
+          htmlBody: htmlBody
+        });
+      } catch (errEmail) {
+        Logger.log("Erro no envio do e-mail de apuração: " + errEmail.toString());
+      }
+    }
+
+    // FEEDBACK AO GERENTE DE LOJA SE SELECIONADO "SIM"
     if (dados.enviar_feedback_gerente === 'sim') {
       let fbSheet = ss.getSheetByName('Feedbacks_Gerentes') || ss.insertSheet('Feedbacks_Gerentes');
       if (fbSheet.getLastRow() === 0) {
@@ -464,35 +499,28 @@ function processarNovaApuracao(dados) {
 
       if (emailGerenteLoja) enviarEmailGerenteFeedback(emailGerenteLoja, feedbackId, dados.feedback_gerente, feedbackLink, filial, copiasCC);
     }
-// === CÓDIGO A INSERIR: AGENDAMENTO AUTOMÁTICO NA AGENDA DO COORDENADOR ===
-    if (dados.agendar_intervencao === 'sim' && dados.data_intervencao && emailCoord) {
+
+    // AGENDAMENTO AUTOMÁTICO NO GOOGLE CALENDAR
+    if (dados.agendar_intervencao === 'sim' && dados.data_intervencao) {
       try {
         var dataPartes = dados.data_intervencao.split('-');
-        var dataEvento = new Date(dataPartes[0], dataPartes[1] - 1, dataPartes[2], 9, 0, 0); // Define às 09:00 AM
+        var dataEvento = new Date(dataPartes[0], dataPartes[1] - 1, dataPartes[2], 9, 0, 0);
         var dataFim = new Date(dataPartes[0], dataPartes[1] - 1, dataPartes[2], 10, 0, 0);
 
-        var emailsCoordList = emailCoord.split(',');
-        emailsCoordList.forEach(function(emailC) {
-          var cal = CalendarApp.getCalendarById(emailC.trim());
-          if (!cal) cal = CalendarApp.getDefaultCalendar();
-          
-          cal.createEvent(
-            "[GP360] Intervenção / Monitoramento - Filial " + filial,
-            dataEvento,
-            dataFim,
-            {
-              description: "Detalhes da Intervenção: " + (dados.detalhes_intervencao || 'Sem detalhes'),
-              guests: emailC.trim(),
-              sendInvites: true
-            }
-          );
+        var cal = CalendarApp.getDefaultCalendar();
+        cal.createEvent("[GP360] Intervenção - Filial " + filial + " (Prot: " + numeroProtocolo + ")", dataEvento, dataFim, {
+          description: "Detalhes: " + (dados.detalhes_intervencao || 'Sem detalhes')
         });
-      } catch (errCal) {
-        Logger.log("Erro ao agendar no Google Calendar: " + errCal.toString());
-      }
+      } catch (errCal) {}
     }
-    // =========================================================================
-    return { sucesso: true, link: docLink, id: idApuracaoDefinitiva };
+
+    return { 
+      sucesso: true, 
+      link: docLink, 
+      id: idApuracaoDefinitiva, 
+      protocolo: numeroProtocolo,
+      destinatarios: emailsUnicos.join(', ') || 'Base da regional notificada.' 
+    };
   } catch (err) { 
     return { sucesso: false, erro: err.toString() }; 
   } finally {
@@ -549,7 +577,8 @@ function listarTodosRegistrosUsuario() {
             filial: dataAp[i][3] ? dataAp[i][3].toString() : '',
             status: dataAp[i][7] ? dataAp[i][7].toString() : 'Concluído',
             resumo: dataAp[i][13] ? dataAp[i][13].toString() : 'N/A',
-            emailCriador: emailCriador
+            emailCriador: emailCriador,
+            protocolo: dataAp[i][33] ? dataAp[i][33].toString() : ''
           });
         }
       }
@@ -642,6 +671,7 @@ function buscarRegistroParaEdicao(id) {
             tipo: 'apuracao',
             somenteLeitura: isReadOnlyMode,
             id: dataApuracao[i][0].toString(),
+            protocolo: dataApuracao[i][33] ? dataApuracao[i][33].toString() : '',
             dataRegistro: dataApuracao[i][1] ? dataApuracao[i][1].toString() : '',
             origem: dataApuracao[i][2] ? dataApuracao[i][2].toString() : 'Canal',
             filial: dataApuracao[i][3] ? dataApuracao[i][3].toString() : '',
@@ -818,7 +848,7 @@ function cancelarRegistroProcesso(payload) {
             vals[i][22], vals[i][23], vals[i][24],
             vals[i][25], vals[i][26], vals[i][27],
             vals[i][28], vals[i][29], vals[i][30],
-            new Date().toLocaleString('pt-BR'), criador
+            new Date().toLocaleString('pt-BR'), criador, 'CANCELADO'
           ]);
           sheet.deleteRow(i + 1);
           return { sucesso: true };

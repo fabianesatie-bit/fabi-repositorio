@@ -283,7 +283,11 @@
         
         <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-4">
           <h3 class="text-lg font-bold border-b pb-2 text-blue-700">Informações de Controle</h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nº do Protocolo *</label>
+              <input type="text" id="ap_protocolo" required class="w-full border p-3 rounded-lg focus:ring-[#0086FF] outline-none font-bold" placeholder="Ex: 2026-00123">
+            </div>
             <div>
               <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Filial *</label>
               <input type="number" id="ap_filial" required oninput="autocompletarContatos('ap_filial', 'ap_feedback_filial', 'ap_regional')" class="w-full border p-3 rounded-lg focus:ring-[#0086FF] outline-none font-semibold">
@@ -634,7 +638,7 @@
           </div>
         </div>
 
-        <!-- BLOCO ACOMPANHAMENTO E CLIMA REESTRUTURADO -->
+        <!-- BLOCO ACOMPANHAMENTO E CLIMA -->
         <div class="bg-white rounded-2xl p-6 shadow-sm border space-y-6">
           <h3 class="text-lg font-bold border-b pb-2 text-orange-600"><i class="fa-solid fa-chart-line"></i> Acompanhamento e Clima</h3>
           
@@ -796,13 +800,20 @@
       </form>
     </section>
 
-    <!-- SUCESSO -->
+    <!-- SUCESSO COM EXIBIÇÃO DE DESTINATÁRIOS -->
     <section id="tela-sucesso" class="hidden bg-white rounded-2xl shadow-xl p-8 text-center max-w-md mx-auto my-12">
       <div class="text-green-500 text-6xl mb-4"><i class="fa-solid fa-circle-check"></i></div>
       <h2 class="text-2xl font-black text-gray-800 mb-2">Concluído!</h2>
-      <p id="sucesso-msg" class="text-gray-600 mb-6 text-sm"></p>
+      <p id="sucesso-msg" class="text-gray-600 mb-4 text-sm"></p>
+
+      <!-- LISTA DE E-MAILS NOTIFICADOS -->
+      <div id="sucesso-destinatarios-block" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-3 mb-6 text-left">
+        <p class="text-[11px] font-black text-blue-900 uppercase mb-1"><i class="fa-solid fa-envelope mr-1"></i> Notificados / Compartilhados:</p>
+        <p id="sucesso-destinatarios-texto" class="text-xs text-blue-800 font-mono break-all"></p>
+      </div>
+
       <div id="sucesso-doc-wrapper" class="hidden mb-6">
-        <a id="sucesso-doc-link" href="" target="_blank" rel="noopener noreferrer" class="bg-[#0086FF] text-white px-6 py-2.5 rounded-lg text-xs font-bold inline-block">Abrir Relatório Docs</a>
+        <a id="sucesso-doc-link" href="" target="_blank" rel="noopener noreferrer" class="bg-[#0086FF] text-white px-6 py-2.5 rounded-lg text-xs font-bold inline-block shadow-md">Abrir Relatório Docs</a>
       </div>
       <div class="flex flex-col gap-3">
         <button id="btn-voltar-inicio" type="button" onclick="voltarAoInicio()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold transition">Voltar ao Início</button>
@@ -1442,6 +1453,7 @@
           travarCamposParaLeitura('ap', res.somenteLeitura);
 
           setVal('ap_id_edicao', res.id);
+          setVal('ap_protocolo', res.protocolo || '');
           setVal('ap_filial', res.filial);
           setVal('ap_origem', res.origem);
           setVal('ap_nota_antes', res.notaHumorAntes);
@@ -1799,6 +1811,7 @@
 
     function montarPayloadApuracao() {
       return {
+        protocolo: getEl('ap_protocolo') ? getEl('ap_protocolo').value : '',
         idApuracao: getEl('ap_id_edicao') ? getEl('ap_id_edicao').value : '',
         idRascunho: getEl('ap_id_rascunho') ? getEl('ap_id_rascunho').value : '',
         filial: normalizarFilialIdFront(getEl('ap_filial') ? getEl('ap_filial').value : ''),
@@ -1824,7 +1837,7 @@
         denunciados: [
           { id: getEl('ap_den_id_1') ? getEl('ap_den_id_1').value : '', nome: getEl('ap_den_nome_1') ? getEl('ap_den_nome_1').value : '', filial: getEl('ap_den_filial_1') ? getEl('ap_den_filial_1').value : '' },
           { id: getEl('ap_den_id_2') ? getEl('ap_den_id_2').value : '', nome: getEl('ap_den_nome_2') ? getEl('ap_den_nome_2').value : '', filial: getEl('ap_den_filial_2') ? getEl('ap_den_filial_2').value : '' },
-          { id: getEl('ap_den_id_3') ? getEl('ap_den_id_3') ? getEl('ap_den_id_3').value : '' : '', nome: getEl('ap_den_nome_3') ? getEl('ap_den_nome_3').value : '', filial: getEl('ap_den_filial_3') ? getEl('ap_den_filial_3').value : '' }
+          { id: getEl('ap_den_id_3') ? (getEl('ap_den_id_3') ? getEl('ap_den_id_3').value : '') : '', nome: getEl('ap_den_nome_3') ? getEl('ap_den_nome_3').value : '', filial: getEl('ap_den_filial_3') ? getEl('ap_den_filial_3').value : '' }
         ]
       };
     }
@@ -1837,7 +1850,7 @@
       var dados = montarPayloadApuracao();
       runBackend('processarNovaApuracao', [dados], function(res) {
         if (res && res.sucesso) {
-          finalizar('Apuração salva com sucesso. ID: ' + res.id, res.link);
+          finalizar('Apuração salva com sucesso. ID: ' + res.id, res.link, res.destinatarios);
         } else {
           hideEl('global-loader');
           mostrarAlerta(res ? res.erro : 'Falha ao salvar apuração.');
@@ -2042,7 +2055,7 @@
       });
     }
 
-    function finalizar(msg, link) {
+    function finalizar(msg, link, destinatarios) {
       hideEl('global-loader');
       var msgEl = getEl('sucesso-msg');
       if (msgEl) msgEl.textContent = msg;
@@ -2054,6 +2067,15 @@
         docLink.href = link; 
       } else if (wrapLink) { 
         wrapLink.classList.add('hidden'); 
+      }
+
+      var blockDest = getEl('sucesso-destinatarios-block');
+      var textDest = getEl('sucesso-destinatarios-texto');
+      if (destinatarios && blockDest && textDest) {
+        textDest.textContent = destinatarios;
+        blockDest.classList.remove('hidden');
+      } else if (blockDest) {
+        blockDest.classList.add('hidden');
       }
 
       exibirTela('tela-sucesso');
