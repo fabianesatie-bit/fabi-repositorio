@@ -229,14 +229,29 @@
                 <h3 style="margin-top:0; border-bottom:1px solid #e2e8f0; padding-bottom:10px; color:#1e293b;"><i class="fa-solid fa-trophy" style="color:#f59e0b;"></i> Top Engajamento (Top 5)</h3>
                 <ul class="ranking-list" id="lista-ranking"></ul>
              </div>
-             <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
-                <i class="fa-solid fa-rocket" style="font-size:40px; color:var(--main-color); margin-bottom:15px;"></i>
-                <h3 style="margin:0 0 10px 0; color:#1e293b;">Bora pro Campo!</h3>
-                <p style="color:#64748b; font-size:14px; margin-bottom:20px;">Lembre-se de registrar suas visitas e interações para manter a operação na mesma página e acumular moedas.</p>
-                <button class="btn-primary" onclick="mudarAba('lancamento', document.querySelectorAll('.nav-item')[1])">Registrar Agora</button>
-             </div>
-          </div>
-        </div>
+            <!-- TABELA DE PENDÊNCIAS JURÍDICAS -->
+<div class="card" style="margin-bottom:0; display:flex; flex-direction:column; border-top: 4px solid #f43f5e;">
+   <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:10px;">
+      <h3 style="margin:0; color:#1e293b; font-size:15px;"><i class="fa-solid fa-scale-balanced" style="color:#f43f5e; margin-right:8px;"></i> Pendências de Apuração</h3>
+      <span id="badge-juridico" style="background:#f43f5e; color:white; font-size:11px; font-weight:bold; padding:2px 8px; border-radius:12px; display:none;">0</span>
+   </div>
+   <div style="overflow-x:auto; max-height: 250px; overflow-y: auto;">
+      <table style="width:100%; border-collapse: collapse; font-size:12px; text-align:left;">
+         <thead>
+            <tr style="color:#64748b; border-bottom:2px solid #e2e8f0;">
+               <th style="padding:8px 5px;">Filial</th>
+               <th style="padding:8px 5px;">Regional</th>
+               <th style="padding:8px 5px;">Nome</th>
+               <th style="padding:8px 5px;">Envio</th>
+               <th style="padding:8px 5px; text-align:center;">Detalhe</th>
+            </tr>
+         </thead>
+         <tbody id="lista-pendencias-juridico">
+            <tr><td colspan="5" style="text-align:center; padding:15px; color:#94a3b8;">Sincronizando apurações...</td></tr>
+         </tbody>
+      </table>
+   </div>
+</div>
 
         <!-- ABA 2: LANÇAR ATIVIDADE -->
         <div id="aba-lancamento" class="view-aba" style="display:none;">
@@ -809,92 +824,99 @@
 
     // CICLO DE INICIALIZAÇÃO DA APLICAÇÃO
     window.onload = function() {
-      let dtElem = document.getElementById('lanc-data');
-      if (dtElem) dtElem.valueAsDate = new Date(); 
-      let h = new Date().getHours();
-      let saudacao = h < 12 ? "Bom dia" : (h < 18 ? "Boa tarde" : "Boa noite");
+  let dtElem = document.getElementById('lanc-data');
+  if (dtElem) dtElem.valueAsDate = new Date(); 
+  let h = new Date().getHours();
+  let saudacao = h < 12 ? "Bom dia" : (h < 18 ? "Boa tarde" : "Boa noite");
 
-      google.script.run.withSuccessHandler(function(res) {
-         let splash = document.getElementById('loading-splash');
-         if (splash) splash.style.display = 'none';
+  google.script.run.withSuccessHandler(function(res) {
+     let splash = document.getElementById('loading-splash');
+     if (splash) splash.style.display = 'none';
 
-         if(res.bloqueado) {
-            let bTela = document.getElementById('bloqueio-tela');
-            if (bTela) bTela.style.display = 'flex';
-            if(res.mensagem) document.getElementById('txt-motivo-bloqueio').innerText = res.mensagem;
-            return;
-         }
+     if(res.bloqueado) {
+        let bTela = document.getElementById('bloqueio-tela');
+        if (bTela) bTela.style.display = 'flex';
+        if(res.mensagem) document.getElementById('txt-motivo-bloqueio').innerText = res.mensagem;
+        return;
+     }
 
-         if(res.erro) {
-            mostrarToast(res.erro);
-            let appC = document.getElementById('app-container');
-            if (appC) appC.style.display = 'flex';
-            let uName = document.getElementById('user-name');
-            if (uName) uName.innerText = "Erro no Login";
-            return;
-         }
+     if(res.erro) {
+        mostrarToast(res.erro);
+        let appC = document.getElementById('app-container');
+        if (appC) appC.style.display = 'flex';
+        let uName = document.getElementById('user-name');
+        if (uName) uName.innerText = "Erro no Login";
+        return;
+     }
 
-         let appC = document.getElementById('app-container');
-         if (appC) appC.style.display = 'flex';
-         dadosGlobais = res;
+     let appC = document.getElementById('app-container');
+     if (appC) appC.style.display = 'flex';
+     dadosGlobais = res;
 
-         let uName = document.getElementById('user-name');
-         if (uName) uName.innerText = saudacao + ", " + res.usuario.nome.split(' ')[0];
-         let uRole = document.getElementById('user-role');
-         if (uRole) uRole.innerText = res.usuario.cargo;
-         let uInfo2 = document.getElementById('user-info2');
-         if (uInfo2) uInfo2.innerText = res.usuario.infoLinha2;
-         let uCoins = document.getElementById('user-coins');
-         if (uCoins) uCoins.innerText = res.moedas;
+     let uName = document.getElementById('user-name');
+     if (uName) uName.innerText = saudacao + ", " + res.usuario.nome.split(' ')[0];
+     let uRole = document.getElementById('user-role');
+     if (uRole) uRole.innerText = res.usuario.cargo;
+     let uInfo2 = document.getElementById('user-info2');
+     if (uInfo2) uInfo2.innerText = res.usuario.infoLinha2;
+     let uCoins = document.getElementById('user-coins');
+     if (uCoins) uCoins.innerText = res.moedas;
 
-         let divFoto = document.getElementById('user-photo-container');
-         if (divFoto) {
-           if (res.usuario.foto) {
-               divFoto.innerHTML = '<img src="' + res.usuario.foto + '" alt="Foto" data-nome="' + res.usuario.nome + '" onerror="usarIniciaisComoFallback(this)">';
-           } else {
-               divFoto.innerHTML = usarIniciais(res.usuario.nome);
-           }
-         }
+     let divFoto = document.getElementById('user-photo-container');
+     if (divFoto) {
+       if (res.usuario.foto) {
+           divFoto.innerHTML = '<img src="' + res.usuario.foto + '" alt="Foto" data-nome="' + res.usuario.nome + '" onerror="usarIniciaisComoFallback(this)">';
+       } else {
+           divFoto.innerHTML = usarIniciais(res.usuario.nome);
+       }
+     }
 
-         if (res.usuario.isAdmin || res.usuario.isSuperAdmin) {
-             let btnAdd = document.getElementById('btn-add-aviso');
-             if (btnAdd) btnAdd.style.display = 'block';
-         }
-         if (res.usuario.isConfigAdmin || res.usuario.isGerenteGP) {
-             let menuAdm = document.getElementById('menu-admin');
-             if (menuAdm) menuAdm.style.display = 'block';
-         }
+     if (res.usuario.isAdmin || res.usuario.isSuperAdmin) {
+         let btnAdd = document.getElementById('btn-add-aviso');
+         if (btnAdd) btnAdd.style.display = 'block';
+     }
+     if (res.usuario.isConfigAdmin || res.usuario.isGerenteGP) {
+         let menuAdm = document.getElementById('menu-admin');
+         if (menuAdm) menuAdm.style.display = 'block';
+     }
 
-         if (typeof res.mesAtualNum === 'number') {
-             let lblAtual = document.getElementById('lbl-mes-atual-nome');
-             if (lblAtual) lblAtual.innerText = nomesMesesMap[res.mesAtualNum];
-             let lblAnt = document.getElementById('lbl-mes-anterior-nome');
-             if (lblAnt) lblAnt.innerText = nomesMesesMap[res.mesAnteriorNum];
-         }
+     if (typeof res.mesAtualNum === 'number') {
+         let lblAtual = document.getElementById('lbl-mes-atual-nome');
+         if (lblAtual) lblAtual.innerText = nomesMesesMap[res.mesAtualNum];
+         let lblAnt = document.getElementById('lbl-mes-anterior-nome');
+         if (lblAnt) lblAnt.innerText = nomesMesesMap[res.mesAnteriorNum];
+     }
 
-         renderizarGamificacaoVisual(res);
-         atualizarCardsDashboard();
+     renderizarGamificacaoVisual(res);
+     atualizarCardsDashboard();
 
-         let dLojas = document.getElementById('dash-lojas');
-         if (dLojas) dLojas.innerText = res.qtdLojasCarteira || res.lojas.length;
-         let selectDestino = document.getElementById('lanc-destino');
-         if (selectDestino && res.lojas) {
-           selectDestino.innerHTML = '<option value="">Selecione...</option>';
-           res.lojas.forEach(loja => {
-              let opt = document.createElement('option');
-              opt.value = loja.id;
-              opt.text = loja.id + ' - ' + loja.nome;
-              selectDestino.add(opt);
-           });
-         }
-         
-         atualizarSelectNaturezas(res.naturezas);
-         renderizarRanking(res.ranking);
-         renderizarAvisos(res.avisos);
-         renderizarHistoricos();
-         renderizarListaAdmin(res.naturezas);
-      }).obterDadosIniciais();
-    };
+     let dLojas = document.getElementById('dash-lojas');
+     if (dLojas) dLojas.innerText = res.qtdLojasCarteira || res.lojas.length;
+     let selectDestino = document.getElementById('lanc-destino');
+     if (selectDestino && res.lojas) {
+       selectDestino.innerHTML = '<option value="">Selecione...</option>';
+       res.lojas.forEach(loja => {
+          let opt = document.createElement('option');
+          opt.value = loja.id;
+          opt.text = loja.id + ' - ' + loja.nome;
+          selectDestino.add(opt);
+       });
+     }
+     
+     atualizarSelectNaturezas(res.naturezas);
+     renderizarRanking(res.ranking);
+     renderizarAvisos(res.avisos);
+     renderizarHistoricos();
+     renderizarListaAdmin(res.naturezas);
+     
+     // Chamada corrigida e alinhada
+     if (typeof renderizarPendenciasJuridico === "function") {
+         renderizarPendenciasJuridico(res.pendencias);
+     }
+     
+  }).obterDadosIniciais();
+};
+
 
     function limparOutrasEvidencias(origem) {
         if(origem !== 'file') {
@@ -1092,6 +1114,21 @@
             google.script.run.withSuccessHandler(function(newData){
                 dadosGlobais = newData;
                 renderizarAvisos(newData.avisos);
+                // ...
+                   let domMoedas = document.getElementById('user-coins');
+                   if(domMoedas) domMoedas.innerText = newData.moedas;
+
+                   atualizarCardsDashboard();
+                   mudarAba('home', document.querySelector('.nav-item'));
+                   
+                   // ADICIONE ESTA LINHA AQUI TAMBÉM:
+                   if (typeof renderizarPendenciasJuridico === "function") {
+                       renderizarPendenciasJuridico(newData.pendencias);
+                   }
+                   
+                   // 3. Verifica se subiu de fase e dispara o modal
+                   if (faseNova > faseAntiga) {
+// ...
             }).obterDadosIniciais();
         }).publicarAviso(msg, dir);
     }

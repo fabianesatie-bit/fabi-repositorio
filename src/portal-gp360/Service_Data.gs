@@ -21,9 +21,12 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
   try {
     const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
     const controle = obterControleAcesso(emailLogado);
+    
+    // Verificação de segurança (onde o erro estava ocorrendo)
     if (!controle.autorizado) {
       return { bloqueado: true, mensagem: controle.erro };
     }
+
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     let usuario = { 
       email: controle.email, 
@@ -80,7 +83,6 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
     const mesAtual = typeof mesAlvo === 'number' ? mesAlvo : dHoje.getMonth();
     const anoAtual = typeof anoAlvo === 'number' ? anoAlvo : dHoje.getFullYear();
     
-    // Suporte retroativo (Mês Vigente vs Mês Anterior)
     const mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1;
     const anoAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
 
@@ -189,7 +191,6 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
     let userMoedasMes = placarMoedasMes[emailLogado] || 0;
     let userMoedasMesAnterior = placarMoedasMesAnterior[emailLogado] || 0;
 
-    // === NOVA REGRA: FASE BASEADA APENAS NO MÊS VIGENTE ===
     let faseMontanha = 1;
     if (userMoedasMes >= 120) faseMontanha = 4;
     else if (userMoedasMes >= 80) faseMontanha = 3;
@@ -210,7 +211,6 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
         let moedasMesU = placarMoedasMes[email] || 0;
         let moedasMesAnteriorU = placarMoedasMesAnterior[email] || 0;
 
-        // === NOVA REGRA RANKING: FASE BASEADA APENAS NO MÊS VIGENTE ===
         let faseU = 1;
         if (moedasMesU >= 120) faseU = 4;
         else if (moedasMesU >= 80) faseU = 3;
@@ -257,8 +257,61 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
     let naturezas = carregarNaturezasSeguras(ss);
     let diretoriasAr = Array.from(listaDiretoriasUnicas).filter(Boolean).sort();
 
+    // === BUSCA INTELIGENTE DE PENDÊNCIAS JURÍDICAS (PLANILHA EXTERNA) ===
+    let pendenciasApuracao = [];
+    try {
+      const extSS = SpreadsheetApp.openById("1RocyTKt3---54pG6Zsa38vwai-iYAJS9cirTU_A6ODk");
+      const abaJuridico = extSS.getSheetByName("DADOS_JURIDICO");
+      
+      if (abaJuridico) {
+        const dadosJur = abaJuridico.getDataRange().getValues();
+        const limiteData = new Date("2026-01-01T00:00:00"); 
+
+        for (let i = 1; i < dadosJur.length; i++) {
+          let dataRetorno = dadosJur[i][4]; 
+          
+          if (dataRetorno !== "" && dataRetorno !== null) continue;
+
+          let dataDisparo = dadosJur[i][3]; 
+          if (!dataDisparo) continue;
+          
+          let dtDispObj = new Date(dataDisparo);
+          if (isNaN(dtDispObj.getTime())) continue;
+
+          if (dtDispObj.getFullYear() !== 2026) continue;
+          if (dtDispObj <= limiteData) continue;
+
+          let regionalApuracao = String(dadosJur[i][5]).trim(); 
+
+          let pertenceAoUsuario = false;
+          if (usuario.isSuperAdmin) {
+            pertenceAoUsuario = true; 
+          } else if (usuario.regionais && usuario.regionais.length > 0) {
+            if (usuario.regionais.includes(regionalApuracao)) {
+              pertenceAoUsuario = true;
+            }
+          }
+
+          if (pertenceAoUsuario) {
+             pendenciasApuracao.push({
+                filial: String(dadosJur[i][0]).trim(),       
+                reclamante: String(dadosJur[i][1]).trim(),   
+                classificacao: String(dadosJur[i][2]).trim(),
+                dataDisparo: dtDispObj.toLocaleDateString('pt-BR'), 
+                regional: regionalApuracao
+             });
+          }
+        }
+      }
+    } catch(err) {
+      Logger.log("Falha ao ler base Jurídico externa: " + err.message);
+    }
+
     return { 
-      bloqueado: false, usuario: usuario, lojas: lojasFiltradas, qtdLojasCarteira: lojasFiltradas.length,
+      bloqueado: false, 
+      usuario: usuario, 
+      lojas: lojasFiltradas, 
+      qtdLojasCarteira: lojasFiltradas.length,
       qtdVisitas: setVisitasFisicasMes.size,
       qtdVisitasAnterior: setVisitasFisicasMesAnterior.size,
       moedas: userMoedasTotal,
@@ -268,7 +321,11 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
       gastos: gastoTotalAcumulado,
       gastosMesAnterior: gastoMesAnterior,
       historico: historicoLimitado, 
-      avisos: avisos, ranking: ranking, naturezas: naturezas, diretorias: diretoriasAr,
+      avisos: avisos, 
+      ranking: ranking, 
+      naturezas: naturezas, 
+      diretorias: diretoriasAr,
+      pendencias: pendenciasApuracao, // <--- Aqui está a variável!
       mesAtualNum: mesAtual,
       anoAtualNum: anoAtual,
       mesAnteriorNum: mesAnterior,
@@ -279,7 +336,6 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
 
 /**
  * Consulta indicadores de desempenho de filiais na base DB_DASH com cache de 5 minutos.
- * Ajustado para cruzar filiais corretamente pelas Colunas certas de cada historico.
  */
 function buscarIndicadoresLoja(filialId) {
   try {
@@ -386,7 +442,6 @@ function buscarIndicadoresLoja(filialId) {
     if(matchFoundQ) quadro = Math.round(qContratar);
 
     // 5. TAXA DE DESLIGAMENTO (HISTORICO_TXDESL)
-    // Coluna A (0) = Ano, Coluna B (1) = filial, Coluna K (10) = Tx de Saída
     const dTx = blocosDeDados['HISTORICO_TXDESL'];
     for(let i = 1; i < dTx.length; i++) {
       let rowF = parseInt(normalizarFilialId(dTx[i][1] !== undefined && dTx[i][1] !== '' ? dTx[i][1] : dTx[i][0]), 10);
@@ -401,7 +456,6 @@ function buscarIndicadoresLoja(filialId) {
     }
 
     // 6. LIXO ELETRÔNICO / COLETAS
-    // Busca na DB_DASH primeiro
     ['HISTORICO_LIXO', 'HISTORICO_COLETAS', 'HISTORICO_LIXO_ELETRONICO'].forEach(nomeAbaLixo => {
       const dL = blocosDeDados[nomeAbaLixo];
       if (dL && dL.length > 1) {
@@ -415,7 +469,6 @@ function buscarIndicadoresLoja(filialId) {
       }
     });
 
-    // Fallback de busca de lixo na aba DADOS_INDICADORES do DB_MASTER (Coluna H / Index 7)
     if (lixo === "-") {
       try {
         const ssMaster = SpreadsheetApp.openById(SPREADSHEET_ID);
