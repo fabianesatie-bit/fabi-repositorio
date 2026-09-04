@@ -54,26 +54,8 @@
     .form-control { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; outline: none; transition: border 0.3s; box-sizing: border-box; font-size: 14px; }
     .form-control:focus { border-color: var(--main-color); }
 
-    /* ESTILIZAÇÃO INTERATIVA DA CAIXA DE COLAGEM (CTRL+V) */
-    .paste-zone {
-      border: 2px dashed #cbd5e1;
-      padding: 16px;
-      text-align: center;
-      border-radius: 10px;
-      background: #ffffff;
-      color: #64748b;
-      cursor: pointer;
-      outline: none;
-      transition: all 0.2s ease-in-out;
-      font-size: 13px;
-      user-select: none;
-    }
-    .paste-zone:focus, .paste-zone:hover {
-      border-color: var(--main-color);
-      background: #f3e8ff;
-      color: var(--main-color);
-      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
-    }
+    .paste-zone { border: 2px dashed #cbd5e1; padding: 16px; text-align: center; border-radius: 10px; background: #ffffff; color: #64748b; cursor: pointer; outline: none; transition: all 0.2s ease-in-out; font-size: 13px; user-select: none; }
+    .paste-zone:focus, .paste-zone:hover { border-color: var(--main-color); background: #f3e8ff; color: var(--main-color); box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15); }
 
     .pill-btn { display: inline-block; padding: 6px 14px; background: white; border: 1px solid #cbd5e1; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold; color: #475569; transition: all 0.2s; user-select: none; }
     .chk-abrangencia:checked + .pill-btn, .chk-tema:checked + .pill-btn { background-color: var(--main-color); color: white; border-color: #6b21a8; }
@@ -118,7 +100,6 @@
     .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); display:flex; align-items:center; justify-content:center; z-index: 1000; backdrop-filter: blur(2px); }
     .modal-content { background: white; padding: 25px; border-radius: 14px; width: 90%; max-width: 420px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
     .blocked-screen { position: fixed; top:0; left:0; width:100%; height:100%; background-color:#9f1239; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index: 10000; color: white; text-align: center; padding: 20px; display: none; }
-
     .filter-pill-active { background-color: #7C3AED !important; color: white !important; border-color: #6B21A8 !important; }
 
     @media (max-width: 768px) {
@@ -229,29 +210,32 @@
                 <h3 style="margin-top:0; border-bottom:1px solid #e2e8f0; padding-bottom:10px; color:#1e293b;"><i class="fa-solid fa-trophy" style="color:#f59e0b;"></i> Top Engajamento (Top 5)</h3>
                 <ul class="ranking-list" id="lista-ranking"></ul>
              </div>
-            <!-- TABELA DE PENDÊNCIAS JURÍDICAS -->
-<div class="card" style="margin-bottom:0; display:flex; flex-direction:column; border-top: 4px solid #f43f5e;">
-   <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:10px;">
-      <h3 style="margin:0; color:#1e293b; font-size:15px;"><i class="fa-solid fa-scale-balanced" style="color:#f43f5e; margin-right:8px;"></i> Pendências de Apuração</h3>
-      <span id="badge-juridico" style="background:#f43f5e; color:white; font-size:11px; font-weight:bold; padding:2px 8px; border-radius:12px; display:none;">0</span>
-   </div>
-   <div style="overflow-x:auto; max-height: 250px; overflow-y: auto;">
-      <table style="width:100%; border-collapse: collapse; font-size:12px; text-align:left;">
-         <thead>
-            <tr style="color:#64748b; border-bottom:2px solid #e2e8f0;">
-               <th style="padding:8px 5px;">Filial</th>
-               <th style="padding:8px 5px;">Regional</th>
-               <th style="padding:8px 5px;">Nome</th>
-               <th style="padding:8px 5px;">Envio</th>
-               <th style="padding:8px 5px; text-align:center;">Detalhe</th>
-            </tr>
-         </thead>
-         <tbody id="lista-pendencias-juridico">
-            <tr><td colspan="5" style="text-align:center; padding:15px; color:#94a3b8;">Sincronizando apurações...</td></tr>
-         </tbody>
-      </table>
-   </div>
-</div>
+             
+             <!-- TABELA DE PENDÊNCIAS JURÍDICAS -->
+             <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; border-top: 4px solid #f43f5e;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:10px;">
+                   <h3 style="margin:0; color:#1e293b; font-size:15px;"><i class="fa-solid fa-scale-balanced" style="color:#f43f5e; margin-right:8px;"></i> Pendências de Apuração</h3>
+                   <span id="badge-juridico" style="background:#f43f5e; color:white; font-size:11px; font-weight:bold; padding:2px 8px; border-radius:12px; display:none;">0</span>
+                </div>
+                <div style="overflow-x:auto; max-height: 250px; overflow-y: auto;">
+                   <table style="width:100%; border-collapse: collapse; font-size:12px; text-align:left;">
+                      <thead>
+                         <tr style="color:#64748b; border-bottom:2px solid #e2e8f0;">
+                            <th style="padding:8px 5px;">Filial</th>
+                            <th style="padding:8px 5px;">Regional</th>
+                            <th style="padding:8px 5px;">Nome</th>
+                            <th style="padding:8px 5px;">Envio</th>
+                            <th style="padding:8px 5px; text-align:center;">Detalhe</th>
+                         </tr>
+                      </thead>
+                      <tbody id="lista-pendencias-juridico">
+                         <tr><td colspan="5" style="text-align:center; padding:15px; color:#94a3b8;">Sincronizando apurações...</td></tr>
+                      </tbody>
+                   </table>
+                </div>
+             </div>
+          </div>
+        </div>
 
         <!-- ABA 2: LANÇAR ATIVIDADE -->
         <div id="aba-lancamento" class="view-aba" style="display:none;">
@@ -355,10 +339,7 @@
                 <label class="check-label"><input type="checkbox" value="Lixo Eletrônico" class="chk-tema"><span class="pill-btn">Lixo Eletrônico</span></label>
                 <label class="check-label"><input type="checkbox" value="Campanha Sazonais" class="chk-tema"><span class="pill-btn">Campanha Sazonais</span></label>
                 <label class="check-label"><input type="checkbox" value="Agente Integrador" class="chk-tema"><span class="pill-btn">Agente Integrador</span></label>
-                <label class="check-label">
-   <input type="checkbox" value="Apontamento" class="chk-tema">
-   <span class="pill-btn">Apontamento</span>
-</label>
+                <label class="check-label"><input type="checkbox" value="Apontamento" class="chk-tema"><span class="pill-btn">Apontamento</span></label>
               </div>
             </div>
 
@@ -590,7 +571,6 @@
    <h3 style="margin:0 0 5px 0; color:#1e293b;">Apontamento</h3>
    <p style="font-size:12px; color:#64748b;">Acessar painel interno</p>
 </div>
-<!-- NOVO CARTÃO ADICIONAL -->
 <div class="card" style="text-align:center; cursor:pointer; transition:transform 0.2s;" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbwA6Q9Uuw3asLS6J1VY_VFMUOtqJzRJdwehMJvghTHUubjf_jnRWY436cDIR8Vq1bZZtQ/exec', 'GEMS COORDENADORES DE GESTÃO DE PESSOAS')">
    <i class="fa-solid fa-star" style="font-size:40px; color:#f59e0b; margin-bottom:15px;"></i>
    <h3 style="margin:0 0 5px 0; color:#1e293b;">GEMS COORDS GP</h3>
@@ -647,6 +627,21 @@
           </div>
       </div>
   </div>
+  
+  <!-- MODAL DE CONQUISTA DE FASE -->
+  <div id="modal-fase-conquista" class="modal-overlay" style="display:none; z-index: 10005;">
+      <div class="modal-content" style="text-align: center; border: 2px solid var(--main-color);">
+          <div id="icone-fase-nova" style="font-size: 60px; margin-bottom: 10px;">🏆</div>
+          <h2 style="color: var(--main-color); margin-top: 0; font-size: 24px;">Parabéns!</h2>
+          <h3 style="color: #1e293b; margin-bottom: 15px;">Você subiu de nível!</h3>
+          <p style="color: #64748b; font-size: 15px; margin-bottom: 20px;">
+              Você acaba de alcançar a <strong id="nome-fase-nova" style="color: var(--main-color);">Fase X</strong> na sua escalada de Governança!
+          </p>
+          <button class="btn-primary" onclick="document.getElementById('modal-fase-conquista').style.display='none'">
+              Continuar a Jornada
+          </button>
+      </div>
+  </div>
 
   <script>
     // SUPORTE PARA MOCK DE DESENVOLVIMENTO
@@ -664,6 +659,7 @@
                                     usuario: { nome: "Usuário Preview", cargo: "Administrador", infoLinha2: "Visão Preview", regionais: ["Regional Teste"], diretoriasAtendidas: ["Diretoria Teste"], isAdmin: true, isSuperAdmin: true, isConfigAdmin: true, isGerenteGP: true, foto: "" },
                                     lojas: [{id: 1001, nome: "Loja Preview 1", regional: "Regional Teste"}],
                                     qtdLojasCarteira: 1, qtdVisitas: 5, moedas: 125, moedasMes: 85, moedasMesAnterior: 40, faseMontanha: 3, gastos: 120.00, gastosMesAnterior: 95.00, historico: [], avisos: [], ranking: [], naturezas: ["Integração Preview"], diretorias: ["Diretoria Teste"],
+                                    pendencias: [{filial: "1001", regional: "Regional Teste", reclamante: "João da Silva", classificacao: "Processo Teste", dataDisparo: "10/09/2026"}],
                                     mesAtualNum: 7, anoAtualNum: 2026, mesAnteriorNum: 6, anoAnteriorNum: 2026
                                 }), 400);
                             },
@@ -788,6 +784,60 @@
        try { if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, zIndex: 9999 }); } catch(e) {}
     }
 
+    function mostrarPopupFase(novaFase) {
+        let emoji = '🥾';
+        let nomeFase = 'Fase 1: Acampamento Base';
+        
+        if (novaFase === 2) { emoji = '🧗'; nomeFase = 'Fase 2: Subida da Montanha'; }
+        else if (novaFase === 3) { emoji = '🏔️'; nomeFase = 'Fase 3: Cume Alcançado'; }
+        else if (novaFase >= 4) { emoji = '🏔️⚡'; nomeFase = 'Fase Final: Bandeira no Everest'; }
+
+        let eIcon = document.getElementById('icone-fase-nova');
+        if(eIcon) eIcon.innerText = emoji;
+        let eName = document.getElementById('nome-fase-nova');
+        if(eName) eName.innerText = nomeFase;
+        
+        let modFase = document.getElementById('modal-fase-conquista');
+        if(modFase) modFase.style.display = 'flex';
+        dispararConfetes();
+    }
+
+    function renderizarPendenciasJuridico(pendencias) {
+        const tbody = document.getElementById('lista-pendencias-juridico');
+        const badge = document.getElementById('badge-juridico');
+        if (!tbody) return;
+
+        if (!pendencias || pendencias.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#10b981; background:#f0fdf4; border-radius:8px;"><i class="fa-solid fa-circle-check"></i> Sem pendências jurídicas!</td></tr>';
+            if (badge) badge.style.display = 'none';
+            return;
+        }
+
+        if (badge) {
+            badge.innerText = pendencias.length;
+            badge.style.display = 'inline-block';
+        }
+
+        tbody.innerHTML = '';
+        pendencias.forEach(p => {
+            let txtSeguro = p.classificacao.replace(/"/g, '&quot;');
+            
+            tbody.innerHTML += `
+               <tr style="border-bottom:1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor='transparent'">
+                  <td style="padding:8px 5px; font-weight:bold; color:#1e293b;">${p.filial}</td>
+                  <td style="padding:8px 5px; color:#475569;">${p.regional}</td>
+                  <td style="padding:8px 5px; color:#1e293b;">${p.reclamante}</td>
+                  <td style="padding:8px 5px; color:#f43f5e; font-weight:bold;">${p.dataDisparo}</td>
+                  <td style="padding:8px 5px; text-align:center;">
+                     <button data-motivo="${txtSeguro}" onclick="alert('Motivo da Apuração:\\n\\n' + this.getAttribute('data-motivo'))" title="Ver Classificação" style="background:none; border:none; cursor:pointer; color:var(--main-color); font-size:16px;">
+                        <i class="fa-solid fa-eye"></i>
+                     </button>
+                  </td>
+               </tr>
+            `;
+        });
+    }
+
     /* MÓDULO INTERATIVO DE ANEXO VIA CTRL+V / CLIPBOARD */
     function activarDropzoneClipboard(elem) {
       elem.focus();
@@ -824,99 +874,97 @@
 
     // CICLO DE INICIALIZAÇÃO DA APLICAÇÃO
     window.onload = function() {
-  let dtElem = document.getElementById('lanc-data');
-  if (dtElem) dtElem.valueAsDate = new Date(); 
-  let h = new Date().getHours();
-  let saudacao = h < 12 ? "Bom dia" : (h < 18 ? "Boa tarde" : "Boa noite");
+      let dtElem = document.getElementById('lanc-data');
+      if (dtElem) dtElem.valueAsDate = new Date(); 
+      let h = new Date().getHours();
+      let saudacao = h < 12 ? "Bom dia" : (h < 18 ? "Boa tarde" : "Boa noite");
 
-  google.script.run.withSuccessHandler(function(res) {
-     let splash = document.getElementById('loading-splash');
-     if (splash) splash.style.display = 'none';
+      google.script.run.withSuccessHandler(function(res) {
+         let splash = document.getElementById('loading-splash');
+         if (splash) splash.style.display = 'none';
 
-     if(res.bloqueado) {
-        let bTela = document.getElementById('bloqueio-tela');
-        if (bTela) bTela.style.display = 'flex';
-        if(res.mensagem) document.getElementById('txt-motivo-bloqueio').innerText = res.mensagem;
-        return;
-     }
+         if(res.bloqueado) {
+            let bTela = document.getElementById('bloqueio-tela');
+            if (bTela) bTela.style.display = 'flex';
+            if(res.mensagem) document.getElementById('txt-motivo-bloqueio').innerText = res.mensagem;
+            return;
+         }
 
-     if(res.erro) {
-        mostrarToast(res.erro);
-        let appC = document.getElementById('app-container');
-        if (appC) appC.style.display = 'flex';
-        let uName = document.getElementById('user-name');
-        if (uName) uName.innerText = "Erro no Login";
-        return;
-     }
+         if(res.erro) {
+            mostrarToast(res.erro);
+            let appC = document.getElementById('app-container');
+            if (appC) appC.style.display = 'flex';
+            let uName = document.getElementById('user-name');
+            if (uName) uName.innerText = "Erro no Login";
+            return;
+         }
 
-     let appC = document.getElementById('app-container');
-     if (appC) appC.style.display = 'flex';
-     dadosGlobais = res;
+         let appC = document.getElementById('app-container');
+         if (appC) appC.style.display = 'flex';
+         dadosGlobais = res;
 
-     let uName = document.getElementById('user-name');
-     if (uName) uName.innerText = saudacao + ", " + res.usuario.nome.split(' ')[0];
-     let uRole = document.getElementById('user-role');
-     if (uRole) uRole.innerText = res.usuario.cargo;
-     let uInfo2 = document.getElementById('user-info2');
-     if (uInfo2) uInfo2.innerText = res.usuario.infoLinha2;
-     let uCoins = document.getElementById('user-coins');
-     if (uCoins) uCoins.innerText = res.moedas;
+         let uName = document.getElementById('user-name');
+         if (uName) uName.innerText = saudacao + ", " + res.usuario.nome.split(' ')[0];
+         let uRole = document.getElementById('user-role');
+         if (uRole) uRole.innerText = res.usuario.cargo;
+         let uInfo2 = document.getElementById('user-info2');
+         if (uInfo2) uInfo2.innerText = res.usuario.infoLinha2;
+         let uCoins = document.getElementById('user-coins');
+         if (uCoins) uCoins.innerText = res.moedas;
 
-     let divFoto = document.getElementById('user-photo-container');
-     if (divFoto) {
-       if (res.usuario.foto) {
-           divFoto.innerHTML = '<img src="' + res.usuario.foto + '" alt="Foto" data-nome="' + res.usuario.nome + '" onerror="usarIniciaisComoFallback(this)">';
-       } else {
-           divFoto.innerHTML = usarIniciais(res.usuario.nome);
-       }
-     }
+         let divFoto = document.getElementById('user-photo-container');
+         if (divFoto) {
+           if (res.usuario.foto) {
+               divFoto.innerHTML = '<img src="' + res.usuario.foto + '" alt="Foto" data-nome="' + res.usuario.nome + '" onerror="usarIniciaisComoFallback(this)">';
+           } else {
+               divFoto.innerHTML = usarIniciais(res.usuario.nome);
+           }
+         }
 
-     if (res.usuario.isAdmin || res.usuario.isSuperAdmin) {
-         let btnAdd = document.getElementById('btn-add-aviso');
-         if (btnAdd) btnAdd.style.display = 'block';
-     }
-     if (res.usuario.isConfigAdmin || res.usuario.isGerenteGP) {
-         let menuAdm = document.getElementById('menu-admin');
-         if (menuAdm) menuAdm.style.display = 'block';
-     }
+         if (res.usuario.isAdmin || res.usuario.isSuperAdmin) {
+             let btnAdd = document.getElementById('btn-add-aviso');
+             if (btnAdd) btnAdd.style.display = 'block';
+         }
+         if (res.usuario.isConfigAdmin || res.usuario.isGerenteGP) {
+             let menuAdm = document.getElementById('menu-admin');
+             if (menuAdm) menuAdm.style.display = 'block';
+         }
 
-     if (typeof res.mesAtualNum === 'number') {
-         let lblAtual = document.getElementById('lbl-mes-atual-nome');
-         if (lblAtual) lblAtual.innerText = nomesMesesMap[res.mesAtualNum];
-         let lblAnt = document.getElementById('lbl-mes-anterior-nome');
-         if (lblAnt) lblAnt.innerText = nomesMesesMap[res.mesAnteriorNum];
-     }
+         if (typeof res.mesAtualNum === 'number') {
+             let lblAtual = document.getElementById('lbl-mes-atual-nome');
+             if (lblAtual) lblAtual.innerText = nomesMesesMap[res.mesAtualNum];
+             let lblAnt = document.getElementById('lbl-mes-anterior-nome');
+             if (lblAnt) lblAnt.innerText = nomesMesesMap[res.mesAnteriorNum];
+         }
 
-     renderizarGamificacaoVisual(res);
-     atualizarCardsDashboard();
+         renderizarGamificacaoVisual(res);
+         atualizarCardsDashboard();
 
-     let dLojas = document.getElementById('dash-lojas');
-     if (dLojas) dLojas.innerText = res.qtdLojasCarteira || res.lojas.length;
-     let selectDestino = document.getElementById('lanc-destino');
-     if (selectDestino && res.lojas) {
-       selectDestino.innerHTML = '<option value="">Selecione...</option>';
-       res.lojas.forEach(loja => {
-          let opt = document.createElement('option');
-          opt.value = loja.id;
-          opt.text = loja.id + ' - ' + loja.nome;
-          selectDestino.add(opt);
-       });
-     }
-     
-     atualizarSelectNaturezas(res.naturezas);
-     renderizarRanking(res.ranking);
-     renderizarAvisos(res.avisos);
-     renderizarHistoricos();
-     renderizarListaAdmin(res.naturezas);
-     
-     // Chamada corrigida e alinhada
-     if (typeof renderizarPendenciasJuridico === "function") {
-         renderizarPendenciasJuridico(res.pendencias);
-     }
-     
-  }).obterDadosIniciais();
-};
-
+         let dLojas = document.getElementById('dash-lojas');
+         if (dLojas) dLojas.innerText = res.qtdLojasCarteira || res.lojas.length;
+         let selectDestino = document.getElementById('lanc-destino');
+         if (selectDestino && res.lojas) {
+           selectDestino.innerHTML = '<option value="">Selecione...</option>';
+           res.lojas.forEach(loja => {
+              let opt = document.createElement('option');
+              opt.value = loja.id;
+              opt.text = loja.id + ' - ' + loja.nome;
+              selectDestino.add(opt);
+           });
+         }
+         
+         atualizarSelectNaturezas(res.naturezas);
+         renderizarRanking(res.ranking);
+         renderizarAvisos(res.avisos);
+         renderizarHistoricos();
+         renderizarListaAdmin(res.naturezas);
+         
+         if (typeof renderizarPendenciasJuridico === "function") {
+             renderizarPendenciasJuridico(res.pendencias);
+         }
+         
+      }).obterDadosIniciais();
+    };
 
     function limparOutrasEvidencias(origem) {
         if(origem !== 'file') {
@@ -1114,21 +1162,6 @@
             google.script.run.withSuccessHandler(function(newData){
                 dadosGlobais = newData;
                 renderizarAvisos(newData.avisos);
-                // ...
-                   let domMoedas = document.getElementById('user-coins');
-                   if(domMoedas) domMoedas.innerText = newData.moedas;
-
-                   atualizarCardsDashboard();
-                   mudarAba('home', document.querySelector('.nav-item'));
-                   
-                   // ADICIONE ESTA LINHA AQUI TAMBÉM:
-                   if (typeof renderizarPendenciasJuridico === "function") {
-                       renderizarPendenciasJuridico(newData.pendencias);
-                   }
-                   
-                   // 3. Verifica se subiu de fase e dispara o modal
-                   if (faseNova > faseAntiga) {
-// ...
             }).obterDadosIniciais();
         }).publicarAviso(msg, dir);
     }
@@ -1248,7 +1281,6 @@
        const btnSalvar = document.getElementById('btn-salvar');
        if (btnSalvar) {
          if (isRedirect) {
-             mostrarToast("Atenção: Ação requer envio via Portal Externo!");
              btnSalvar.innerHTML = '<i class="fa-solid fa-external-link-alt"></i> Ir para Portal Externo (+1 Moeda)';
              btnSalvar.style.backgroundColor = "#f43f5e";
          } else {
@@ -1471,7 +1503,6 @@
              return; 
            }
 
-           dispararConfetes();
            mostrarToast("Ação salva com sucesso!");
            if (btn) btn.disabled = false;
            setTimeout(function() {
@@ -1493,7 +1524,11 @@
                let pInd = document.getElementById('painel-indicadores-lancamento'); if (pInd) pInd.style.display = 'none';
 
                verificarCamposDinamicos();
+               
                google.script.run.withSuccessHandler(function(newData){
+                   let faseAntiga = dadosGlobais ? (dadosGlobais.faseMontanha || 1) : 1;
+                   let faseNova = newData.faseMontanha || 1;
+
                    dadosGlobais = newData;
                    renderizarGamificacaoVisual(newData);
                    renderizarHistoricos();
@@ -1504,75 +1539,19 @@
 
                    atualizarCardsDashboard();
                    mudarAba('home', document.querySelector('.nav-item'));
+                   
+                   if (typeof renderizarPendenciasJuridico === "function") {
+                       renderizarPendenciasJuridico(newData.pendencias);
+                   }
+                   
+                   if (faseNova > faseAntiga) {
+                       mostrarPopupFase(faseNova);
+                   } else {
+                       dispararConfetes();
+                   }
                }).obterDadosIniciais();
            }, 1000);
        }).registrarAtividade(dados, fileData);
-    }
-
-    function abrirModalAvulso() {
-        let aData = document.getElementById('avulso-data'); if (aData) aData.valueAsDate = new Date();
-        let aDes = document.getElementById('avulso-destino'); if (aDes) aDes.value = '';
-        let aQtd = document.getElementById('avulso-qtd'); if (aQtd) aQtd.value = '';
-        let aAli = document.getElementById('avulso-alimentacao'); if (aAli) aAli.value = '';
-        let aHos = document.getElementById('avulso-hospedagem'); if (aHos) aHos.value = '';
-        let aAer = document.getElementById('avulso-aereo'); if (aAer) aAer.value = '';
-        let aPed = document.getElementById('avulso-pedagio'); if (aPed) aPed.value = '';
-        let aEst = document.getElementById('avulso-estacionamento'); if (aEst) aEst.value = '';
-        let aTot = document.getElementById('avulso-total-display'); if (aTot) aTot.innerText = '0,00';
-        let mKm = document.getElementById('modal-km-avulso'); if (mKm) mKm.style.display='block';
-    }
-
-    function salvarKMAvulso() {
-       let aData = document.getElementById('avulso-data');
-       const data = aData ? aData.value : ''; 
-       let aDes = document.getElementById('avulso-destino');
-       const destino = aDes ? aDes.value : ''; 
-       let aVal = document.getElementById('avulso-valor');
-       const valor = aVal ? parseFloat(aVal.value) || 0 : 0; 
-       let aQtd = document.getElementById('avulso-qtd');
-       const qtd = aQtd ? parseFloat(aQtd.value) || 0 : 0;
-       const kmCusto = valor * qtd;
-
-       let aAli = document.getElementById('avulso-alimentacao'); const alimentacao = aAli ? parseFloat(aAli.value) || 0 : 0;
-       let aHos = document.getElementById('avulso-hospedagem'); const hospedagem = aHos ? parseFloat(aHos.value) || 0 : 0;
-       let aAer = document.getElementById('avulso-aereo'); const aereo = aAer ? parseFloat(aAer.value) || 0 : 0;
-       let aPed = document.getElementById('avulso-pedagio'); const pedagio = aPed ? parseFloat(aPed.value) || 0 : 0;
-       let aEst = document.getElementById('avulso-estacionamento'); const estacionamento = aEst ? parseFloat(aEst.value) || 0 : 0;
-
-       const totalFloat = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
-       if(!data || !destino || totalFloat <= 0) { 
-           mostrarToast("Preencha data, destino e ao menos um gasto válido!"); 
-           return; 
-       }
-       const payload = { 
-         destino: "AVULSO: " + destino, 
-         motivo: "Deslocamento Avulso (Sede/Evento)", 
-         dataViagem: data, 
-         kmValor: valor, 
-         kmQtd: qtd, 
-         kmCusto: kmCusto, 
-         alimentacao: alimentacao,
-         hospedagem: hospedagem,
-         aereo: aereo,
-         pedagio: pedagio,
-         estacionamento: estacionamento,
-         gastoTotal: totalFloat, 
-         moedas: 0,
-         roteiro: "Presencial (KM Avulso)",
-         linkEvidenciaExterna: ""
-       };
-       let mKm = document.getElementById('modal-km-avulso'); if (mKm) mKm.style.display='none';
-       mostrarToast("Salvando KM Avulso...");
-       google.script.run.withSuccessHandler(function(res){ 
-           if(res.erro) { mostrarToast(res.erro); return; }
-           dispararConfetes();
-           mostrarToast("KM Avulso registrado!"); 
-           google.script.run.withSuccessHandler(function(newData){
-               dadosGlobais = newData;
-               renderizarHistoricos();
-               atualizarCardsDashboard();
-           }).obterDadosIniciais(); 
-       }).registrarAtividade(payload, null);
     }
 
     function parseDataBR(dataString) {

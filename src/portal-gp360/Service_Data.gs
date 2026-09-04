@@ -22,7 +22,6 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
     const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
     const controle = obterControleAcesso(emailLogado);
     
-    // Verificação de segurança (onde o erro estava ocorrendo)
     if (!controle.autorizado) {
       return { bloqueado: true, mensagem: controle.erro };
     }
@@ -282,6 +281,9 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
           if (dtDispObj <= limiteData) continue;
 
           let regionalApuracao = String(dadosJur[i][5]).trim(); 
+          
+          // === NOVA REGRA APLICADA AQUI: IGNORAR QUALQUER LINHA ONDE A REGIONAL SEJA "CD" ===
+          if (regionalApuracao.toUpperCase() === "CD") continue;
 
           let pertenceAoUsuario = false;
           if (usuario.isSuperAdmin) {
@@ -325,7 +327,7 @@ function obterDadosIniciais(mesAlvo, anoAlvo) {
       ranking: ranking, 
       naturezas: naturezas, 
       diretorias: diretoriasAr,
-      pendencias: pendenciasApuracao, // <--- Aqui está a variável!
+      pendencias: pendenciasApuracao,
       mesAtualNum: mesAtual,
       anoAtualNum: anoAtual,
       mesAnteriorNum: mesAnterior,
