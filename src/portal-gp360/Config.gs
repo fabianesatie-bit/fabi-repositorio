@@ -24,3 +24,14 @@ function doGet() {
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
 }
+
+/**
+ * Função auxiliar para incluir o conteúdo de arquivos HTML modulares em templates.
+ * Permite o uso de <?!= include('NomeDoArquivo'); ?> no Index.html.
+ * 
+ * @param {string} filename Nome do arquivo HTML (sem a extensão .html)
+ * @return {string} Conteúdo HTML avaliado como string.
+ */
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}

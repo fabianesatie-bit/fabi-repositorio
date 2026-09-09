@@ -1340,6 +1340,84 @@
        if (aTotDisp) aTotDisp.innerText = total.toFixed(2).replace('.', ',');
     }
 
+    function abrirModalAvulso() {
+        let mKm = document.getElementById('modal-km-avulso');
+        if (mKm) {
+            mKm.style.display = 'block';
+            mKm.scrollIntoView({ behavior: 'smooth' });
+        }
+        let aData = document.getElementById('avulso-data');
+        if (aData && !aData.value) aData.valueAsDate = new Date();
+        calcularDespesasAvulso();
+    }
+
+    function salvarKMAvulso() {
+        let aData = document.getElementById('avulso-data');
+        const data = aData ? aData.value : ''; 
+        let aDes = document.getElementById('avulso-destino');
+        const destino = aDes ? aDes.value.trim() : ''; 
+        let aVal = document.getElementById('avulso-valor');
+        const valor = aVal ? parseFloat(aVal.value) || 0 : 0; 
+        let aQtd = document.getElementById('avulso-qtd');
+        const qtd = aQtd ? parseFloat(aQtd.value) || 0 : 0;
+        const kmCusto = valor * qtd;
+
+        let aAli = document.getElementById('avulso-alimentacao'); const alimentacao = aAli ? parseFloat(aAli.value) || 0 : 0;
+        let aHos = document.getElementById('avulso-hospedagem'); const hospedagem = aHos ? parseFloat(aHos.value) || 0 : 0;
+        let aAer = document.getElementById('avulso-aereo'); const aereo = aAer ? parseFloat(aAer.value) || 0 : 0;
+        let aPed = document.getElementById('avulso-pedagio'); const pedagio = aPed ? parseFloat(aPed.value) || 0 : 0;
+        let aEst = document.getElementById('avulso-estacionamento'); const estacionamento = aEst ? parseFloat(aEst.value) || 0 : 0;
+
+        const totalFloat = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
+        if (!data || !destino || totalFloat <= 0) { 
+            mostrarToast("Preencha data, destino e ao menos um gasto válido!"); 
+            return; 
+        }
+
+        const payload = { 
+            destino: "AVULSO: " + destino, 
+            motivo: "Deslocamento Avulso (Sede/Evento)", 
+            dataViagem: data, 
+            kmValor: valor, 
+            kmQtd: qtd, 
+            kmCusto: kmCusto, 
+            alimentacao: alimentacao,
+            hospedagem: hospedagem,
+            aereo: aereo,
+            pedagio: pedagio,
+            estacionamento: estacionamento,
+            gastoTotal: totalFloat, 
+            moedas: 0,
+            roteiro: "Presencial (KM Avulso)",
+            linkEvidenciaExterna: ""
+        };
+
+        let mKm = document.getElementById('modal-km-avulso'); 
+        if (mKm) mKm.style.display = 'none';
+        mostrarToast("Salvando KM Avulso...");
+
+        google.script.run.withSuccessHandler(function(res){ 
+            if (res.erro) { mostrarToast(res.erro); return; }
+            dispararConfetes();
+            mostrarToast("KM Avulso registrado com sucesso!"); 
+
+            if (aDes) aDes.value = '';
+            if (aQtd) aQtd.value = 0;
+            if (aAli) aAli.value = '';
+            if (aHos) aHos.value = '';
+            if (aAer) aAer.value = '';
+            if (aPed) aPed.value = '';
+            if (aEst) aEst.value = '';
+            calcularDespesasAvulso();
+
+            google.script.run.withSuccessHandler(function(newData){
+                dadosGlobais = newData;
+                renderizarHistoricos();
+                atualizarCardsDashboard();
+            }).obterDadosIniciais(); 
+        }).registrarAtividade(payload, null);
+    }
+
     function mostrarIndicadoresLancamento(filialId) {
         const painel = document.getElementById('painel-indicadores-lancamento');
         const loading = document.getElementById('loading-indicadores-lanc');
