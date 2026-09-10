@@ -227,15 +227,21 @@ function DB_semearDadosIniciaisSeNecessario(ss) {
 
 /**
  * Operação agregada de alta performance: carrega tudo o que a SPA precisa em UMA ÚNICA chamada RPC.
- * Lê projetos, tarefas da semana e eventos do Google Calendar simultaneamente.
+ * Lê projetos, tarefas e eventos do Google Calendar para o modo selecionado (Dia, Semana ou Mês).
  * 
- * @param {string} [dataReferenciaISO] Data YYYY-MM-DD para seleção da semana (padrão: hoje)
+ * @param {string} [dataReferenciaISO] Data YYYY-MM-DD (padrão: hoje)
+ * @param {string} [modoVisualizacao] 'dia', 'semana' ou 'mes' (padrão: 'semana')
  * @return {Object} Pacote completo de dados para a interface
  */
-function obterDadosIniciaisApp(dataReferenciaISO) {
+function obterDadosIniciaisApp(dataReferenciaISO, modoVisualizacao) {
   try {
     const ss = DB_obterPlanilha();
+    const modo = modoVisualizacao || 'semana';
+    
+    // Calcula metadados temporais para os 3 modos de visualização
+    const infoDia = Utils_obterIntervaloDia(dataReferenciaISO);
     const infoSemana = Utils_obterIntervaloSemana(dataReferenciaISO);
+    const infoMes = Utils_obterIntervaloMes(dataReferenciaISO);
     const hojeISO = Utils_obterDataHojeISO();
     
     // 1. Leitura em lote de PROJETOS
@@ -286,7 +292,7 @@ function obterDadosIniciaisApp(dataReferenciaISO) {
         if (dataInicioAguardandoISO) {
           diasAguardando = Utils_calcularDiasDecorridos(dataInicioAguardandoISO, hojeISO);
         } else {
-          diasAguardando = 1; // Pelo menos 1 dia se recém colocado
+          diasAguardando = 1;
         }
         
         if (diasAguardando <= 2) {
@@ -344,16 +350,30 @@ function obterDadosIniciaisApp(dataReferenciaISO) {
       });
     }
     
-    // 3. Leitura dos eventos do Google Calendar para a semana selecionada
+    // 3. Leitura dos eventos do Google Calendar para o intervalo adequado ao modo
     let eventosCalendario = [];
     try {
-      eventosCalendario = Service_Calendar_buscarEventosSemana(infoSemana.segundaISO, infoSemana.domingoISO);
+      let dataInicioBusca = infoSemana.segundaISO;
+      let dataFimBusca = infoSemana.domingoISO;
+      
+      if (modo === 'dia') {
+        dataInicioBusca = infoDia.dataISO;
+        dataFimBusca = infoDia.dataISO;
+      } else if (modo === 'mes') {
+        dataInicioBusca = infoMes.inicioGridISO;
+        dataFimBusca = infoMes.fimGridISO;
+      }
+      
+      eventosCalendario = Service_Calendar_buscarEventosSemana(dataInicioBusca, dataFimBusca);
     } catch (eCal) {
       console.warn('Falha ao obter eventos do calendário:', eCal);
     }
     
     return Utils_criarRespostaSucesso({
+      modoVisualizacao: modo,
+      infoDia: infoDia,
       infoSemana: infoSemana,
+      infoMes: infoMes,
       projetos: projetos,
       tarefas: tarefas,
       eventosCalendario: eventosCalendario,
@@ -713,5 +733,105 @@ function registrarSessaoTempo(idTarefa, dataExecucao, horaInicio, horaFim, durac
       tempoTotalFormatado: Utils_formatarSegundosParaHHMMSS(novoTotal)
     }, `Sessão de ${Utils_formatarSegundosParaHHMMSS(segs)} registrada com sucesso.`);
   });
+}
+
+/**
+ * Altera o status do projeto para Arquivado
+ * 
+ * @param {string} idProjeto ID do projeto a ser arquivado
+ * @return {Object} Resposta com confirmação
+ */
+function arquivarProjeto(idProjeto) {
+  return Security_executarComLock(function() {
+    if (!idProjeto) throw new Error('ID do projeto não fornecido.');
+    
+    const ss = DB_obterPlanilha();
+    const sheet = ss.getSheetByName(SHEET_NAMES.PROJETOS);
+    if (!sheet) throw new Error('Aba PROJETOS não localizada.');
+    
+    const dados = sheet.getDataRange().getValues();
+    let linhaIndex = -1;
+    let nomeProjeto = '';
+    
+    for (let i = 1; i < dados.length; i++) {
+      if (String(dados[i][0]).trim() === String(idProjeto).trim()) {
+        linhaIndex = i + 1;
+        nomeProjeto = dados[i][1];
+        break;
+      }
+    }
+    
+    if (linhaIndex === -1) {
+      throw new Error(`Projeto ${idProjeto} não localizado.`);
+    }
+    
+    // Coluna 5 é Status
+    sheet.getRange(linhaIndex, 5).setValue(STATUS_PROJETO.ARQUIVADO);
+    
+    return Utils_criarRespostaSucesso({
+      ID_Projeto: idProjeto,
+      Status: STATUS_PROJETO.ARQUIVADO
+    }, `Projeto "${nomeProjeto}" arquivado com sucesso.`);
+  });
+}
+
+/**
+ * Reativa/Desarquiva um projeto, retornando seu status para Ativo
+ * 
+ * @param {string} idProjeto ID do projeto a ser reativado
+ * @return {Object} Resposta com confirmação
+ */
+function desarquivarProjeto(idProjeto) {
+  return Security_executarComLock(function() {
+    if (!idProjeto) throw new Error('ID do projeto não fornecido.');
+    
+    const ss = DB_obterPlanilha();
+    const sheet = ss.getSheetByName(SHEET_NAMES.PROJETOS);
+    if (!sheet) throw new Error('Aba PROJETOS não localizada.');
+    
+    const dados = sheet.getDataRange().getValues();
+    let linhaIndex = -1;
+    let nomeProjeto = '';
+    
+    for (let i = 1; i < dados.length; i++) {
+      if (String(dados[i][0]).trim() === String(idProjeto).trim()) {
+        linhaIndex = i + 1;
+        nomeProjeto = dados[i][1];
+        break;
+      }
+    }
+    
+    if (linhaIndex === -1) {
+      throw new Error(`Projeto ${idProjeto} não localizado.`);
+    }
+    
+    // Coluna 5 é Status
+    sheet.getRange(linhaIndex, 5).setValue(STATUS_PROJETO.ATIVO);
+    
+    return Utils_criarRespostaSucesso({
+      ID_Projeto: idProjeto,
+      Status: STATUS_PROJETO.ATIVO
+    }, `Projeto "${nomeProjeto}" reativado para Ativo com sucesso.`);
+  });
+}
+
+/**
+ * Altera o status da tarefa para Arquivada
+ * 
+ * @param {string} idTarefa ID da tarefa a ser arquivada
+ * @return {Object} Resposta com confirmação
+ */
+function arquivarTarefa(idTarefa) {
+  return atualizarStatusTarefa(idTarefa, STATUS_TAREFA.ARQUIVADA);
+}
+
+/**
+ * Restaura uma tarefa arquivada para o status Pendente
+ * 
+ * @param {string} idTarefa ID da tarefa a ser restaurada
+ * @return {Object} Resposta com confirmação
+ */
+function desarquivarTarefa(idTarefa) {
+  return atualizarStatusTarefa(idTarefa, STATUS_TAREFA.PENDENTE);
 }
 

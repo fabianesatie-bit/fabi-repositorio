@@ -13,7 +13,7 @@ const APP_VERSION = '1.0.0';
 /**
  * Chave de propriedade do script para persistência do ID da Planilha Google Sheets
  */
-const SPREADSHEET_ID_PROPERTY = '1SEcp0Y8vv6DMvVTj3lNrUgMSW5EnGqZrRW4XxPz-qrE';
+const SPREADSHEET_ID_PROPERTY = 'GP360_PROJETOS_SPREADSHEET_ID';
 const DEFAULT_SPREADSHEET_NAME = 'GP360 - Gestão de Projetos e Agendas (DB)';
 
 /**
@@ -76,7 +76,8 @@ const STATUS_TAREFA = Object.freeze({
   PENDENTE: 'Pendente',
   EM_ANDAMENTO: 'Em Andamento',
   AGUARDANDO: 'Aguardando',
-  CONCLUIDA: 'Concluída'
+  CONCLUIDA: 'Concluída',
+  ARQUIVADA: 'Arquivada'
 });
 
 /**
@@ -85,7 +86,8 @@ const STATUS_TAREFA = Object.freeze({
 const STATUS_PROJETO = Object.freeze({
   ATIVO: 'Ativo',
   PAUSADO: 'Pausado',
-  CONCLUIDO: 'Concluído'
+  CONCLUIDO: 'Concluído',
+  ARQUIVADO: 'Arquivado'
 });
 
 /**
@@ -162,7 +164,7 @@ const FAIXAS_AGUARDANDO = Object.freeze({
 
 /**
  * Função de entrada doGet() para renderização da Single Page Application (SPA).
- * Configura viewport móvel, segurança e metatags PWA completas.
+ * Configura viewport móvel e segurança do Web App.
  * 
  * @param {Object} e Parâmetros da requisição HTTP GET
  * @return {HtmlOutput} Página HTML avaliada e configurada
@@ -178,12 +180,7 @@ function doGet(e) {
     return template.evaluate()
       .setTitle(APP_TITLE)
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover')
-      .addMetaTag('mobile-web-app-capable', 'yes')
-      .addMetaTag('apple-mobile-web-app-capable', 'yes')
-      .addMetaTag('apple-mobile-web-app-status-bar-style', 'default')
-      .addMetaTag('apple-mobile-web-app-title', 'GP360 Projetos')
-      .addMetaTag('theme-color', '#7C3AED');
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
   } catch (error) {
     return HtmlService.createHtmlOutput(
       '<div style="font-family:sans-serif;padding:24px;color:#9F1239;background:#FFF1F2;border-radius:12px;">' +

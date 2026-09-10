@@ -15,7 +15,11 @@
   // ===========================================================================
   const State = {
     dataReferencia: new Date(),
+    modoVisualizacao: 'semana', // 'dia', 'semana', 'mes'
+    infoDia: null,
     infoSemana: null,
+    infoMes: null,
+    diaSelecionadoMesISO: null,
     projetos: [],
     tarefas: [],
     eventosCalendario: [],
@@ -23,6 +27,7 @@
     hojeISO: '',
     paletaCores: [],
     abaAtiva: 'semana',
+    filtroProjetos: 'ativos',
     filtroBusca: '',
     filtroPrioridade: '',
     filtroStatus: '',
@@ -53,19 +58,28 @@
   document.addEventListener('DOMContentLoaded', () => {
     configurarEventosGlobais();
     restaurarEstadoTimerLocalStorage();
-    carregarDadosSemana();
+    carregarDadosApp();
   });
 
   /**
    * Vincula ouvintes de eventos da interface
    */
   function configurarEventosGlobais() {
-    // Navegação de Semanas
-    document.getElementById('btn-prev-week').addEventListener('click', () => navegarSemana(-7));
-    document.getElementById('btn-next-week').addEventListener('click', () => navegarSemana(7));
+    // Seletor de Modo Temporal (Dia, Semana, Mês)
+    const btnDia = document.getElementById('btn-mode-dia');
+    const btnSemana = document.getElementById('btn-mode-semana');
+    const btnMes = document.getElementById('btn-mode-mes');
+    
+    if (btnDia) btnDia.addEventListener('click', () => alternarModoVisualizacao('dia'));
+    if (btnSemana) btnSemana.addEventListener('click', () => alternarModoVisualizacao('semana'));
+    if (btnMes) btnMes.addEventListener('click', () => alternarModoVisualizacao('mes'));
+
+    // Navegação Adaptativa de Período (Dia, Semana ou Mês)
+    document.getElementById('btn-prev-week').addEventListener('click', () => navegarPeriodo(-1));
+    document.getElementById('btn-next-week').addEventListener('click', () => navegarPeriodo(1));
     document.getElementById('btn-current-week').addEventListener('click', () => {
       State.dataReferencia = new Date();
-      carregarDadosSemana();
+      carregarDadosApp();
     });
 
     // Abas / Filtros Rápidos
@@ -120,6 +134,47 @@
     document.getElementById('btn-cancel-project').addEventListener('click', fecharModalProjeto);
     document.getElementById('form-project').addEventListener('submit', salvarProjetoForm);
 
+    // Toolbar de Projetos (Ativos vs Arquivados e Novo Projeto)
+    const btnSubAtivos = document.getElementById('btn-subnav-ativos');
+    const btnSubArquivados = document.getElementById('btn-subnav-arquivados');
+    if (btnSubAtivos) {
+      btnSubAtivos.addEventListener('click', () => {
+        State.filtroProjetos = 'ativos';
+        btnSubAtivos.classList.add('active');
+        if (btnSubArquivados) btnSubArquivados.classList.remove('active');
+        renderizarProjetos();
+      });
+    }
+    if (btnSubArquivados) {
+      btnSubArquivados.addEventListener('click', () => {
+        State.filtroProjetos = 'arquivados';
+        btnSubArquivados.classList.add('active');
+        if (btnSubAtivos) btnSubAtivos.classList.remove('active');
+        renderizarProjetos();
+      });
+    }
+
+    const btnKanbanNovo = document.getElementById('btn-kanban-novo-projeto');
+    if (btnKanbanNovo) {
+      btnKanbanNovo.addEventListener('click', () => abrirModalProjeto());
+    }
+
+    const btnArchiveProject = document.getElementById('btn-archive-project');
+    if (btnArchiveProject) {
+      btnArchiveProject.addEventListener('click', () => {
+        const idProj = document.getElementById('project-id').value;
+        if (idProj) arquivarProjetoUI(idProj);
+      });
+    }
+
+    const btnArchiveTask = document.getElementById('btn-archive-task');
+    if (btnArchiveTask) {
+      btnArchiveTask.addEventListener('click', () => {
+        const idTask = document.getElementById('task-id').value;
+        if (idTask) arquivarTarefaUI(idTask);
+      });
+    }
+
     // Modal - Motivo Rápido de Aguardando
     document.getElementById('btn-close-waiting-reason').addEventListener('click', fecharModalMotivoAguardando);
     document.getElementById('btn-cancel-quick-waiting').addEventListener('click', fecharModalMotivoAguardando);
@@ -140,17 +195,32 @@
   // 3. COMUNICAÇÃO COM O SERVIDOR (GOOGLE.SCRIPT.RUN)
   // ===========================================================================
   /**
-   * Carrega dados completos da semana (Projetos, Tarefas e Calendar)
+   * Carrega dados completos para o modo temporal ativo (Dia, Semana ou Mês)
    */
-  function carregarDadosSemana() {
+  function carregarDadosApp() {
     const dataISO = formatarDataISOJS(State.dataReferencia);
-    const container = document.getElementById('week-accordion-container');
-    container.innerHTML = '<div class="empty-state">Sincronizando compromissos e tarefas...</div>';
+    const modo = State.modoVisualizacao || 'semana';
+
+    if (modo === 'dia') {
+      const containerDia = document.getElementById('day-view-container');
+      if (containerDia) containerDia.innerHTML = '<div class="empty-state">Sincronizando tarefas e compromissos do dia...</div>';
+    } else if (modo === 'mes') {
+      const containerMes = document.getElementById('month-view-container');
+      if (containerMes) containerMes.innerHTML = '<div class="empty-state">Sincronizando calendário do mês...</div>';
+    } else {
+      const containerSemana = document.getElementById('week-accordion-container');
+      if (containerSemana) containerSemana.innerHTML = '<div class="empty-state">Sincronizando agenda e tarefas...</div>';
+    }
 
     google.script.run
       .withSuccessHandler(onDadosIniciaisCarregados)
       .withFailureHandler(onErrorServidor)
-      .obterDadosIniciaisApp(dataISO);
+      .obterDadosIniciaisApp(dataISO, modo);
+  }
+
+  // Alias para manter compatibilidade com chamadas pré-existentes
+  function carregarDadosSemana() {
+    carregarDadosApp();
   }
 
   function onDadosIniciaisCarregados(resposta) {
@@ -160,7 +230,9 @@
     }
 
     const d = resposta.dados;
+    State.infoDia = d.infoDia;
     State.infoSemana = d.infoSemana;
+    State.infoMes = d.infoMes;
     State.projetos = d.projetos || [];
     State.tarefas = d.tarefas || [];
     State.eventosCalendario = d.eventosCalendario || [];
@@ -169,7 +241,7 @@
     State.paletaCores = d.paletaCores || [];
 
     atualizarIndicadoresHeader();
-    renderizarVisaoSemanal();
+    renderizarVisaoAtiva();
     renderizarProjetos();
     renderizarTodasTarefas();
     renderizarAguardando();
@@ -182,22 +254,60 @@
   }
 
   // ===========================================================================
-  // 4. RENDERIZAÇÃO: NAVEGADOR DE SEMANA & TABS
+  // 4. RENDERIZAÇÃO: NAVEGADOR DE PERÍODO & TABS
   // ===========================================================================
+  function alternarModoVisualizacao(novoModo) {
+    if (State.modoVisualizacao === novoModo) return;
+    State.modoVisualizacao = novoModo;
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === novoModo);
+    });
+
+    if (State.abaAtiva !== 'semana') {
+      alternarAba('semana');
+    } else {
+      carregarDadosApp();
+    }
+  }
+
+  function navegarPeriodo(direcao) {
+    if (State.modoVisualizacao === 'dia') {
+      State.dataReferencia.setDate(State.dataReferencia.getDate() + direcao);
+    } else if (State.modoVisualizacao === 'mes') {
+      State.dataReferencia.setMonth(State.dataReferencia.getMonth() + direcao);
+    } else {
+      State.dataReferencia.setDate(State.dataReferencia.getDate() + (direcao * 7));
+    }
+    carregarDadosApp();
+  }
+
   function navegarSemana(dias) {
-    State.dataReferencia.setDate(State.dataReferencia.getDate() + dias);
-    carregarDadosSemana();
+    navegarPeriodo(dias > 0 ? 1 : -1);
   }
 
   function atualizarIndicadoresHeader() {
-    if (!State.infoSemana) return;
-    
-    const d1 = formatarDataBRJS(State.infoSemana.segundaISO);
-    const d2 = formatarDataBRJS(State.infoSemana.domingoISO);
-    document.getElementById('week-display-range').textContent = `${d1} - ${d2}`;
+    const rangeEl = document.getElementById('week-display-range');
+    const statusEl = document.getElementById('week-display-status');
+    if (!rangeEl || !statusEl) return;
 
-    const ehSemanaAtual = State.infoSemana.diasSemana.some(d => d.isHoje);
-    document.getElementById('week-display-status').textContent = ehSemanaAtual ? 'Semana Atual' : 'Semana Visualizada';
+    if (State.modoVisualizacao === 'dia') {
+      if (!State.infoDia) return;
+      rangeEl.textContent = State.infoDia.dataExtenso;
+      statusEl.textContent = State.infoDia.isHoje ? 'Hoje' : `Dia ${State.infoDia.dataBR}`;
+    } else if (State.modoVisualizacao === 'mes') {
+      if (!State.infoMes) return;
+      rangeEl.textContent = State.infoMes.tituloMesAno;
+      const ehMesAtual = (State.dataReferencia.getFullYear() === new Date().getFullYear() && State.dataReferencia.getMonth() === new Date().getMonth());
+      statusEl.textContent = ehMesAtual ? 'Mês Atual' : 'Mês Visualizado';
+    } else {
+      if (!State.infoSemana) return;
+      const d1 = formatarDataBRJS(State.infoSemana.segundaISO);
+      const d2 = formatarDataBRJS(State.infoSemana.domingoISO);
+      rangeEl.textContent = `${d1} - ${d2}`;
+      const ehSemanaAtual = State.infoSemana.diasSemana && State.infoSemana.diasSemana.some(d => d.isHoje);
+      statusEl.textContent = ehSemanaAtual ? 'Semana Atual' : 'Semana Visualizada';
+    }
 
     const userEl = document.getElementById('user-display');
     if (userEl && State.usuarioLogado) {
@@ -208,28 +318,311 @@
   function alternarAba(aba) {
     State.abaAtiva = aba;
 
-    // Atualiza botões
     document.querySelectorAll('.filter-tab').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === aba);
     });
 
-    // Atualiza seções
-    document.getElementById('view-semana').style.display = (aba === 'semana') ? 'block' : 'none';
+    const isAgenda = (aba === 'semana');
+    const modeSelector = document.querySelector('.view-mode-container');
+    const weekNav = document.querySelector('.week-navigator');
+    if (modeSelector) modeSelector.style.display = isAgenda ? 'flex' : 'none';
+    if (weekNav) weekNav.style.display = isAgenda ? 'flex' : 'none';
+
     document.getElementById('view-projetos').style.display = (aba === 'projetos') ? 'block' : 'none';
     document.getElementById('view-todas-tarefas').style.display = (aba === 'todas-tarefas') ? 'block' : 'none';
     document.getElementById('view-aguardando').style.display = (aba === 'aguardando') ? 'block' : 'none';
+
+    if (aba === 'projetos') {
+      renderizarProjetos();
+    } else if (aba === 'todas-tarefas') {
+      renderizarTodasTarefas();
+    } else if (aba === 'aguardando') {
+      renderizarAguardando();
+    }
+
+    renderizarVisaoAtiva();
+  }
+
+  function renderizarVisaoAtiva() {
+    const isAgenda = (State.abaAtiva === 'semana');
+    
+    const secDia = document.getElementById('view-dia');
+    const secSemana = document.getElementById('view-semana');
+    const secMes = document.getElementById('view-mes');
+
+    if (secDia) secDia.style.display = (isAgenda && State.modoVisualizacao === 'dia') ? 'block' : 'none';
+    if (secSemana) secSemana.style.display = (isAgenda && State.modoVisualizacao === 'semana') ? 'block' : 'none';
+    if (secMes) secMes.style.display = (isAgenda && State.modoVisualizacao === 'mes') ? 'block' : 'none';
+
+    if (!isAgenda) return;
+
+    if (State.modoVisualizacao === 'dia') {
+      renderizarVisaoDia();
+    } else if (State.modoVisualizacao === 'mes') {
+      renderizarVisaoMensal();
+    } else {
+      renderizarVisaoSemanal();
+    }
   }
 
   function atualizarContadoresTabs() {
-    document.getElementById('badge-count-projetos').textContent = State.projetos.length;
-    document.getElementById('badge-count-tarefas').textContent = State.tarefas.length;
+    const ativos = State.projetos.filter(p => p.Status !== 'Arquivado');
+    const badgeProjetos = document.getElementById('badge-count-projetos');
+    if (badgeProjetos) badgeProjetos.textContent = ativos.length;
+
+    const tarefasAtivas = State.tarefas.filter(t => t.Status !== 'Arquivada');
+    const badgeTarefas = document.getElementById('badge-count-tarefas');
+    if (badgeTarefas) badgeTarefas.textContent = tarefasAtivas.length;
     
     const countAguardando = State.tarefas.filter(t => t.Status === 'Aguardando').length;
-    document.getElementById('badge-count-aguardando').textContent = countAguardando;
+    const badgeAguardando = document.getElementById('badge-count-aguardando');
+    if (badgeAguardando) badgeAguardando.textContent = countAguardando;
   }
 
   // ===========================================================================
-  // 5. RENDERIZAÇÃO: VISÃO SEMANAL (ACCORDION SANFONADO MOBILE-FIRST)
+  // 5.1 RENDERIZAÇÃO: VISÃO DIÁRIA (DIA)
+  // ===========================================================================
+  function renderizarVisaoDia() {
+    const container = document.getElementById('day-view-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!State.infoDia) {
+      container.innerHTML = '<div class="empty-state">Nenhuma informação diária disponível.</div>';
+      return;
+    }
+
+    const diaInfo = State.infoDia;
+    const tarefasDoDia = State.tarefas.filter(t => t.Data_Programada === diaInfo.dataISO);
+    const eventosDoDia = State.eventosCalendario.filter(e => e.dataISO === diaInfo.dataISO);
+
+    const tarefasConcluidas = tarefasDoDia.filter(t => t.Status === 'Concluída').length;
+    const tarefasPendentes = tarefasDoDia.filter(t => t.Status !== 'Concluída').length;
+    const segundosTotais = tarefasDoDia.reduce((acc, t) => acc + (t.Tempo_Total_Segundos || 0), 0);
+    const tempoFormatado = formatarSegundosHHMMSS(segundosTotais);
+
+    // 1. Hero Metrics do Dia
+    const heroMetrics = document.createElement('div');
+    heroMetrics.className = 'day-hero-metrics';
+    heroMetrics.innerHTML = `
+      <div class="metric-card highlight">
+        <span class="metric-card-label">Compromissos</span>
+        <span class="metric-card-value">${eventosDoDia.length}</span>
+      </div>
+      <div class="metric-card ${tarefasPendentes > 0 ? 'warning' : 'success'}">
+        <span class="metric-card-label">Pendentes</span>
+        <span class="metric-card-value">${tarefasPendentes}</span>
+      </div>
+      <div class="metric-card success">
+        <span class="metric-card-label">Concluídas</span>
+        <span class="metric-card-value">${tarefasConcluidas}</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-card-label">Tempo Trabalhado</span>
+        <span class="metric-card-value" style="font-family:monospace;font-size:16px;">${tempoFormatado}</span>
+      </div>
+    `;
+    container.appendChild(heroMetrics);
+
+    // 2. Seção Google Calendar do Dia
+    if (eventosDoDia.length > 0) {
+      const calHeader = document.createElement('div');
+      calHeader.className = 'section-subtitle';
+      calHeader.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Compromissos da Agenda (${eventosDoDia.length})
+      `;
+      container.appendChild(calHeader);
+
+      const calList = document.createElement('div');
+      calList.className = 'calendar-events-list';
+      calList.style.marginBottom = '20px';
+      
+      eventosDoDia.forEach(ev => {
+        const evCard = document.createElement('div');
+        evCard.className = 'calendar-event-card';
+        evCard.innerHTML = `
+          <div class="cal-details">
+            <div class="cal-title">${escapeHTML(ev.titulo)}</div>
+            ${ev.local ? `<div class="cal-location"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${escapeHTML(ev.local)}</div>` : ''}
+          </div>
+          <div class="cal-time-badge">${ev.horaInicio}${ev.horaFim ? ' - ' + ev.horaFim : ''}</div>
+        `;
+        calList.appendChild(evCard);
+      });
+      container.appendChild(calList);
+    }
+
+    // 3. Seção Tarefas do Dia
+    const taskHeaderWrapper = document.createElement('div');
+    taskHeaderWrapper.style.display = 'flex';
+    taskHeaderWrapper.style.alignItems = 'center';
+    taskHeaderWrapper.style.justifyContent = 'space-between';
+    taskHeaderWrapper.style.marginBottom = '8px';
+
+    const taskTitle = document.createElement('div');
+    taskTitle.className = 'section-subtitle';
+    taskTitle.style.marginBottom = '0';
+    taskTitle.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      Tarefas Programadas (${tarefasDoDia.length})
+    `;
+    taskHeaderWrapper.appendChild(taskTitle);
+
+    const btnNovaTarefaDia = document.createElement('button');
+    btnNovaTarefaDia.className = 'btn btn-secondary btn-sm';
+    btnNovaTarefaDia.innerHTML = '+ Nova Tarefa';
+    btnNovaTarefaDia.addEventListener('click', () => abrirModalTarefa(null, diaInfo.dataISO));
+    taskHeaderWrapper.appendChild(btnNovaTarefaDia);
+
+    container.appendChild(taskHeaderWrapper);
+
+    if (tarefasDoDia.length === 0) {
+      const vazio = document.createElement('div');
+      vazio.className = 'empty-state';
+      vazio.style.margin = '4px 0 16px 0';
+      vazio.textContent = `Nenhuma tarefa programada para ${diaInfo.dataExtenso}.`;
+      container.appendChild(vazio);
+    } else {
+      const taskList = document.createElement('div');
+      taskList.className = 'tasks-list';
+      
+      tarefasDoDia.forEach(tarefa => {
+        taskList.appendChild(criarElementoCardTarefa(tarefa));
+      });
+      container.appendChild(taskList);
+    }
+  }
+
+  // ===========================================================================
+  // 5.2 RENDERIZAÇÃO: VISÃO MENSAL (MÊS - GRID DE CALENDÁRIO)
+  // ===========================================================================
+  function renderizarVisaoMensal() {
+    const container = document.getElementById('month-view-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!State.infoMes || !State.infoMes.gridDias) {
+      container.innerHTML = '<div class="empty-state">Nenhuma informação de calendário mensal disponível.</div>';
+      return;
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'month-calendar-wrapper';
+
+    // Cabeçalho dos dias da semana (Seg a Dom)
+    const headerRow = document.createElement('div');
+    headerRow.className = 'month-weekdays-header';
+    const diasNomes = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+    diasNomes.forEach((d, idx) => {
+      const col = document.createElement('div');
+      col.className = `weekday-header-col ${idx >= 5 ? 'weekend' : ''}`;
+      col.textContent = d;
+      headerRow.appendChild(col);
+    });
+    wrapper.appendChild(headerRow);
+
+    // Grid dos dias
+    const grid = document.createElement('div');
+    grid.className = 'month-grid';
+
+    State.infoMes.gridDias.forEach(diaCell => {
+      const tarefasDoDia = State.tarefas.filter(t => t.Data_Programada === diaCell.dataISO);
+      const eventosDoDia = State.eventosCalendario.filter(e => e.dataISO === diaCell.dataISO);
+      const pendentes = tarefasDoDia.filter(t => t.Status !== 'Concluída').length;
+
+      const cell = document.createElement('div');
+      cell.className = `month-day-cell ${diaCell.isMesAtual ? '' : 'other-month'} ${diaCell.isHoje ? 'is-today' : ''} ${State.diaSelecionadoMesISO === diaCell.dataISO ? 'is-selected' : ''}`;
+      cell.title = `${diaCell.numeroDia} ${diaCell.mesCurto} - Clique para abrir a visão do dia`;
+
+      // Topo da célula
+      const cellTop = document.createElement('div');
+      cellTop.className = 'month-cell-top';
+      
+      const numSpan = document.createElement('span');
+      numSpan.className = 'month-cell-number';
+      numSpan.textContent = diaCell.numeroDia;
+      cellTop.appendChild(numSpan);
+
+      if (eventosDoDia.length > 0) {
+        const calIcon = document.createElement('span');
+        calIcon.className = 'month-cell-cal-icon';
+        calIcon.title = `${eventosDoDia.length} compromisso(s) na agenda`;
+        calIcon.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+        cellTop.appendChild(calIcon);
+      }
+      cell.appendChild(cellTop);
+
+      // Indicadores de tarefas
+      const indicators = document.createElement('div');
+      indicators.className = 'month-cell-indicators';
+
+      if (pendentes > 0) {
+        const badge = document.createElement('span');
+        badge.className = 'month-cell-badge';
+        badge.style.background = '#EDE9FE';
+        badge.style.color = '#5B21B6';
+        badge.textContent = `${pendentes} tarefa${pendentes > 1 ? 's' : ''}`;
+        indicators.appendChild(badge);
+      } else if (tarefasDoDia.length > 0) {
+        const badge = document.createElement('span');
+        badge.className = 'month-cell-badge';
+        badge.style.background = '#ECFDF5';
+        badge.style.color = '#065F46';
+        badge.textContent = `✓ ${tarefasDoDia.length}`;
+        indicators.appendChild(badge);
+      }
+
+      // Pontinhos coloridos dos projetos
+      if (tarefasDoDia.length > 0) {
+        const dotsContainer = document.createElement('div');
+        dotsContainer.className = 'month-cell-dots';
+        
+        tarefasDoDia.slice(0, 4).forEach(t => {
+          const dot = document.createElement('span');
+          dot.className = 'month-dot';
+          dot.style.backgroundColor = t.Cor_Projeto || '#7C3AED';
+          dotsContainer.appendChild(dot);
+        });
+        indicators.appendChild(dotsContainer);
+      }
+
+      cell.appendChild(indicators);
+
+      // Clique na célula: salta diretamente para o modo Dia daquela data!
+      cell.addEventListener('click', () => {
+        abrirDiaPeloMes(diaCell.dataISO);
+      });
+
+      grid.appendChild(cell);
+    });
+
+    wrapper.appendChild(grid);
+    container.appendChild(wrapper);
+  }
+
+  function abrirDiaPeloMes(dataISO) {
+    State.dataReferencia = parseDataISOParaDataJS(dataISO);
+    State.modoVisualizacao = 'dia';
+    
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === 'dia');
+    });
+
+    carregarDadosApp();
+  }
+
+  function parseDataISOParaDataJS(isoStr) {
+    if (!isoStr) return new Date();
+    const partes = isoStr.split('-');
+    if (partes.length === 3) {
+      return new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10), 12, 0, 0);
+    }
+    return new Date();
+  }
+
+  // ===========================================================================
+  // 5.3 RENDERIZAÇÃO: VISÃO SEMANAL (ACCORDION SANFONADO MOBILE-FIRST)
   // ===========================================================================
   function renderizarVisaoSemanal() {
     const container = document.getElementById('week-accordion-container');
@@ -496,7 +889,8 @@
     t.Data_Programada_BR = formatarDataBRJS(novaDataISO);
 
     // Re-renderiza views
-    renderizarVisaoSemanal();
+    renderizarVisaoAtiva();
+    renderizarProjetos();
     renderizarTodasTarefas();
     mostrarToast(`Adiado para ${t.Data_Programada_BR}`, 'info');
 
@@ -537,7 +931,8 @@
         t.Data_Inicio_Aguardando = State.hojeISO;
         t.diasAguardando = 1;
       }
-      renderizarVisaoSemanal();
+      renderizarVisaoAtiva();
+      renderizarProjetos();
       renderizarTodasTarefas();
       renderizarAguardando();
       atualizarContadoresTabs();
@@ -727,47 +1122,322 @@
   }
 
   // ===========================================================================
-  // 9. RENDERIZAÇÃO: PROJETOS, TODAS AS TAREFAS E AGUARDANDO
+  // 9. RENDERIZAÇÃO: PROJETOS (KANBAN ESTILO TRELLO & MODO ARQUIVAR)
   // ===========================================================================
   function renderizarProjetos() {
-    const container = document.getElementById('projects-list-container');
+    const container = document.getElementById('projects-board-container') || document.getElementById('projects-list-container');
+    if (!container) return;
     container.innerHTML = '';
 
-    if (State.projetos.length === 0) {
-      container.innerHTML = '<div class="empty-state">Nenhum projeto cadastrado. Clique em "+ Projeto" para iniciar.</div>';
+    // Atualiza contadores nas abas/subnav
+    const ativos = State.projetos.filter(p => p.Status !== 'Arquivado');
+    const arquivados = State.projetos.filter(p => p.Status === 'Arquivado');
+
+    const countAtivosEl = document.getElementById('count-subnav-ativos');
+    const countArqEl = document.getElementById('count-subnav-arquivados');
+    const badgeProjetosEl = document.getElementById('badge-count-projetos');
+
+    if (countAtivosEl) countAtivosEl.textContent = ativos.length;
+    if (countArqEl) countArqEl.textContent = arquivados.length;
+    if (badgeProjetosEl) badgeProjetosEl.textContent = ativos.length;
+
+    // 1. MODO PROJETOS ATIVOS (QUADRO KANBAN ESTILO TRELLO)
+    if (State.filtroProjetos === 'ativos') {
+      if (ativos.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="padding:40px 20px;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text-muted);margin-bottom:8px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <div style="font-size:15px;font-weight:700;color:var(--text-main);margin-bottom:4px;">Nenhum projeto ativo</div>
+            <p style="color:var(--text-muted);margin-bottom:12px;">Crie seu primeiro projeto para visualizar o quadro Kanban ou consulte os arquivados.</p>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalProjeto()">+ Criar Projeto</button>
+          </div>
+        `;
+        return;
+      }
+
+      const board = document.createElement('div');
+      board.className = 'projects-kanban-board';
+
+      ativos.forEach(p => {
+        const tarefasDoProjeto = State.tarefas.filter(t => t.ID_Projeto === p.ID_Projeto);
+        const tarefasPendentes = tarefasDoProjeto.filter(t => t.Status !== 'Concluída' && t.Status !== 'Arquivada');
+        const tarefasConcluidas = tarefasDoProjeto.filter(t => t.Status === 'Concluída');
+
+        const col = document.createElement('div');
+        col.className = 'kanban-project-column';
+        col.id = `kanban-col-${p.ID_Projeto}`;
+
+        // Top Stripe com a cor pastel do projeto
+        const stripe = document.createElement('div');
+        stripe.className = 'kanban-column-stripe';
+        stripe.style.background = p.Cor_Pastel || '#EDE9FE';
+        col.appendChild(stripe);
+
+        // Header da Coluna
+        const header = document.createElement('div');
+        header.className = 'kanban-column-header';
+        header.innerHTML = `
+          <div class="kanban-column-header-top">
+            <span class="project-pill" style="background:${p.Cor_Pastel || '#EDE9FE'};color:#1E1B4B;max-width:180px;">
+              ${escapeHTML(p.Area_Contexto || 'Geral')}
+            </span>
+            <div class="kanban-column-actions">
+              <button class="btn-kanban-header-action" data-action="edit-proj" title="Editar Projeto">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="btn-kanban-header-action" data-action="archive-proj" title="Arquivar Projeto">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="kanban-column-title">${escapeHTML(p.Nome_Projeto)}</div>
+          ${p.Observacoes ? `<div class="kanban-column-obs">${escapeHTML(p.Observacoes)}</div>` : ''}
+          <div class="kanban-column-meta-bar">
+            <span><strong>${tarefasPendentes.length}</strong> ${tarefasPendentes.length === 1 ? 'tarefa pendente' : 'tarefas pendentes'}</span>
+            <span style="color:var(--text-muted);">${tarefasDoProjeto.length} total</span>
+          </div>
+        `;
+
+        header.querySelector('[data-action="edit-proj"]').addEventListener('click', (e) => {
+          e.stopPropagation();
+          abrirModalProjeto(p.ID_Projeto);
+        });
+
+        header.querySelector('[data-action="archive-proj"]').addEventListener('click', (e) => {
+          e.stopPropagation();
+          arquivarProjetoUI(p.ID_Projeto);
+        });
+
+        col.appendChild(header);
+
+        // Container dos Cartões de Tarefas Pendentes
+        const cardsContainer = document.createElement('div');
+        cardsContainer.className = 'kanban-cards-container';
+
+        if (tarefasPendentes.length === 0) {
+          const emptyCard = document.createElement('div');
+          emptyCard.className = 'kanban-empty-tasks';
+          emptyCard.innerHTML = 'Sem tarefas pendentes 🎉';
+          cardsContainer.appendChild(emptyCard);
+        } else {
+          tarefasPendentes.forEach(t => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'kanban-task-card';
+            cardEl.id = `kanban-card-${t.ID_Tarefa}`;
+
+            // Prioridade
+            let prioClass = 'priority-media';
+            if (t.Prioridade === 'Alta') prioClass = 'priority-alta';
+            if (t.Prioridade === 'Baixa') prioClass = 'priority-baixa';
+
+            // Data
+            const isHoje = t.Data_Programada === State.hojeISO;
+            const dataFmt = t.Data_Programada ? Utils_formatarDataBR(t.Data_Programada) : '';
+
+            // Badge Aguardando se aplicável
+            let aguardandoHtml = '';
+            if (t.Status === 'Aguardando') {
+              const dias = t.diasAguardando || 1;
+              let faixa = 'badge-waiting-low';
+              if (dias >= 3 && dias <= 5) faixa = 'badge-waiting-med';
+              if (dias >= 6) faixa = 'badge-waiting-high';
+              aguardandoHtml = `
+                <div style="margin-top:4px;">
+                  <span class="badge-waiting ${faixa}" style="font-size:10px;padding:2px 6px;">
+                    ⏳ ${dias}d aguardando
+                  </span>
+                </div>
+              `;
+            }
+
+            const estaNoTimer = State.timer.ativo && State.timer.idTarefa === t.ID_Tarefa;
+
+            cardEl.innerHTML = `
+              <div class="kanban-card-meta">
+                <span class="priority-badge ${prioClass}">${t.Prioridade || 'Média'}</span>
+                ${t.Data_Programada ? `
+                  <span class="kanban-card-date-badge ${isHoje ? 'is-today' : ''}">
+                    📅 ${isHoje ? 'Hoje' : dataFmt}
+                  </span>
+                ` : ''}
+              </div>
+
+              <div class="kanban-card-title">${escapeHTML(t.Titulo)}</div>
+
+              ${t.Proximos_Passos ? `
+                <div class="kanban-card-next-steps">
+                  ${escapeHTML(t.Proximos_Passos)}
+                </div>
+              ` : ''}
+
+              ${aguardandoHtml}
+
+              <div class="kanban-card-bottom">
+                <div class="kanban-card-actions">
+                  <button class="btn-card-quick-check" data-action="quick-check" title="Concluir tarefa">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Concluir</span>
+                  </button>
+                  <button class="btn-card-quick-timer" data-action="quick-timer" title="Iniciar cronômetro">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                      ${estaNoTimer 
+                        ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>' 
+                        : '<polygon points="5 3 19 12 5 21 5 3"/>'}
+                    </svg>
+                    <span>${estaNoTimer ? 'Rodando' : 'Timer'}</span>
+                  </button>
+                </div>
+              </div>
+            `;
+
+            // Clique no corpo do cartão abre edição
+            cardEl.addEventListener('click', (e) => {
+              if (e.target.closest('button')) return;
+              abrirModalTarefa(t.ID_Tarefa);
+            });
+
+            // Clique no Concluir rápido
+            cardEl.querySelector('[data-action="quick-check"]').addEventListener('click', (e) => {
+              e.stopPropagation();
+              alterarStatusTarefaUI(t.ID_Tarefa, 'Concluída');
+            });
+
+            // Clique no Timer rápido
+            cardEl.querySelector('[data-action="quick-timer"]').addEventListener('click', (e) => {
+              e.stopPropagation();
+              alternarTimerTarefa(t);
+            });
+
+            cardsContainer.appendChild(cardEl);
+          });
+        }
+
+        col.appendChild(cardsContainer);
+
+        // Seção de Tarefas Concluídas (Expansível / Accordion)
+        if (tarefasConcluidas.length > 0) {
+          const completedWrapper = document.createElement('div');
+          completedWrapper.style.borderTop = '1px solid #E2E8F0';
+
+          const toggleBtn = document.createElement('button');
+          toggleBtn.className = 'kanban-completed-toggle';
+          toggleBtn.textContent = `Ver concluídas (${tarefasConcluidas.length})`;
+
+          const completedList = document.createElement('div');
+          completedList.style.display = 'none';
+          completedList.style.padding = '8px 10px';
+          completedList.style.flexDirection = 'column';
+          completedList.style.gap = '6px';
+          completedList.style.background = '#F1F5F9';
+
+          tarefasConcluidas.forEach(tc => {
+            const cCard = document.createElement('div');
+            cCard.className = 'kanban-task-card';
+            cCard.style.opacity = '0.65';
+            cCard.style.background = '#F8FAFC';
+            cCard.innerHTML = `
+              <div style="font-size:12px;text-decoration:line-through;color:var(--text-secondary);">
+                ${escapeHTML(tc.Titulo)}
+              </div>
+            `;
+            cCard.addEventListener('click', () => abrirModalTarefa(tc.ID_Tarefa));
+            completedList.appendChild(cCard);
+          });
+
+          toggleBtn.addEventListener('click', () => {
+            const isHidden = completedList.style.display === 'none';
+            completedList.style.display = isHidden ? 'flex' : 'none';
+            toggleBtn.textContent = isHidden 
+              ? `Ocultar concluídas (${tarefasConcluidas.length})` 
+              : `Ver concluídas (${tarefasConcluidas.length})`;
+          });
+
+          completedWrapper.appendChild(toggleBtn);
+          completedWrapper.appendChild(completedList);
+          col.appendChild(completedWrapper);
+        }
+
+        // Rodapé da Coluna: + Adicionar Tarefa estilo Trello
+        const addBtn = document.createElement('button');
+        addBtn.className = 'kanban-add-card-btn';
+        addBtn.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>Adicionar Tarefa</span>
+        `;
+        addBtn.addEventListener('click', () => {
+          abrirModalTarefa(null, null, p.ID_Projeto);
+        });
+        col.appendChild(addBtn);
+
+        board.appendChild(col);
+      });
+
+      container.appendChild(board);
       return;
     }
 
-    State.projetos.forEach(p => {
-      const tarefasDoProjeto = State.tarefas.filter(t => t.ID_Projeto === p.ID_Projeto);
-      const tarefasAtivas = tarefasDoProjeto.filter(t => t.Status !== 'Concluída');
+    // 2. MODO PROJETOS ARQUIVADOS
+    if (State.filtroProjetos === 'arquivados') {
+      if (arquivados.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="padding:40px 20px;">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text-muted);margin-bottom:8px;"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+            <div style="font-size:15px;font-weight:700;color:var(--text-main);margin-bottom:4px;">Nenhum projeto arquivado</div>
+            <p style="color:var(--text-muted);">Quando você concluir ou congelar um projeto, ele poderá ser arquivado aqui para não poluir o dia a dia.</p>
+          </div>
+        `;
+        return;
+      }
 
-      const card = document.createElement('div');
-      card.className = 'task-card';
-      card.style.borderLeft = `5px solid ${p.Cor_Pastel || '#EDE9FE'}`;
-      card.innerHTML = `
-        <div class="task-top-row">
-          <span class="project-pill" style="background:${p.Cor_Pastel || '#EDE9FE'};color:#1E1B4B;">
-            ${escapeHTML(p.Area_Contexto || 'Área não definida')}
-          </span>
-          <span class="priority-badge priority-baixa">${p.Status}</span>
-        </div>
-        <div class="task-title" style="font-size:16px;">${escapeHTML(p.Nome_Projeto)}</div>
-        ${p.Observacoes ? `<p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">${escapeHTML(p.Observacoes)}</p>` : ''}
-        <div class="task-actions-row">
-          <span style="font-size:12px;color:var(--text-muted);font-weight:600;">
-            ${tarefasAtivas.length} tarefas ativas (${tarefasDoProjeto.length} total)
-          </span>
-          <button class="btn btn-secondary btn-sm" data-action="edit-project" data-id="${p.ID_Projeto}">Editar Projeto</button>
-        </div>
-      `;
+      const grid = document.createElement('div');
+      grid.className = 'archived-projects-grid';
 
-      card.querySelector('[data-action="edit-project"]').addEventListener('click', () => {
-        abrirModalProjeto(p.ID_Projeto);
+      arquivados.forEach(p => {
+        const tarefasDoProjeto = State.tarefas.filter(t => t.ID_Projeto === p.ID_Projeto);
+        const card = document.createElement('div');
+        card.className = 'archived-project-card';
+        card.style.borderLeft = `5px solid ${p.Cor_Pastel || '#CBD5E1'}`;
+
+        card.innerHTML = `
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;">
+              <span class="project-pill" style="background:#F1F5F9;color:#475569;">
+                ${escapeHTML(p.Area_Contexto || 'Geral')}
+              </span>
+              <span style="font-size:11px;font-weight:700;color:#92400E;background:#FEF3C7;padding:2px 6px;border-radius:4px;">
+                📦 Arquivado
+              </span>
+            </div>
+            <div style="font-size:16px;font-weight:700;color:var(--text-main);margin-bottom:4px;">
+              ${escapeHTML(p.Nome_Projeto)}
+            </div>
+            ${p.Observacoes ? `<p style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">${escapeHTML(p.Observacoes)}</p>` : ''}
+            <div style="font-size:12px;color:var(--text-secondary);">
+              Total de tarefas registradas: <strong>${tarefasDoProjeto.length}</strong>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;border-top:1px dashed #E2E8F0;padding-top:10px;margin-top:6px;">
+            <button class="btn btn-secondary btn-sm" data-action="edit-archived">Editar</button>
+            <button class="btn-unarchive btn-sm" data-action="unarchive-proj">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              <span>Desarquivar Projeto</span>
+            </button>
+          </div>
+        `;
+
+        card.querySelector('[data-action="edit-archived"]').addEventListener('click', () => {
+          abrirModalProjeto(p.ID_Projeto);
+        });
+
+        card.querySelector('[data-action="unarchive-proj"]').addEventListener('click', () => {
+          desarquivarProjetoUI(p.ID_Projeto);
+        });
+
+        grid.appendChild(card);
       });
 
-      container.appendChild(card);
-    });
+      container.appendChild(grid);
+    }
   }
 
   function renderizarTodasTarefas() {
@@ -824,26 +1494,32 @@
   // ===========================================================================
   // 10. MODAIS: TAREFA, PROJETO, MOTIVO E CONFIGURAÇÕES
   // ===========================================================================
-  function abrirModalTarefa(idTarefa) {
+  function abrirModalTarefa(idTarefa, dataDefault, idProjetoDefault) {
     const modal = document.getElementById('modal-task-overlay');
     const form = document.getElementById('form-task');
     form.reset();
+
+    const tarefaEmEdicao = idTarefa ? State.tarefas.find(x => x.ID_Tarefa === idTarefa) : null;
 
     // Popula seletor de projetos
     const selProj = document.getElementById('task-project');
     selProj.innerHTML = '<option value="">(Sem Projeto Vinculado)</option>';
     State.projetos.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.ID_Projeto;
-      opt.textContent = p.Nome_Projeto;
-      selProj.appendChild(opt);
+      // No select de tarefas, lista apenas projetos não-arquivados (ou o projeto atual se for edição)
+      if (p.Status !== 'Arquivado' || (tarefaEmEdicao && tarefaEmEdicao.ID_Projeto === p.ID_Projeto)) {
+        const opt = document.createElement('option');
+        opt.value = p.ID_Projeto;
+        opt.textContent = p.Nome_Projeto;
+        selProj.appendChild(opt);
+      }
     });
 
     const btnDelete = document.getElementById('btn-delete-task');
+    const btnArchive = document.getElementById('btn-archive-task');
     const groupMotivo = document.getElementById('group-motivo-aguardando');
 
     if (idTarefa) {
-      const t = State.tarefas.find(x => x.ID_Tarefa === idTarefa);
+      const t = tarefaEmEdicao;
       if (!t) return;
 
       document.getElementById('modal-task-title').textContent = 'Editar Tarefa';
@@ -858,18 +1534,28 @@
       document.getElementById('task-motivo-aguardando').value = t.Motivo_Aguardando || '';
 
       groupMotivo.style.display = (t.Status === 'Aguardando') ? 'block' : 'none';
-      btnDelete.style.display = 'block';
+      if (btnDelete) btnDelete.style.display = 'block';
+      if (btnArchive) btnArchive.style.display = 'inline-flex';
     } else {
       document.getElementById('modal-task-title').textContent = 'Nova Tarefa';
       document.getElementById('task-id').value = '';
-      document.getElementById('task-date').value = State.hojeISO;
+      if (idProjetoDefault) {
+        document.getElementById('task-project').value = idProjetoDefault;
+      }
+      document.getElementById('task-date').value = dataDefault || State.hojeISO;
       document.getElementById('task-status').value = 'Pendente';
       groupMotivo.style.display = 'none';
-      btnDelete.style.display = 'none';
+      if (btnDelete) btnDelete.style.display = 'none';
+      if (btnArchive) btnArchive.style.display = 'none';
     }
 
     modal.classList.add('open');
   }
+
+  // Atalho global para abertura rápida de tarefas a partir das visões temporais
+  window.abrirModalTarefaRapida = function(dataISO) {
+    abrirModalTarefa(null, dataISO);
+  };
 
   function fecharModalTarefa() {
     document.getElementById('modal-task-overlay').classList.remove('open');
@@ -947,6 +1633,7 @@
   function abrirModalProjeto(idProjeto) {
     const modal = document.getElementById('modal-project-overlay');
     const form = document.getElementById('form-project');
+    const btnArchive = document.getElementById('btn-archive-project');
     form.reset();
 
     renderizarPaletaCoresChips();
@@ -962,10 +1649,12 @@
       document.getElementById('project-status').value = p.Status || 'Ativo';
       document.getElementById('project-obs').value = p.Observacoes || '';
       selecionarCorPastel(p.Cor_Pastel || '#EDE9FE');
+      if (btnArchive) btnArchive.style.display = 'inline-flex';
     } else {
       document.getElementById('modal-project-title').textContent = 'Novo Projeto';
       document.getElementById('project-id').value = '';
       selecionarCorPastel('#EDE9FE');
+      if (btnArchive) btnArchive.style.display = 'none';
     }
 
     modal.classList.add('open');
@@ -973,6 +1662,75 @@
 
   function fecharModalProjeto() {
     document.getElementById('modal-project-overlay').classList.remove('open');
+  }
+
+  // ===========================================================================
+  // FUNÇÕES DE ARQUIVAMENTO (PROJETOS E TAREFAS)
+  // ===========================================================================
+  function arquivarProjetoUI(idProjeto) {
+    if (!idProjeto) return;
+    const p = State.projetos.find(x => x.ID_Projeto === idProjeto);
+    const nome = p ? p.Nome_Projeto : 'o projeto';
+    
+    if (!confirm(`Deseja arquivar o projeto "${nome}"?\n\nEle será movido para a pasta de Arquivados e sairá do quadro Kanban de projetos ativos.`)) {
+      return;
+    }
+
+    fecharModalProjeto();
+    mostrarToast('Arquivando projeto...', 'info');
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.sucesso) {
+          mostrarToast(`Projeto "${nome}" arquivado com sucesso!`, 'success');
+          carregarDadosApp();
+        } else {
+          mostrarToast((res && res.erro) || 'Erro ao arquivar projeto.', 'error');
+        }
+      })
+      .withFailureHandler(err => {
+        mostrarToast('Erro de comunicação ao arquivar projeto.', 'error');
+      })
+      .arquivarProjeto(idProjeto);
+  }
+
+  function desarquivarProjetoUI(idProjeto) {
+    if (!idProjeto) return;
+    mostrarToast('Reativando projeto...', 'info');
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.sucesso) {
+          mostrarToast('Projeto reativado com sucesso!', 'success');
+          carregarDadosApp();
+        } else {
+          mostrarToast((res && res.erro) || 'Erro ao reativar projeto.', 'error');
+        }
+      })
+      .withFailureHandler(err => {
+        mostrarToast('Erro de comunicação ao reativar projeto.', 'error');
+      })
+      .desarquivarProjeto(idProjeto);
+  }
+
+  function arquivarTarefaUI(idTarefa) {
+    if (!idTarefa) return;
+    fecharModalTarefa();
+    mostrarToast('Arquivando tarefa...', 'info');
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.sucesso) {
+          mostrarToast('Tarefa arquivada.', 'success');
+          carregarDadosApp();
+        } else {
+          mostrarToast((res && res.erro) || 'Erro ao arquivar tarefa.', 'error');
+        }
+      })
+      .withFailureHandler(err => {
+        mostrarToast('Erro de comunicação ao arquivar tarefa.', 'error');
+      })
+      .arquivarTarefa(idTarefa);
   }
 
   function renderizarPaletaCoresChips() {

@@ -4,6 +4,11 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="GP360 Projetos">
+  <meta name="theme-color" content="#7C3AED">
   <title><?= appTitle ?></title>
   
   <!-- Inclusão modular do Design System Soft Pastel -->
@@ -45,18 +50,36 @@
        ========================================================================= -->
   <main class="app-container">
     
-    <!-- Barra de Navegação da Semana -->
+    <!-- Seletor de Modo de Visualização Temporal: Dia / Semana / Mês -->
+    <div class="view-mode-container">
+      <div class="view-mode-selector" role="tablist">
+        <button class="mode-btn" id="btn-mode-dia" data-mode="dia">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <span>Dia</span>
+        </button>
+        <button class="mode-btn active" id="btn-mode-semana" data-mode="semana">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span>Semana</span>
+        </button>
+        <button class="mode-btn" id="btn-mode-mes" data-mode="mes">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="10" x2="9" y2="21"/><line x1="15" y1="10" x2="15" y2="21"/></svg>
+          <span>Mês</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Barra de Navegação do Período (Adapta-se ao Modo Dia / Semana / Mês) -->
     <div class="week-navigator">
-      <button class="btn-icon" id="btn-prev-week" title="Semana Anterior">
+      <button class="btn-icon" id="btn-prev-week" title="Período Anterior">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
       </button>
       
-      <div class="week-nav-info" id="btn-current-week" title="Clique para voltar para Hoje">
-        <div class="week-range-text" id="week-display-range">Carregando semana...</div>
-        <div class="week-subtext" id="week-display-status">Semana Atual</div>
+      <div class="week-nav-info" id="btn-current-week" title="Clique para voltar para Hoje / Período Atual">
+        <div class="week-range-text" id="week-display-range">Carregando...</div>
+        <div class="week-subtext" id="week-display-status">Hoje / Atual</div>
       </div>
       
-      <button class="btn-icon" id="btn-next-week" title="Próxima Semana">
+      <button class="btn-icon" id="btn-next-week" title="Próximo Período">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
     </div>
@@ -65,7 +88,7 @@
     <div class="filter-tabs">
       <button class="filter-tab active" data-tab="semana">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span>Visão Semanal</span>
+        <span>Agenda & Tarefas</span>
       </button>
       <button class="filter-tab" data-tab="projetos">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
@@ -84,18 +107,49 @@
       </button>
     </div>
 
+    <!-- VIEW 0: VISÃO DIÁRIA (DIA) -->
+    <section id="view-dia" class="view-section" style="display:none;">
+      <div id="day-view-container">
+        <!-- Renderizado dinamicamente via Scripts_UI.html -->
+      </div>
+    </section>
+
     <!-- VIEW 1: VISÃO SEMANAL EM LISTA SANFONADA (ACCORDION) -->
     <section id="view-semana" class="view-section">
       <div class="week-accordion" id="week-accordion-container">
         <!-- Renderizado dinamicamente via Scripts_UI.html -->
-        <div class="empty-state">Sincronizando agenda e tarefas da semana...</div>
+        <div class="empty-state">Sincronizando agenda e tarefas...</div>
       </div>
     </section>
 
-    <!-- VIEW 2: GESTÃO DE PROJETOS -->
+    <!-- VIEW 1.2: VISÃO MENSAL EM GRID DE CALENDÁRIO -->
+    <section id="view-mes" class="view-section" style="display:none;">
+      <div id="month-view-container">
+        <!-- Renderizado dinamicamente via Scripts_UI.html -->
+      </div>
+    </section>
+
+    <!-- VIEW 2: GESTÃO DE PROJETOS (QUADRO KANBAN ESTILO TRELLO) -->
     <section id="view-projetos" class="view-section" style="display:none;">
-      <div id="projects-list-container" style="display:flex;flex-direction:column;gap:12px;">
-        <!-- Renderizado dinamicamente -->
+      <div class="projects-toolbar">
+        <div class="projects-subnav">
+          <button type="button" class="projects-subnav-btn active" id="btn-subnav-ativos" data-sub="ativos">
+            <span>🚀 Projetos Ativos</span>
+            <span class="projects-subnav-count" id="count-subnav-ativos">0</span>
+          </button>
+          <button type="button" class="projects-subnav-btn" id="btn-subnav-arquivados" data-sub="arquivados">
+            <span>📦 Arquivados</span>
+            <span class="projects-subnav-count" id="count-subnav-arquivados">0</span>
+          </button>
+        </div>
+        <button class="btn btn-primary btn-sm" id="btn-kanban-novo-projeto">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>+ Novo Projeto</span>
+        </button>
+      </div>
+
+      <div id="projects-board-container">
+        <!-- Renderizado dinamicamente via Scripts_UI.html (Kanban ou Arquivados) -->
       </div>
     </section>
 
@@ -215,6 +269,7 @@
             <option value="Em Andamento">Em Andamento</option>
             <option value="Aguardando">Aguardando</option>
             <option value="Concluída">Concluída</option>
+            <option value="Arquivada">Arquivada</option>
           </select>
         </div>
 
@@ -224,8 +279,11 @@
           <input type="text" id="task-motivo-aguardando" class="form-control" placeholder="Ex: Aguardando retorno da área jurídica">
         </div>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:8px;">
-          <button type="button" class="btn btn-secondary" id="btn-delete-task" style="display:none;color:#9F1239;border-color:#FECDD3;">Excluir</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;gap:6px;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-delete-task" style="display:none;color:#9F1239;border-color:#FECDD3;">Excluir</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-archive-task" style="display:none;">📦 Arquivar</button>
+          </div>
           <div style="display:flex;gap:8px;margin-left:auto;">
             <button type="button" class="btn btn-secondary" id="btn-cancel-task">Cancelar</button>
             <button type="submit" class="btn btn-primary" id="btn-save-task">Gravar Tarefa</button>
@@ -272,6 +330,7 @@
             <option value="Ativo" selected>Ativo</option>
             <option value="Pausado">Pausado</option>
             <option value="Concluído">Concluído</option>
+            <option value="Arquivado">Arquivado</option>
           </select>
         </div>
 
@@ -280,9 +339,16 @@
           <textarea id="project-obs" class="form-control" placeholder="Objetivos estratégicos, links úteis ou observações gerais..."></textarea>
         </div>
 
-        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px;">
-          <button type="button" class="btn btn-secondary" id="btn-cancel-project">Cancelar</button>
-          <button type="submit" class="btn btn-primary" id="btn-save-project">Salvar Projeto</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:8px;flex-wrap:wrap;">
+          <div>
+            <button type="button" class="btn btn-archive-danger btn-sm" id="btn-archive-project" style="display:none;">
+              📦 Arquivar Projeto
+            </button>
+          </div>
+          <div style="display:flex;gap:8px;margin-left:auto;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-project">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="btn-save-project">Salvar Projeto</button>
+          </div>
         </div>
       </form>
     </div>
@@ -352,4 +418,3 @@
   <?!= include('Scripts_UI'); ?>
 </body>
 </html>
-

@@ -251,6 +251,103 @@ function Utils_obterIntervaloSemana(dataReferenciaISO) {
 }
 
 /**
+ * Calcula os metadados completos de um dia específico
+ * 
+ * @param {string} dataReferenciaISO Data YYYY-MM-DD
+ * @return {Object} Metadados do dia (dataISO, nomes, número, isHoje, etc)
+ */
+function Utils_obterIntervaloDia(dataReferenciaISO) {
+  const dataBase = dataReferenciaISO ? Utils_parseDataSegura(dataReferenciaISO) : Utils_parseDataSegura(Utils_obterDataHojeISO());
+  const dt = dataBase || new Date();
+  const hojeISO = Utils_obterDataHojeISO();
+  const dataISO = Utils_formatarDataISO(dt);
+  
+  const nomesDias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+  const nomesDiasCurtos = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+  const nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const nomesMesesCurtos = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  
+  return {
+    dataISO: dataISO,
+    dataBR: Utils_formatarDataBR(dataISO),
+    numeroDia: dt.getDate(),
+    diaSemanaIndex: dt.getDay(),
+    diaSemanaCurto: nomesDiasCurtos[dt.getDay()],
+    diaSemanaNome: nomesDias[dt.getDay()],
+    mesIndex: dt.getMonth(),
+    mesCurto: nomesMesesCurtos[dt.getMonth()],
+    mesNome: nomesMeses[dt.getMonth()],
+    ano: dt.getFullYear(),
+    isHoje: (dataISO === hojeISO),
+    dataExtenso: `${nomesDias[dt.getDay()]}, ${dt.getDate()} de ${nomesMeses[dt.getMonth()]} de ${dt.getFullYear()}`
+  };
+}
+
+/**
+ * Calcula os metadados do mês e constrói o grid de 35 ou 42 células (Seg a Dom)
+ * para exibição em calendário mensal responsivo
+ * 
+ * @param {string} dataReferenciaISO Data YYYY-MM-DD
+ * @return {Object} Metadados do mês e array completo de células do grid
+ */
+function Utils_obterIntervaloMes(dataReferenciaISO) {
+  const dataBase = dataReferenciaISO ? Utils_parseDataSegura(dataReferenciaISO) : Utils_parseDataSegura(Utils_obterDataHojeISO());
+  const dt = dataBase || new Date();
+  const hojeISO = Utils_obterDataHojeISO();
+  
+  const ano = dt.getFullYear();
+  const mesIndex = dt.getMonth();
+  
+  const nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const nomesMesesCurtos = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  
+  const primeiroDiaMes = new Date(ano, mesIndex, 1, 0, 0, 0, 0);
+  const ultimoDiaMes = new Date(ano, mesIndex + 1, 0, 23, 59, 59, 999);
+  
+  const diaSemanaPrimeiro = primeiroDiaMes.getDay(); // 0 = Dom, 1 = Seg...
+  const offsetSegunda = (diaSemanaPrimeiro === 0) ? 6 : (diaSemanaPrimeiro - 1);
+  
+  const inicioGrid = new Date(ano, mesIndex, 1 - offsetSegunda, 0, 0, 0, 0);
+  const totalDiasCorrentes = ultimoDiaMes.getDate();
+  const totalCelulas = (offsetSegunda + totalDiasCorrentes > 35) ? 42 : 35;
+  
+  const gridDias = [];
+  for (let i = 0; i < totalCelulas; i++) {
+    const diaCell = new Date(inicioGrid.getFullYear(), inicioGrid.getMonth(), inicioGrid.getDate() + i, 0, 0, 0, 0);
+    const cellISO = Utils_formatarDataISO(diaCell);
+    const ehMesAtual = (diaCell.getMonth() === mesIndex);
+    
+    gridDias.push({
+      dataISO: cellISO,
+      dataBR: Utils_formatarDataBR(cellISO),
+      numeroDia: diaCell.getDate(),
+      mesIndex: diaCell.getMonth(),
+      mesCurto: nomesMesesCurtos[diaCell.getMonth()],
+      ano: diaCell.getFullYear(),
+      isMesAtual: ehMesAtual,
+      isHoje: (cellISO === hojeISO),
+      diaSemanaIndex: diaCell.getDay()
+    });
+  }
+  
+  const fimGrid = new Date(inicioGrid.getFullYear(), inicioGrid.getMonth(), inicioGrid.getDate() + totalCelulas - 1, 23, 59, 59, 999);
+  
+  return {
+    ano: ano,
+    mesIndex: mesIndex,
+    mesNome: nomesMeses[mesIndex],
+    mesNomeCurto: nomesMesesCurtos[mesIndex],
+    tituloMesAno: `${nomesMeses[mesIndex]} de ${ano}`,
+    primeiroDiaISO: Utils_formatarDataISO(primeiroDiaMes),
+    ultimoDiaISO: Utils_formatarDataISO(ultimoDiaMes),
+    inicioGridISO: Utils_formatarDataISO(inicioGrid),
+    fimGridISO: Utils_formatarDataISO(fimGrid),
+    totalDias: totalDiasCorrentes,
+    gridDias: gridDias
+  };
+}
+
+/**
  * Gera um ID único com prefixo legível e tolerante a colisões
  * 
  * @param {string} prefixo Ex: 'PRJ', 'TSK', 'SES'
