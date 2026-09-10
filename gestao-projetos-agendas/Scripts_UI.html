@@ -1,0 +1,1187 @@
+<script>
+/**
+ * =============================================================================
+ * GP360 ECOSYSTEM - CONTROLADOR FRONTEND REATIVO (VANILLA JS)
+ * Arquivo: Scripts_UI.html
+ * Diretrizes: Single Page Application, Zero-Dependency, Mobile-First
+ * =============================================================================
+ */
+
+(function() {
+  'use strict';
+
+  // ===========================================================================
+  // 1. ESTADO GLOBAL DA APLICAÇÃO (STATE MANAGEMENT)
+  // ===========================================================================
+  const State = {
+    dataReferencia: new Date(),
+    infoSemana: null,
+    projetos: [],
+    tarefas: [],
+    eventosCalendario: [],
+    usuarioLogado: '',
+    hojeISO: '',
+    paletaCores: [],
+    abaAtiva: 'semana',
+    filtroBusca: '',
+    filtroPrioridade: '',
+    filtroStatus: '',
+    
+    // Estado do Cronômetro Ativo (Mini Timer)
+    timer: {
+      ativo: false,
+      pausado: false,
+      idTarefa: null,
+      tituloTarefa: '',
+      nomeProjeto: '',
+      horaInicioStr: '',
+      dataInicioISO: '',
+      inicioTimestampMs: 0,
+      acumuladoSegundos: 0,
+      intervaloId: null
+    },
+    
+    // Armazena ID temporário de tarefa ao alterar status para 'Aguardando'
+    tarefaAguardandoPendenteId: null
+  };
+
+  const TIMER_STORAGE_KEY = 'GP360_MINI_TIMER_ACTIVE_STATE';
+
+  // ===========================================================================
+  // 2. INICIALIZAÇÃO DO APLICATIVO
+  // ===========================================================================
+  document.addEventListener('DOMContentLoaded', () => {
+    configurarEventosGlobais();
+    restaurarEstadoTimerLocalStorage();
+    carregarDadosSemana();
+  });
+
+  /**
+   * Vincula ouvintes de eventos da interface
+   */
+  function configurarEventosGlobais() {
+    // Navegação de Semanas
+    document.getElementById('btn-prev-week').addEventListener('click', () => navegarSemana(-7));
+    document.getElementById('btn-next-week').addEventListener('click', () => navegarSemana(7));
+    document.getElementById('btn-current-week').addEventListener('click', () => {
+      State.dataReferencia = new Date();
+      carregarDadosSemana();
+    });
+
+    // Abas / Filtros Rápidos
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        const abaAlvo = tab.dataset.tab;
+        alternarAba(abaAlvo);
+      });
+    });
+
+    // Filtros de busca na lista de todas as tarefas
+    const inputBusca = document.getElementById('input-busca-tarefas');
+    if (inputBusca) {
+      inputBusca.addEventListener('input', (e) => {
+        State.filtroBusca = e.target.value.toLowerCase().trim();
+        renderizarTodasTarefas();
+      });
+    }
+
+    const selectPrio = document.getElementById('select-filtro-prioridade');
+    if (selectPrio) {
+      selectPrio.addEventListener('change', (e) => {
+        State.filtroPrioridade = e.target.value;
+        renderizarTodasTarefas();
+      });
+    }
+
+    const selectStatus = document.getElementById('select-filtro-status');
+    if (selectStatus) {
+      selectStatus.addEventListener('change', (e) => {
+        State.filtroStatus = e.target.value;
+        renderizarTodasTarefas();
+      });
+    }
+
+    // Modais - Tarefa
+    document.getElementById('btn-open-task-modal').addEventListener('click', () => abrirModalTarefa());
+    document.getElementById('btn-close-task-modal').addEventListener('click', fecharModalTarefa);
+    document.getElementById('btn-cancel-task').addEventListener('click', fecharModalTarefa);
+    document.getElementById('form-task').addEventListener('submit', salvarTarefaForm);
+    document.getElementById('btn-delete-task').addEventListener('click', excluirTarefaAtiva);
+    
+    // Listener do campo status no modal de tarefa para exibir/ocultar motivo
+    document.getElementById('task-status').addEventListener('change', (e) => {
+      const groupMotivo = document.getElementById('group-motivo-aguardando');
+      groupMotivo.style.display = (e.target.value === 'Aguardando') ? 'block' : 'none';
+    });
+
+    // Modais - Projeto
+    document.getElementById('btn-open-project-modal').addEventListener('click', () => abrirModalProjeto());
+    document.getElementById('btn-close-project-modal').addEventListener('click', fecharModalProjeto);
+    document.getElementById('btn-cancel-project').addEventListener('click', fecharModalProjeto);
+    document.getElementById('form-project').addEventListener('submit', salvarProjetoForm);
+
+    // Modal - Motivo Rápido de Aguardando
+    document.getElementById('btn-close-waiting-reason').addEventListener('click', fecharModalMotivoAguardando);
+    document.getElementById('btn-cancel-quick-waiting').addEventListener('click', fecharModalMotivoAguardando);
+    document.getElementById('btn-confirm-quick-waiting').addEventListener('click', confirmarMotivoAguardandoRapido);
+
+    // Modal - Configurações & Gatilhos
+    document.getElementById('btn-open-settings').addEventListener('click', abrirModalConfiguracoes);
+    document.getElementById('btn-close-settings').addEventListener('click', fecharModalConfiguracoes);
+    document.getElementById('btn-install-trigger').addEventListener('click', instalarGatilhoRolloverUI);
+    document.getElementById('btn-run-setup').addEventListener('click', executarSetupBancoUI);
+
+    // Mini Timer Flutuante Controls
+    document.getElementById('btn-floating-pause').addEventListener('click', alternarPausaTimer);
+    document.getElementById('btn-floating-stop').addEventListener('click', finalizarESalvarTimer);
+  }
+
+  // ===========================================================================
+  // 3. COMUNICAÇÃO COM O SERVIDOR (GOOGLE.SCRIPT.RUN)
+  // ===========================================================================
+  /**
+   * Carrega dados completos da semana (Projetos, Tarefas e Calendar)
+   */
+  function carregarDadosSemana() {
+    const dataISO = formatarDataISOJS(State.dataReferencia);
+    const container = document.getElementById('week-accordion-container');
+    container.innerHTML = '<div class="empty-state">Sincronizando compromissos e tarefas...</div>';
+
+    google.script.run
+      .withSuccessHandler(onDadosIniciaisCarregados)
+      .withFailureHandler(onErrorServidor)
+      .obterDadosIniciaisApp(dataISO);
+  }
+
+  function onDadosIniciaisCarregados(resposta) {
+    if (!resposta || !resposta.sucesso) {
+      mostrarToast((resposta && resposta.erro) || 'Falha ao sincronizar dados.', 'error');
+      return;
+    }
+
+    const d = resposta.dados;
+    State.infoSemana = d.infoSemana;
+    State.projetos = d.projetos || [];
+    State.tarefas = d.tarefas || [];
+    State.eventosCalendario = d.eventosCalendario || [];
+    State.hojeISO = d.hojeISO;
+    State.usuarioLogado = d.usuarioLogado;
+    State.paletaCores = d.paletaCores || [];
+
+    atualizarIndicadoresHeader();
+    renderizarVisaoSemanal();
+    renderizarProjetos();
+    renderizarTodasTarefas();
+    renderizarAguardando();
+    atualizarContadoresTabs();
+  }
+
+  function onErrorServidor(erro) {
+    console.error('Erro na chamada do servidor:', erro);
+    mostrarToast(erro.message || 'Erro de comunicação com o servidor.', 'error');
+  }
+
+  // ===========================================================================
+  // 4. RENDERIZAÇÃO: NAVEGADOR DE SEMANA & TABS
+  // ===========================================================================
+  function navegarSemana(dias) {
+    State.dataReferencia.setDate(State.dataReferencia.getDate() + dias);
+    carregarDadosSemana();
+  }
+
+  function atualizarIndicadoresHeader() {
+    if (!State.infoSemana) return;
+    
+    const d1 = formatarDataBRJS(State.infoSemana.segundaISO);
+    const d2 = formatarDataBRJS(State.infoSemana.domingoISO);
+    document.getElementById('week-display-range').textContent = `${d1} - ${d2}`;
+
+    const ehSemanaAtual = State.infoSemana.diasSemana.some(d => d.isHoje);
+    document.getElementById('week-display-status').textContent = ehSemanaAtual ? 'Semana Atual' : 'Semana Visualizada';
+
+    const userEl = document.getElementById('user-display');
+    if (userEl && State.usuarioLogado) {
+      userEl.textContent = State.usuarioLogado;
+    }
+  }
+
+  function alternarAba(aba) {
+    State.abaAtiva = aba;
+
+    // Atualiza botões
+    document.querySelectorAll('.filter-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === aba);
+    });
+
+    // Atualiza seções
+    document.getElementById('view-semana').style.display = (aba === 'semana') ? 'block' : 'none';
+    document.getElementById('view-projetos').style.display = (aba === 'projetos') ? 'block' : 'none';
+    document.getElementById('view-todas-tarefas').style.display = (aba === 'todas-tarefas') ? 'block' : 'none';
+    document.getElementById('view-aguardando').style.display = (aba === 'aguardando') ? 'block' : 'none';
+  }
+
+  function atualizarContadoresTabs() {
+    document.getElementById('badge-count-projetos').textContent = State.projetos.length;
+    document.getElementById('badge-count-tarefas').textContent = State.tarefas.length;
+    
+    const countAguardando = State.tarefas.filter(t => t.Status === 'Aguardando').length;
+    document.getElementById('badge-count-aguardando').textContent = countAguardando;
+  }
+
+  // ===========================================================================
+  // 5. RENDERIZAÇÃO: VISÃO SEMANAL (ACCORDION SANFONADO MOBILE-FIRST)
+  // ===========================================================================
+  function renderizarVisaoSemanal() {
+    const container = document.getElementById('week-accordion-container');
+    container.innerHTML = '';
+
+    if (!State.infoSemana || !State.infoSemana.diasSemana) {
+      container.innerHTML = '<div class="empty-state">Nenhuma informação de semana disponível.</div>';
+      return;
+    }
+
+    const dias = State.infoSemana.diasSemana;
+    let algumDiaAberto = false;
+
+    dias.forEach((diaInfo, index) => {
+      // Filtra tarefas programadas para este dia
+      const tarefasDoDia = State.tarefas.filter(t => t.Data_Programada === diaInfo.dataISO);
+      
+      // Filtra eventos do Google Calendar para este dia
+      const eventosDoDia = State.eventosCalendario.filter(e => e.dataISO === diaInfo.dataISO);
+
+      // Requisito mandatório: O dia atual ("Hoje") deve vir aberto por padrão
+      let abertoPorPadrao = false;
+      if (diaInfo.isHoje) {
+        abertoPorPadrao = true;
+        algumDiaAberto = true;
+      }
+
+      const card = document.createElement('div');
+      card.className = `day-card ${diaInfo.isHoje ? 'is-today' : ''} ${abertoPorPadrao ? 'open' : ''}`;
+      card.id = `day-card-${diaInfo.dataISO}`;
+
+      // Cabeçalho do Accordion (Toque fluido)
+      const header = document.createElement('div');
+      header.className = 'day-header';
+      header.innerHTML = `
+        <div class="day-header-left">
+          <div class="day-date-badge">
+            <span class="day-number">${diaInfo.numeroDia}</span>
+            <span class="day-month">${diaInfo.mesCurto}</span>
+          </div>
+          <div class="day-titles">
+            <div class="day-name">
+              ${diaInfo.diaSemanaCompleto}
+              ${diaInfo.isHoje ? '<span class="badge-today">Hoje</span>' : ''}
+            </div>
+            <div class="day-counters-text">
+              ${eventosDoDia.length} compromisso(s) • ${tarefasDoDia.length} tarefa(s)
+            </div>
+          </div>
+        </div>
+        <div class="day-header-right">
+          <svg class="accordion-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      `;
+
+      // Evento de toque para expandir/colapsar
+      header.addEventListener('click', () => {
+        card.classList.toggle('open');
+      });
+
+      // Corpo do Accordion
+      const body = document.createElement('div');
+      body.className = 'day-body';
+
+      // 1. Seção Google Calendar
+      if (eventosDoDia.length > 0) {
+        const calHeader = document.createElement('div');
+        calHeader.className = 'section-subtitle';
+        calHeader.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Google Calendar (${eventosDoDia.length})
+        `;
+        body.appendChild(calHeader);
+
+        const calList = document.createElement('div');
+        calList.className = 'calendar-events-list';
+        
+        eventosDoDia.forEach(ev => {
+          const evCard = document.createElement('div');
+          evCard.className = 'calendar-event-card';
+          evCard.innerHTML = `
+            <div class="cal-details">
+              <div class="cal-title">${escapeHTML(ev.titulo)}</div>
+              ${ev.local ? `<div class="cal-location"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${escapeHTML(ev.local)}</div>` : ''}
+            </div>
+            <div class="cal-time-badge">${ev.horaInicio}${ev.horaFim ? ' - ' + ev.horaFim : ''}</div>
+          `;
+          calList.appendChild(evCard);
+        });
+        body.appendChild(calList);
+      }
+
+      // 2. Seção de Tarefas do Dia
+      const taskHeader = document.createElement('div');
+      taskHeader.className = 'section-subtitle';
+      taskHeader.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Tarefas do Dia (${tarefasDoDia.length})
+      `;
+      body.appendChild(taskHeader);
+
+      if (tarefasDoDia.length === 0) {
+        const vazio = document.createElement('div');
+        vazio.className = 'empty-state';
+        vazio.style.margin = '4px 0 10px 0';
+        vazio.textContent = 'Nenhuma tarefa programada para este dia.';
+        body.appendChild(vazio);
+      } else {
+        const taskList = document.createElement('div');
+        taskList.className = 'tasks-list';
+        
+        tarefasDoDia.forEach(tarefa => {
+          taskList.appendChild(criarElementoCardTarefa(tarefa));
+        });
+        body.appendChild(taskList);
+      }
+
+      card.appendChild(header);
+      card.appendChild(body);
+      container.appendChild(card);
+    });
+
+    // Se "Hoje" não estava nesta semana (ex: navegou para o futuro), abre a Segunda-feira
+    if (!algumDiaAberto && container.firstChild) {
+      container.firstChild.classList.add('open');
+    }
+  }
+
+  // ===========================================================================
+  // 6. RENDERIZAÇÃO DO CARD DE TAREFA (COM BADGES DE AGUARDANDO E AÇÕES)
+  // ===========================================================================
+  function criarElementoCardTarefa(tarefa) {
+    const card = document.createElement('div');
+    const isConcluida = tarefa.Status === 'Concluída';
+    card.className = `task-card ${isConcluida ? 'status-concluida' : ''}`;
+    card.id = `card-task-${tarefa.ID_Tarefa}`;
+
+    // Determina classe da prioridade
+    let prioClass = 'priority-media';
+    if (tarefa.Prioridade === 'Alta') prioClass = 'priority-alta';
+    if (tarefa.Prioridade === 'Baixa') prioClass = 'priority-baixa';
+
+    // Determina badge de "Aguardando" conforme requisito estrito:
+    // 1-2 dias: Azul Suave (#EFF6FF / #1E40AF)
+    // 3-5 dias: Laranja/Pêssego Suave (#FFFBEB / #92400E)
+    // 6+ dias: Rosa/Coral Suave (#FFF1F2 / #9F1239)
+    let badgeAguardandoHtml = '';
+    if (tarefa.Status === 'Aguardando') {
+      const dias = tarefa.diasAguardando || 1;
+      let classeFaixa = 'badge-waiting-low';
+      if (dias >= 3 && dias <= 5) classeFaixa = 'badge-waiting-med';
+      if (dias >= 6) classeFaixa = 'badge-waiting-high';
+
+      badgeAguardandoHtml = `
+        <div class="badge-waiting-container">
+          <span class="badge-waiting ${classeFaixa}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${dias} ${dias === 1 ? 'dia' : 'dias'} aguardando
+          </span>
+          ${tarefa.Motivo_Aguardando ? `<span class="waiting-reason-snippet">Motivo: ${escapeHTML(tarefa.Motivo_Aguardando)}</span>` : ''}
+        </div>
+      `;
+    }
+
+    const estaNoTimerAtivo = State.timer.ativo && State.timer.idTarefa === tarefa.ID_Tarefa;
+
+    card.innerHTML = `
+      <div class="task-top-row">
+        <span class="project-pill" style="background:${tarefa.Cor_Projeto || '#EDE9FE'};color:#1E1B4B;">
+          ● ${escapeHTML(tarefa.Nome_Projeto || 'Geral')}
+        </span>
+        <span class="priority-badge ${prioClass}">${tarefa.Prioridade || 'Média'}</span>
+      </div>
+
+      <div class="task-title">${escapeHTML(tarefa.Titulo)}</div>
+
+      ${tarefa.Proximos_Passos ? `
+        <div class="task-next-steps">
+          <strong>Próximos Passos:</strong> ${escapeHTML(tarefa.Proximos_Passos)}
+        </div>
+      ` : ''}
+
+      ${badgeAguardandoHtml}
+
+      <div class="task-actions-row">
+        <div class="task-actions-left">
+          <!-- Botão Ação Rápida Manual: Adiar (+1 dia) -->
+          <button class="btn-postpone" data-action="postpone" data-id="${tarefa.ID_Tarefa}" title="Adiar para amanhã (+1 dia)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+            <span>+1 dia</span>
+          </button>
+
+          <!-- Botão Cronômetro Ativo -->
+          <button class="btn-timer-card ${estaNoTimerAtivo ? 'running' : ''}" data-action="timer" data-id="${tarefa.ID_Tarefa}" title="Controlar tempo da tarefa">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              ${estaNoTimerAtivo 
+                ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>' 
+                : '<polygon points="5 3 19 12 5 21 5 3"/>'}
+            </svg>
+            <span class="timer-card-time">${tarefa.Tempo_Total_Formatado || '00:00:00'}</span>
+          </button>
+        </div>
+
+        <div class="task-actions-right">
+          <!-- Seletor de Status Rápido -->
+          <select class="status-select" data-action="status-change" data-id="${tarefa.ID_Tarefa}">
+            <option value="Pendente" ${tarefa.Status === 'Pendente' ? 'selected' : ''}>Pendente</option>
+            <option value="Em Andamento" ${tarefa.Status === 'Em Andamento' ? 'selected' : ''}>Em Andamento</option>
+            <option value="Aguardando" ${tarefa.Status === 'Aguardando' ? 'selected' : ''}>Aguardando</option>
+            <option value="Concluída" ${tarefa.Status === 'Concluída' ? 'selected' : ''}>Concluída</option>
+          </select>
+
+          <!-- Editar Tarefa -->
+          <button class="btn-icon btn-sm" data-action="edit" data-id="${tarefa.ID_Tarefa}" title="Editar Tarefa">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Vincula ações interativas do card
+    card.querySelector('[data-action="postpone"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      adiarTarefaMaisUmDiaUI(tarefa.ID_Tarefa);
+    });
+
+    card.querySelector('[data-action="timer"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      alternarTimerTarefa(tarefa);
+    });
+
+    card.querySelector('[data-action="status-change"]').addEventListener('change', (e) => {
+      const novoStatus = e.target.value;
+      alterarStatusTarefaUI(tarefa.ID_Tarefa, novoStatus);
+    });
+
+    card.querySelector('[data-action="edit"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      abrirModalTarefa(tarefa.ID_Tarefa);
+    });
+
+    return card;
+  }
+
+  // ===========================================================================
+  // 7. AÇÕES RÁPIDAS: ADIAR (+1 DIA) E TRANSIÇÃO DE STATUS
+  // ===========================================================================
+  /**
+   * Adia a tarefa em +1 dia com atualização otimista na tela
+   */
+  function adiarTarefaMaisUmDiaUI(idTarefa) {
+    const t = State.tarefas.find(x => x.ID_Tarefa === idTarefa);
+    if (!t) return;
+
+    // Atualização otimista local
+    const dataAtual = t.Data_Programada || State.hojeISO;
+    const dt = new Date(dataAtual + 'T00:00:00');
+    dt.setDate(dt.getDate() + 1);
+    const novaDataISO = formatarDataISOJS(dt);
+
+    t.Data_Programada = novaDataISO;
+    t.Data_Programada_BR = formatarDataBRJS(novaDataISO);
+
+    // Re-renderiza views
+    renderizarVisaoSemanal();
+    renderizarTodasTarefas();
+    mostrarToast(`Adiado para ${t.Data_Programada_BR}`, 'info');
+
+    // Persiste no backend
+    google.script.run
+      .withSuccessHandler(res => {
+        if (!res || !res.sucesso) {
+          mostrarToast(res.erro || 'Erro ao adiar tarefa no servidor.', 'error');
+          carregarDadosSemana(); // Reverte caso haja falha
+        }
+      })
+      .withFailureHandler(err => {
+        mostrarToast('Falha na comunicação com o servidor.', 'error');
+        carregarDadosSemana();
+      })
+      .adiarTarefaMaisUmDia(idTarefa);
+  }
+
+  /**
+   * Altera status com abertura imediata de modal caso seja 'Aguardando'
+   */
+  function alterarStatusTarefaUI(idTarefa, novoStatus) {
+    if (novoStatus === 'Aguardando') {
+      State.tarefaAguardandoPendenteId = idTarefa;
+      abrirModalMotivoAguardando();
+      return;
+    }
+
+    aplicarNovoStatus(idTarefa, novoStatus, '');
+  }
+
+  function aplicarNovoStatus(idTarefa, novoStatus, motivo) {
+    const t = State.tarefas.find(x => x.ID_Tarefa === idTarefa);
+    if (t) {
+      t.Status = novoStatus;
+      if (novoStatus === 'Aguardando') {
+        t.Motivo_Aguardando = motivo;
+        t.Data_Inicio_Aguardando = State.hojeISO;
+        t.diasAguardando = 1;
+      }
+      renderizarVisaoSemanal();
+      renderizarTodasTarefas();
+      renderizarAguardando();
+      atualizarContadoresTabs();
+    }
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (!res || !res.sucesso) {
+          mostrarToast(res.erro || 'Erro ao atualizar status.', 'error');
+        } else {
+          mostrarToast(`Status atualizado para "${novoStatus}".`, 'success');
+        }
+      })
+      .withFailureHandler(err => {
+        mostrarToast('Falha ao atualizar status.', 'error');
+      })
+      .atualizarStatusTarefa(idTarefa, novoStatus, motivo);
+  }
+
+  // ===========================================================================
+  // 8. CRONÔMETRO ATIVO (MINI TIMER FLUTUANTE) COM PERSISTÊNCIA LOCAL
+  // ===========================================================================
+  function alternarTimerTarefa(tarefa) {
+    // Se o timer está rodando para a mesma tarefa, pausa ou finaliza
+    if (State.timer.ativo && State.timer.idTarefa === tarefa.ID_Tarefa) {
+      finalizarESalvarTimer();
+      return;
+    }
+
+    // Se já havia outro timer ativo, finaliza-o primeiro
+    if (State.timer.ativo) {
+      finalizarESalvarTimer();
+    }
+
+    iniciarNovoTimer(tarefa);
+  }
+
+  function iniciarNovoTimer(tarefa) {
+    const agora = new Date();
+    State.timer.ativo = true;
+    State.timer.pausado = false;
+    State.timer.idTarefa = tarefa.ID_Tarefa;
+    State.timer.tituloTarefa = tarefa.Titulo;
+    State.timer.nomeProjeto = tarefa.Nome_Projeto || 'Sem Projeto';
+    State.timer.horaInicioStr = agora.toTimeString().split(' ')[0];
+    State.timer.dataInicioISO = formatarDataISOJS(agora);
+    State.timer.inicioTimestampMs = Date.now();
+    State.timer.acumuladoSegundos = 0;
+
+    exibirBarraTimerFlutuante();
+    iniciarIntervaloTimer();
+    salvarEstadoTimerLocalStorage();
+
+    renderizarVisaoSemanal();
+    renderizarTodasTarefas();
+    mostrarToast(`Cronômetro iniciado: "${tarefa.Titulo.substring(0, 30)}..."`, 'info');
+  }
+
+  function iniciarIntervaloTimer() {
+    if (State.timer.intervaloId) clearInterval(State.timer.intervaloId);
+
+    State.timer.intervaloId = setInterval(() => {
+      if (!State.timer.pausado) {
+        State.timer.acumuladoSegundos++;
+        atualizarDisplayTimerFlutuante();
+      }
+    }, 1000);
+  }
+
+  function atualizarDisplayTimerFlutuante() {
+    const elDigits = document.getElementById('floating-timer-digits');
+    if (elDigits) {
+      elDigits.textContent = formatarSegundosHHMMSS(State.timer.acumuladoSegundos);
+    }
+  }
+
+  function exibirBarraTimerFlutuante() {
+    const bar = document.getElementById('floating-timer-bar');
+    document.getElementById('floating-timer-title').textContent = State.timer.tituloTarefa;
+    document.getElementById('floating-timer-project').textContent = State.timer.nomeProjeto;
+    atualizarDisplayTimerFlutuante();
+    bar.classList.add('active');
+  }
+
+  function alternarPausaTimer() {
+    if (!State.timer.ativo) return;
+    State.timer.pausado = !State.timer.pausado;
+
+    const btn = document.getElementById('btn-floating-pause-text');
+    btn.textContent = State.timer.pausado ? 'Retomar' : 'Pausar';
+    salvarEstadoTimerLocalStorage();
+  }
+
+  function finalizarESalvarTimer() {
+    if (!State.timer.ativo) return;
+
+    if (State.timer.intervaloId) clearInterval(State.timer.intervaloId);
+
+    const idTarefa = State.timer.idTarefa;
+    const duracao = State.timer.acumuladoSegundos;
+    const dataExec = State.timer.dataInicioISO;
+    const horaIni = State.timer.horaInicioStr;
+    const horaFim = new Date().toTimeString().split(' ')[0];
+
+    // Oculta barra
+    document.getElementById('floating-timer-bar').classList.remove('active');
+
+    // Reseta estado do timer
+    State.timer.ativo = false;
+    State.timer.pausado = false;
+    State.timer.idTarefa = null;
+    State.timer.acumuladoSegundos = 0;
+    removerEstadoTimerLocalStorage();
+
+    // Atualização otimista na tarefa local
+    const t = State.tarefas.find(x => x.ID_Tarefa === idTarefa);
+    if (t) {
+      t.Tempo_Total_Segundos = (t.Tempo_Total_Segundos || 0) + duracao;
+      t.Tempo_Total_Formatado = formatarSegundosHHMMSS(t.Tempo_Total_Segundos);
+      renderizarVisaoSemanal();
+      renderizarTodasTarefas();
+    }
+
+    if (duracao > 0) {
+      mostrarToast(`Gravando sessão de ${formatarSegundosHHMMSS(duracao)}...`, 'info');
+      google.script.run
+        .withSuccessHandler(res => {
+          if (res && res.sucesso) {
+            mostrarToast('Sessão gravada no histórico!', 'success');
+          }
+        })
+        .withFailureHandler(err => {
+          mostrarToast('Falha ao gravar histórico de tempo.', 'error');
+        })
+        .registrarSessaoTempo(idTarefa, dataExec, horaIni, horaFim, duracao);
+    }
+  }
+
+  function salvarEstadoTimerLocalStorage() {
+    try {
+      localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify({
+        ativo: State.timer.ativo,
+        pausado: State.timer.pausado,
+        idTarefa: State.timer.idTarefa,
+        tituloTarefa: State.timer.tituloTarefa,
+        nomeProjeto: State.timer.nomeProjeto,
+        horaInicioStr: State.timer.horaInicioStr,
+        dataInicioISO: State.timer.dataInicioISO,
+        acumuladoSegundos: State.timer.acumuladoSegundos,
+        lastSavedTimestamp: Date.now()
+      }));
+    } catch (e) {}
+  }
+
+  function restaurarEstadoTimerLocalStorage() {
+    try {
+      const salvo = localStorage.getItem(TIMER_STORAGE_KEY);
+      if (!salvo) return;
+
+      const obj = JSON.parse(salvo);
+      if (obj && obj.ativo && obj.idTarefa) {
+        // Calcula segundos decorridos enquanto a janela esteve fechada caso não estivesse pausado
+        let delta = 0;
+        if (!obj.pausado && obj.lastSavedTimestamp) {
+          delta = Math.floor((Date.now() - obj.lastSavedTimestamp) / 1000);
+        }
+
+        State.timer.ativo = true;
+        State.timer.pausado = obj.pausado || false;
+        State.timer.idTarefa = obj.idTarefa;
+        State.timer.tituloTarefa = obj.tituloTarefa || '';
+        State.timer.nomeProjeto = obj.nomeProjeto || '';
+        State.timer.horaInicioStr = obj.horaInicioStr || '';
+        State.timer.dataInicioISO = obj.dataInicioISO || '';
+        State.timer.acumuladoSegundos = (obj.acumuladoSegundos || 0) + delta;
+
+        exibirBarraTimerFlutuante();
+        iniciarIntervaloTimer();
+      }
+    } catch (e) {}
+  }
+
+  function removerEstadoTimerLocalStorage() {
+    try {
+      localStorage.removeItem(TIMER_STORAGE_KEY);
+    } catch (e) {}
+  }
+
+  // ===========================================================================
+  // 9. RENDERIZAÇÃO: PROJETOS, TODAS AS TAREFAS E AGUARDANDO
+  // ===========================================================================
+  function renderizarProjetos() {
+    const container = document.getElementById('projects-list-container');
+    container.innerHTML = '';
+
+    if (State.projetos.length === 0) {
+      container.innerHTML = '<div class="empty-state">Nenhum projeto cadastrado. Clique em "+ Projeto" para iniciar.</div>';
+      return;
+    }
+
+    State.projetos.forEach(p => {
+      const tarefasDoProjeto = State.tarefas.filter(t => t.ID_Projeto === p.ID_Projeto);
+      const tarefasAtivas = tarefasDoProjeto.filter(t => t.Status !== 'Concluída');
+
+      const card = document.createElement('div');
+      card.className = 'task-card';
+      card.style.borderLeft = `5px solid ${p.Cor_Pastel || '#EDE9FE'}`;
+      card.innerHTML = `
+        <div class="task-top-row">
+          <span class="project-pill" style="background:${p.Cor_Pastel || '#EDE9FE'};color:#1E1B4B;">
+            ${escapeHTML(p.Area_Contexto || 'Área não definida')}
+          </span>
+          <span class="priority-badge priority-baixa">${p.Status}</span>
+        </div>
+        <div class="task-title" style="font-size:16px;">${escapeHTML(p.Nome_Projeto)}</div>
+        ${p.Observacoes ? `<p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">${escapeHTML(p.Observacoes)}</p>` : ''}
+        <div class="task-actions-row">
+          <span style="font-size:12px;color:var(--text-muted);font-weight:600;">
+            ${tarefasAtivas.length} tarefas ativas (${tarefasDoProjeto.length} total)
+          </span>
+          <button class="btn btn-secondary btn-sm" data-action="edit-project" data-id="${p.ID_Projeto}">Editar Projeto</button>
+        </div>
+      `;
+
+      card.querySelector('[data-action="edit-project"]').addEventListener('click', () => {
+        abrirModalProjeto(p.ID_Projeto);
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  function renderizarTodasTarefas() {
+    const container = document.getElementById('all-tasks-list-container');
+    container.innerHTML = '';
+
+    let lista = [...State.tarefas];
+
+    // Filtros
+    if (State.filtroBusca) {
+      lista = lista.filter(t => 
+        t.Titulo.toLowerCase().includes(State.filtroBusca) ||
+        (t.Proximos_Passos && t.Proximos_Passos.toLowerCase().includes(State.filtroBusca)) ||
+        (t.Nome_Projeto && t.Nome_Projeto.toLowerCase().includes(State.filtroBusca))
+      );
+    }
+
+    if (State.filtroPrioridade) {
+      lista = lista.filter(t => t.Prioridade === State.filtroPrioridade);
+    }
+
+    if (State.filtroStatus) {
+      lista = lista.filter(t => t.Status === State.filtroStatus);
+    }
+
+    if (lista.length === 0) {
+      container.innerHTML = '<div class="empty-state">Nenhuma tarefa encontrada com os filtros selecionados.</div>';
+      return;
+    }
+
+    lista.forEach(t => {
+      container.appendChild(criarElementoCardTarefa(t));
+    });
+  }
+
+  function renderizarAguardando() {
+    const container = document.getElementById('waiting-tasks-list-container');
+    container.innerHTML = '';
+
+    const lista = State.tarefas.filter(t => t.Status === 'Aguardando');
+    // Ordena: mais dias aguardando primeiro (maior urgência)
+    lista.sort((a, b) => (b.diasAguardando || 0) - (a.diasAguardando || 0));
+
+    if (lista.length === 0) {
+      container.innerHTML = '<div class="empty-state">Nenhuma tarefa em espera no momento. Tudo fluindo!</div>';
+      return;
+    }
+
+    lista.forEach(t => {
+      container.appendChild(criarElementoCardTarefa(t));
+    });
+  }
+
+  // ===========================================================================
+  // 10. MODAIS: TAREFA, PROJETO, MOTIVO E CONFIGURAÇÕES
+  // ===========================================================================
+  function abrirModalTarefa(idTarefa) {
+    const modal = document.getElementById('modal-task-overlay');
+    const form = document.getElementById('form-task');
+    form.reset();
+
+    // Popula seletor de projetos
+    const selProj = document.getElementById('task-project');
+    selProj.innerHTML = '<option value="">(Sem Projeto Vinculado)</option>';
+    State.projetos.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.ID_Projeto;
+      opt.textContent = p.Nome_Projeto;
+      selProj.appendChild(opt);
+    });
+
+    const btnDelete = document.getElementById('btn-delete-task');
+    const groupMotivo = document.getElementById('group-motivo-aguardando');
+
+    if (idTarefa) {
+      const t = State.tarefas.find(x => x.ID_Tarefa === idTarefa);
+      if (!t) return;
+
+      document.getElementById('modal-task-title').textContent = 'Editar Tarefa';
+      document.getElementById('task-id').value = t.ID_Tarefa;
+      document.getElementById('task-title').value = t.Titulo;
+      document.getElementById('task-project').value = t.ID_Projeto || '';
+      document.getElementById('task-next-steps').value = t.Proximos_Passos || '';
+      document.getElementById('task-date').value = t.Data_Programada || State.hojeISO;
+      document.getElementById('task-priority').value = t.Prioridade || 'Média';
+      document.getElementById('task-status').value = t.Status || 'Pendente';
+      document.getElementById('task-data-inicio-aguardando').value = t.Data_Inicio_Aguardando || '';
+      document.getElementById('task-motivo-aguardando').value = t.Motivo_Aguardando || '';
+
+      groupMotivo.style.display = (t.Status === 'Aguardando') ? 'block' : 'none';
+      btnDelete.style.display = 'block';
+    } else {
+      document.getElementById('modal-task-title').textContent = 'Nova Tarefa';
+      document.getElementById('task-id').value = '';
+      document.getElementById('task-date').value = State.hojeISO;
+      document.getElementById('task-status').value = 'Pendente';
+      groupMotivo.style.display = 'none';
+      btnDelete.style.display = 'none';
+    }
+
+    modal.classList.add('open');
+  }
+
+  function fecharModalTarefa() {
+    document.getElementById('modal-task-overlay').classList.remove('open');
+  }
+
+  function salvarTarefaForm(e) {
+    e.preventDefault();
+
+    const id = document.getElementById('task-id').value;
+    const status = document.getElementById('task-status').value;
+    const motivo = document.getElementById('task-motivo-aguardando').value;
+
+    if (status === 'Aguardando' && !motivo.trim()) {
+      mostrarToast('Por favor, informe o motivo do status Aguardando.', 'error');
+      return;
+    }
+
+    const payload = {
+      ID_Tarefa: id,
+      Titulo: document.getElementById('task-title').value.trim(),
+      ID_Projeto: document.getElementById('task-project').value,
+      Proximos_Passos: document.getElementById('task-next-steps').value.trim(),
+      Data_Programada: document.getElementById('task-date').value,
+      Prioridade: document.getElementById('task-priority').value,
+      Status: status,
+      Data_Inicio_Aguardando: document.getElementById('task-data-inicio-aguardando').value,
+      Motivo_Aguardando: motivo.trim()
+    };
+
+    fecharModalTarefa();
+    mostrarToast('Gravando tarefa...', 'info');
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.sucesso) {
+          mostrarToast('Tarefa gravada com sucesso!', 'success');
+          carregarDadosSemana();
+        } else {
+          mostrarToast((res && res.erro) || 'Erro ao gravar tarefa.', 'error');
+        }
+      })
+      .withFailureHandler(err => {
+        mostrarToast('Erro de comunicação.', 'error');
+      })
+      .salvarTarefa(payload);
+  }
+
+  function excluirTarefaAtiva() {
+    const id = document.getElementById('task-id').value;
+    if (!id) return;
+
+    if (!confirm('Deseja realmente excluir esta tarefa? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    fecharModalTarefa();
+    mostrarToast('Excluindo tarefa...', 'info');
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.sucesso) {
+          mostrarToast('Tarefa excluída.', 'success');
+          carregarDadosSemana();
+        } else {
+          mostrarToast((res && res.erro) || 'Falha ao excluir.', 'error');
+        }
+      })
+      .withFailureHandler(err => {
+        mostrarToast('Erro de comunicação.', 'error');
+      })
+      .excluirTarefa(id);
+  }
+
+  // Modais de Projeto
+  function abrirModalProjeto(idProjeto) {
+    const modal = document.getElementById('modal-project-overlay');
+    const form = document.getElementById('form-project');
+    form.reset();
+
+    renderizarPaletaCoresChips();
+
+    if (idProjeto) {
+      const p = State.projetos.find(x => x.ID_Projeto === idProjeto);
+      if (!p) return;
+
+      document.getElementById('modal-project-title').textContent = 'Editar Projeto';
+      document.getElementById('project-id').value = p.ID_Projeto;
+      document.getElementById('project-name').value = p.Nome_Projeto;
+      document.getElementById('project-area').value = p.Area_Contexto || '';
+      document.getElementById('project-status').value = p.Status || 'Ativo';
+      document.getElementById('project-obs').value = p.Observacoes || '';
+      selecionarCorPastel(p.Cor_Pastel || '#EDE9FE');
+    } else {
+      document.getElementById('modal-project-title').textContent = 'Novo Projeto';
+      document.getElementById('project-id').value = '';
+      selecionarCorPastel('#EDE9FE');
+    }
+
+    modal.classList.add('open');
+  }
+
+  function fecharModalProjeto() {
+    document.getElementById('modal-project-overlay').classList.remove('open');
+  }
+
+  function renderizarPaletaCoresChips() {
+    const container = document.getElementById('project-color-picker');
+    container.innerHTML = '';
+
+    const cores = State.paletaCores.length > 0 ? State.paletaCores : [
+      { hex: '#EDE9FE', nome: 'Lavanda' },
+      { hex: '#E0E7FF', nome: 'Índigo' },
+      { hex: '#DBEAFE', nome: 'Azul' },
+      { hex: '#D1FAE5', nome: 'Menta' },
+      { hex: '#FEF3C7', nome: 'Âmbar' },
+      { hex: '#FFEDD5', nome: 'Pêssego' },
+      { hex: '#FFE4E6', nome: 'Rosa' },
+      { hex: '#F3E8FF', nome: 'Púrpura' },
+      { hex: '#F1F5F9', nome: 'Ardósia' }
+    ];
+
+    cores.forEach(c => {
+      const chip = document.createElement('div');
+      chip.className = 'color-chip';
+      chip.style.backgroundColor = c.hex;
+      chip.dataset.color = c.hex;
+      chip.title = c.nome;
+      chip.addEventListener('click', () => selecionarCorPastel(c.hex));
+      container.appendChild(chip);
+    });
+  }
+
+  function selecionarCorPastel(hex) {
+    document.getElementById('project-color').value = hex;
+    document.querySelectorAll('.color-chip').forEach(chip => {
+      chip.classList.toggle('selected', chip.dataset.color.toLowerCase() === hex.toLowerCase());
+    });
+  }
+
+  function salvarProjetoForm(e) {
+    e.preventDefault();
+
+    const payload = {
+      ID_Projeto: document.getElementById('project-id').value,
+      Nome_Projeto: document.getElementById('project-name').value.trim(),
+      Area_Contexto: document.getElementById('project-area').value.trim(),
+      Cor_Pastel: document.getElementById('project-color').value,
+      Status: document.getElementById('project-status').value,
+      Observacoes: document.getElementById('project-obs').value.trim()
+    };
+
+    fecharModalProjeto();
+    mostrarToast('Salvando projeto...', 'info');
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.sucesso) {
+          mostrarToast('Projeto salvo com sucesso!', 'success');
+          carregarDadosSemana();
+        } else {
+          mostrarToast((res && res.erro) || 'Erro ao salvar projeto.', 'error');
+        }
+      })
+      .withFailureHandler(err => {
+        mostrarToast('Erro de comunicação.', 'error');
+      })
+      .salvarProjeto(payload);
+  }
+
+  // Modal Motivo Rápido de Aguardando
+  function abrirModalMotivoAguardando() {
+    document.getElementById('input-quick-waiting-reason').value = '';
+    document.getElementById('modal-waiting-reason-overlay').classList.add('open');
+    setTimeout(() => {
+      document.getElementById('input-quick-waiting-reason').focus();
+    }, 150);
+  }
+
+  function fecharModalMotivoAguardando() {
+    document.getElementById('modal-waiting-reason-overlay').classList.remove('open');
+    State.tarefaAguardandoPendenteId = null;
+    renderizarVisaoSemanal(); // Reverte select se cancelou
+  }
+
+  function confirmarMotivoAguardandoRapido() {
+    const motivo = document.getElementById('input-quick-waiting-reason').value.trim();
+    if (!motivo) {
+      mostrarToast('Por favor, informe o motivo.', 'error');
+      return;
+    }
+
+    const id = State.tarefaAguardandoPendenteId;
+    document.getElementById('modal-waiting-reason-overlay').classList.remove('open');
+    State.tarefaAguardandoPendenteId = null;
+
+    aplicarNovoStatus(id, 'Aguardando', motivo);
+  }
+
+  // Modal Configurações & Gatilhos
+  function abrirModalConfiguracoes() {
+    const modal = document.getElementById('modal-settings-overlay');
+    modal.classList.add('open');
+
+    // Consulta status do trigger
+    google.script.run
+      .withSuccessHandler(res => {
+        const badge = document.getElementById('trigger-status-badge');
+        if (res && res.sucesso && res.dados.ativo) {
+          badge.textContent = 'Gatilho Ativo (00:01)';
+          badge.style.background = '#ECFDF5';
+          badge.style.color = '#065F46';
+        } else {
+          badge.textContent = 'Gatilho Não Instalado';
+          badge.style.background = '#FFFBEB';
+          badge.style.color = '#92400E';
+        }
+      })
+      .verificarStatusGatilhoRollover();
+  }
+
+  function fecharModalConfiguracoes() {
+    document.getElementById('modal-settings-overlay').classList.remove('open');
+  }
+
+  function instalarGatilhoRolloverUI() {
+    mostrarToast('Instalando gatilho de madrugada...', 'info');
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.sucesso) {
+          mostrarToast('Gatilho de Rollover instalado com sucesso!', 'success');
+          abrirModalConfiguracoes();
+        } else {
+          mostrarToast((res && res.erro) || 'Falha ao instalar gatilho.', 'error');
+        }
+      })
+      .withFailureHandler(err => {
+        mostrarToast('Erro de permissão ou comunicação.', 'error');
+      })
+      .instalarGatilhoRollover();
+  }
+
+  function executarSetupBancoUI() {
+    mostrarToast('Verificando abas da planilha...', 'info');
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.sucesso) {
+          mostrarToast('Planilha verificada e estruturada!', 'success');
+        } else {
+          mostrarToast((res && res.erro) || 'Erro no setup da planilha.', 'error');
+        }
+      })
+      .withFailureHandler(err => {
+        mostrarToast('Falha no setup.', 'error');
+      })
+      .setupDatabase();
+  }
+
+  // ===========================================================================
+  // 11. UTILITÁRIOS E TOASTS
+  // ===========================================================================
+  function formatarDataISOJS(d) {
+    if (!d || !(d instanceof Date)) return '';
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  }
+
+  function formatarDataBRJS(iso) {
+    if (!iso) return '';
+    const partes = iso.split('-');
+    if (partes.length !== 3) return iso;
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+  }
+
+  function formatarSegundosHHMMSS(total) {
+    const s = Math.max(0, parseInt(total, 10) || 0);
+    const h = String(Math.floor(s / 3600)).padStart(2, '0');
+    const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+    const seg = String(s % 60).padStart(2, '0');
+    return `${h}:${m}:${seg}`;
+  }
+
+  function escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function mostrarToast(mensagem, tipo = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${tipo}`;
+    toast.textContent = mensagem;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(-10px)';
+      toast.style.transition = 'all 0.3s ease';
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 300);
+    }, 3500);
+  }
+
+})();
+</script>

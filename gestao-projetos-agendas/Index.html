@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title><?= appTitle ?></title>
+  
+  <!-- Inclusão modular do Design System Soft Pastel -->
+  <?!= include('Styles'); ?>
+</head>
+<body>
+
+  <!-- =========================================================================
+       1. APP BAR & HEADER
+       ========================================================================= -->
+  <header class="app-header">
+    <div class="header-content">
+      <div class="brand-wrapper">
+        <div class="brand-logo-badge">GP360</div>
+        <div class="brand-info">
+          <h1>Gestão de Projetos</h1>
+          <p id="user-display"><?= usuarioLogado ?></p>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" id="btn-open-project-modal" title="Cadastrar Projeto">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          <span class="hide-mobile">Projeto</span>
+        </button>
+        <button class="btn btn-primary btn-sm" id="btn-open-task-modal" title="Nova Tarefa">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Tarefa</span>
+        </button>
+        <button class="btn-icon btn-sm" id="btn-open-settings" title="Configurações & Gatilhos">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       2. CONTEÚDO PRINCIPAL
+       ========================================================================= -->
+  <main class="app-container">
+    
+    <!-- Barra de Navegação da Semana -->
+    <div class="week-navigator">
+      <button class="btn-icon" id="btn-prev-week" title="Semana Anterior">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      
+      <div class="week-nav-info" id="btn-current-week" title="Clique para voltar para Hoje">
+        <div class="week-range-text" id="week-display-range">Carregando semana...</div>
+        <div class="week-subtext" id="week-display-status">Semana Atual</div>
+      </div>
+      
+      <button class="btn-icon" id="btn-next-week" title="Próxima Semana">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <!-- Abas / Filtros Rápidos -->
+    <div class="filter-tabs">
+      <button class="filter-tab active" data-tab="semana">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Visão Semanal</span>
+      </button>
+      <button class="filter-tab" data-tab="projetos">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <span>Projetos</span>
+        <span class="tab-badge" id="badge-count-projetos">0</span>
+      </button>
+      <button class="filter-tab" data-tab="todas-tarefas">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Todas as Tarefas</span>
+        <span class="tab-badge" id="badge-count-tarefas">0</span>
+      </button>
+      <button class="filter-tab" data-tab="aguardando" title="Filtrar tarefas em espera">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Aguardando</span>
+        <span class="tab-badge" id="badge-count-aguardando" style="background:#FEF3C7;color:#92400E;">0</span>
+      </button>
+    </div>
+
+    <!-- VIEW 1: VISÃO SEMANAL EM LISTA SANFONADA (ACCORDION) -->
+    <section id="view-semana" class="view-section">
+      <div class="week-accordion" id="week-accordion-container">
+        <!-- Renderizado dinamicamente via Scripts_UI.html -->
+        <div class="empty-state">Sincronizando agenda e tarefas da semana...</div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: GESTÃO DE PROJETOS -->
+    <section id="view-projetos" class="view-section" style="display:none;">
+      <div id="projects-list-container" style="display:flex;flex-direction:column;gap:12px;">
+        <!-- Renderizado dinamicamente -->
+      </div>
+    </section>
+
+    <!-- VIEW 3: TODAS AS TAREFAS -->
+    <section id="view-todas-tarefas" class="view-section" style="display:none;">
+      <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
+        <input type="text" id="input-busca-tarefas" class="form-control" placeholder="Buscar por título, projeto ou passos..." style="max-width:320px;">
+        <select id="select-filtro-prioridade" class="form-control" style="max-width:160px;">
+          <option value="">Todas Prioridades</option>
+          <option value="Alta">Alta Prioridade</option>
+          <option value="Média">Média Prioridade</option>
+          <option value="Baixa">Baixa Prioridade</option>
+        </select>
+        <select id="select-filtro-status" class="form-control" style="max-width:160px;">
+          <option value="">Todos Status</option>
+          <option value="Pendente">Pendente</option>
+          <option value="Em Andamento">Em Andamento</option>
+          <option value="Aguardando">Aguardando</option>
+          <option value="Concluída">Concluída</option>
+        </select>
+      </div>
+      <div id="all-tasks-list-container" class="tasks-list">
+        <!-- Renderizado dinamicamente -->
+      </div>
+    </section>
+
+    <!-- VIEW 4: FILTRO AGUARDANDO -->
+    <section id="view-aguardando" class="view-section" style="display:none;">
+      <div class="empty-state" style="margin-bottom:14px;background:#FFFBEB;border-color:#FDE68A;color:#92400E;text-align:left;">
+        <strong>Monitor de Tarefas Aguardando</strong>
+        <p style="font-size:12px;margin-top:2px;">Tarefas com dependência externa ou bloqueio. O contador avança automaticamente todos os dias com alertas visuais por tempo decorrido.</p>
+      </div>
+      <div id="waiting-tasks-list-container" class="tasks-list">
+        <!-- Renderizado dinamicamente -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =========================================================================
+       3. WIDGET FLUTUANTE DO CRONÔMETRO ATIVO (MINI TIMER)
+       ========================================================================= -->
+  <aside id="floating-timer-bar" class="floating-timer-bar">
+    <div class="timer-indicator">
+      <div class="pulse-dot"></div>
+      <div class="timer-task-info">
+        <span class="timer-task-title" id="floating-timer-title">Executando Tarefa...</span>
+        <span class="timer-project-name" id="floating-timer-project">Projeto</span>
+      </div>
+    </div>
+    
+    <div class="timer-digits" id="floating-timer-digits">00:00:00</div>
+    
+    <div class="timer-controls">
+      <button class="btn-timer-action btn-timer-pause" id="btn-floating-pause" title="Pausar / Retomar Cronômetro">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        <span id="btn-floating-pause-text">Pausar</span>
+      </button>
+      <button class="btn-timer-action btn-timer-stop" id="btn-floating-stop" title="Finalizar e Gravar Sessão">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14"/></svg>
+        <span>Salvar</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- =========================================================================
+       4. MODAL: NOVA / EDITAR TAREFA
+       ========================================================================= -->
+  <div class="modal-overlay" id="modal-task-overlay">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-task-title">Nova Tarefa</h3>
+        <button class="btn-icon btn-sm" id="btn-close-task-modal">✕</button>
+      </div>
+      
+      <form id="form-task">
+        <input type="hidden" id="task-id">
+        <input type="hidden" id="task-data-inicio-aguardando">
+        
+        <div class="form-group">
+          <label class="form-label" for="task-title">Título da Tarefa *</label>
+          <input type="text" id="task-title" class="form-control" placeholder="Ex: Consolidar relatório de indicadores" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="task-project">Projeto Vinculado</label>
+          <select id="task-project" class="form-control">
+            <option value="">(Sem Projeto Vinculado)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="task-next-steps">Próximos Passos / Ação Imediata</label>
+          <textarea id="task-next-steps" class="form-control" placeholder="Descreva brevemente o que precisa ser feito nesta tarefa..."></textarea>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label class="form-label" for="task-date">Data Programada *</label>
+            <input type="date" id="task-date" class="form-control" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="task-priority">Prioridade</label>
+            <select id="task-priority" class="form-control">
+              <option value="Alta">Alta</option>
+              <option value="Média" selected>Média</option>
+              <option value="Baixa">Baixa</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="task-status">Status</label>
+          <select id="task-status" class="form-control">
+            <option value="Pendente" selected>Pendente</option>
+            <option value="Em Andamento">Em Andamento</option>
+            <option value="Aguardando">Aguardando</option>
+            <option value="Concluída">Concluída</option>
+          </select>
+        </div>
+
+        <!-- Campo dinâmico exibido quando Status = Aguardando -->
+        <div class="form-group" id="group-motivo-aguardando" style="display:none;background:#FFFBEB;padding:12px;border-radius:8px;border:1px solid #FDE68A;">
+          <label class="form-label" for="task-motivo-aguardando" style="color:#92400E;">Motivo de Aguardando *</label>
+          <input type="text" id="task-motivo-aguardando" class="form-control" placeholder="Ex: Aguardando retorno da área jurídica">
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:8px;">
+          <button type="button" class="btn btn-secondary" id="btn-delete-task" style="display:none;color:#9F1239;border-color:#FECDD3;">Excluir</button>
+          <div style="display:flex;gap:8px;margin-left:auto;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-task">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="btn-save-task">Gravar Tarefa</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       5. MODAL: NOVO / EDITAR PROJETO
+       ========================================================================= -->
+  <div class="modal-overlay" id="modal-project-overlay">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-project-title">Novo Projeto</h3>
+        <button class="btn-icon btn-sm" id="btn-close-project-modal">✕</button>
+      </div>
+      
+      <form id="form-project">
+        <input type="hidden" id="project-id">
+        
+        <div class="form-group">
+          <label class="form-label" for="project-name">Nome do Projeto *</label>
+          <input type="text" id="project-name" class="form-control" placeholder="Ex: Expansão Logística Regional" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="project-area">Área / Contexto</label>
+          <input type="text" id="project-area" class="form-control" placeholder="Ex: Operações, RH, TI, Comercial">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Cor Pastel de Identificação</label>
+          <div class="color-chips-picker" id="project-color-picker">
+            <!-- Chips gerados via JS -->
+          </div>
+          <input type="hidden" id="project-color" value="#EDE9FE">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="project-status">Status do Projeto</label>
+          <select id="project-status" class="form-control">
+            <option value="Ativo" selected>Ativo</option>
+            <option value="Pausado">Pausado</option>
+            <option value="Concluído">Concluído</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="project-obs">Observações</label>
+          <textarea id="project-obs" class="form-control" placeholder="Objetivos estratégicos, links úteis ou observações gerais..."></textarea>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px;">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-project">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-project">Salvar Projeto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       6. MODAL: RÁPIDO PARA MOTIVO DE AGUARDANDO
+       ========================================================================= -->
+  <div class="modal-overlay" id="modal-waiting-reason-overlay">
+    <div class="modal-sheet" style="max-width:440px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Motivo de Aguardando</h3>
+        <button class="btn-icon btn-sm" id="btn-close-waiting-reason">✕</button>
+      </div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
+        Informe por quem ou pelo que esta tarefa está aguardando para que o contador e o badge sejam ativados.
+      </p>
+      <div class="form-group">
+        <input type="text" id="input-quick-waiting-reason" class="form-control" placeholder="Ex: Retorno do fornecedor sobre orçamento" required>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-quick-waiting">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-confirm-quick-waiting">Confirmar Status</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       7. MODAL: CONFIGURAÇÕES & GATILHOS
+       ========================================================================= -->
+  <div class="modal-overlay" id="modal-settings-overlay">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3 class="modal-title">Configurações do Ecossistema</h3>
+        <button class="btn-icon btn-sm" id="btn-close-settings">✕</button>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px;">
+          <h4 style="font-size:14px;font-weight:700;color:var(--text-main);margin-bottom:4px;">Gatilho Diário de Rollover (00:01)</h4>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+            Executa automaticamente na madrugada varrendo tarefas vencidas e atualizando a data programada para hoje.
+          </p>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span id="trigger-status-badge" style="font-size:12px;font-weight:700;padding:4px 8px;border-radius:4px;background:#F1F5F9;color:#475569;">Verificando...</span>
+            <button class="btn btn-secondary btn-sm" id="btn-install-trigger">Instalar Gatilho</button>
+          </div>
+        </div>
+
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px;">
+          <h4 style="font-size:14px;font-weight:700;color:var(--text-main);margin-bottom:4px;">Banco de Dados (Google Sheets)</h4>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
+            Verifica ou inicializa as 4 abas obrigatórias: PROJETOS, TAREFAS, HISTORICO_TEMPO e CONFIGURACOES.
+          </p>
+          <button class="btn btn-secondary btn-sm" id="btn-run-setup">Verificar Estrutura da Planilha</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       8. TOAST CONTAINER DE NOTIFICAÇÕES
+       ========================================================================= -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Inclusão modular da Camada de Controle Reativa (Vanilla JS) -->
+  <?!= include('Scripts_UI'); ?>
+</body>
+</html>
+
