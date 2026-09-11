@@ -40,8 +40,8 @@ function executarRolloverTarefas() {
       const status = String(linha[6] || '').trim();
       const dataProgramada = Utils_formatarDataISO(linha[4]);
       
-      // Condição de Rollover: Tarefa NÃO concluída e com data programada anterior a hoje
-      if (status !== STATUS_TAREFA.CONCLUIDA && dataProgramada && dataProgramada < hojeISO) {
+      // Condição de Rollover: Tarefa NÃO concluída/arquivada e com data programada anterior a hoje ou sem data
+      if (status !== STATUS_TAREFA.CONCLUIDA && status !== 'Arquivada' && (!dataProgramada || dataProgramada < hojeISO)) {
         // Atualiza a coluna 5 (Data_Programada) e coluna 13 (Atualizado_Em) na matriz em memória
         linha[4] = hojeISO;
         linha[12] = agoraISO;

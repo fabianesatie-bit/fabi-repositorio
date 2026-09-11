@@ -239,14 +239,17 @@ function Utils_obterIntervaloSemana(dataReferenciaISO) {
     });
   }
   
-  const domingo = new Date(segunda.getFullYear(), segunda.getMonth(), segunda.getDate() + 6, 23, 59, 59, 999);
+  const segBR = diasSemana[0].dataBR.substring(0, 5);
+  const domBR = diasSemana[6].dataBR;
+  const labelPeriodo = `${segBR} a ${domBR}`;
   
   return {
     segundaISO: diasSemana[0].dataISO,
     domingoISO: diasSemana[6].dataISO,
     dataReferenciaISO: Utils_formatarDataISO(dt),
     hojeISO: hojeISO,
-    diasSemana: diasSemana
+    diasSemana: diasSemana,
+    labelPeriodo: labelPeriodo
   };
 }
 

@@ -7,210 +7,592 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="GP360 Projetos">
-  <meta name="theme-color" content="#7C3AED">
+  <meta name="apple-mobile-web-app-title" content="GP360 Atelier">
+  <meta name="theme-color" content="#72526d">
   <title><?= appTitle ?></title>
-  
-  <!-- Inclusão modular do Design System Soft Pastel -->
+
+  <!-- Inclusão modular do Design System Botânico Soft Pastel & Tailwind -->
   <?!= include('Styles'); ?>
 </head>
-<body>
+<body class="bg-[#fff8f5] text-[#211a1e] font-body selection:bg-[#ffd7f6] selection:text-[#72526d]">
 
   <!-- =========================================================================
-       1. APP BAR & HEADER
+       1. CABEÇALHO UNIFICADO (ATELIER BOTÂNICO)
        ========================================================================= -->
-  <header class="app-header">
-    <div class="header-content">
-      <div class="brand-wrapper">
-        <div class="brand-logo-badge">GP360</div>
-        <div class="brand-info">
-          <h1>Gestão de Projetos</h1>
-          <p id="user-display"><?= usuarioLogado ?></p>
+  <header class="sticky top-0 z-40 bg-[#fff8f5]/85 backdrop-blur-md border-b border-[#ebdce7] transition-all">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3 flex items-center justify-between gap-4">
+      
+      <!-- Marca & Identidade Editorial -->
+      <div class="flex items-center gap-3 min-w-max cursor-pointer" onclick="alternarAba('agenda-semanal')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#72526d] to-[#4f634f] flex items-center justify-center text-white shadow-botanical ring-2 ring-[#ffd7f6]/50">
+          <span class="material-symbols-outlined text-[22px]">spa</span>
+        </div>
+        <div>
+          <span class="font-headline font-bold text-lg text-[#211a1e] tracking-tight block leading-tight">GP360 Atelier</span>
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-[#72526d] block">Gestão de Projetos & Agendas</span>
         </div>
       </div>
-      
-      <div class="header-actions">
-        <button class="btn btn-secondary btn-sm" id="btn-open-project-modal" title="Cadastrar Projeto">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-          <span class="hide-mobile">Projeto</span>
+
+      <!-- Barra de Navegação Central (Pills Elegantes) -->
+      <nav class="hidden md:flex items-center p-1 bg-[#f5ece7] rounded-full border border-[#d2c2cd]/60 shadow-inner" id="main-nav-tabs">
+        <button type="button" class="nav-tab active px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-200 bg-[#72526d] text-white shadow-sm flex items-center gap-1.5" data-tab="agenda-semanal" onclick="alternarAba('agenda-semanal')">
+          <span class="material-symbols-outlined text-[17px]">view_timeline</span>
+          <span>Agenda Semanal</span>
         </button>
-        <button class="btn btn-primary btn-sm" id="btn-open-task-modal" title="Nova Tarefa">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        <button type="button" class="nav-tab px-4 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all duration-200 text-[#4e444c] hover:text-[#211a1e] hover:bg-[#ebdce7]/50 flex items-center gap-1.5" data-tab="quadro-de-projetos" onclick="alternarAba('quadro-de-projetos')">
+          <span class="material-symbols-outlined text-[17px]">view_kanban</span>
+          <span>Quadro de Projetos</span>
+          <span class="ml-1 px-1.5 py-0.2 bg-[#d2e9cf] text-[#384b39] text-[10px] font-bold rounded-full" id="nav-count-projetos">0</span>
+        </button>
+        <button type="button" class="nav-tab px-4 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all duration-200 text-[#4e444c] hover:text-[#211a1e] hover:bg-[#ebdce7]/50 flex items-center gap-1.5" data-tab="fila-de-bloqueios" onclick="alternarAba('fila-de-bloqueios')">
+          <span class="material-symbols-outlined text-[17px]">pause_circle</span>
+          <span>Fila de Bloqueios</span>
+          <span class="ml-1 px-1.5 py-0.2 bg-[#ffdad6] text-[#ba1a1a] text-[10px] font-bold rounded-full" id="nav-count-bloqueios">0</span>
+        </button>
+        <button type="button" class="nav-tab px-4 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all duration-200 text-[#4e444c] hover:text-[#211a1e] hover:bg-[#ebdce7]/50 flex items-center gap-1.5" data-tab="historico-e-metricas" onclick="alternarAba('historico-e-metricas')">
+          <span class="material-symbols-outlined text-[17px]">analytics</span>
+          <span>Histórico & Métricas</span>
+        </button>
+      </nav>
+
+      <!-- Ações Rápidas, Status do Workspace & Perfil da Usuária -->
+      <div class="flex items-center gap-2.5">
+        
+        <!-- Badge de Sincronização Google Workspace & Data de Hoje -->
+        <div class="hidden lg:flex items-center gap-1.5 px-3 py-1 bg-[#d2e9cf]/60 border border-[#4f634f]/20 rounded-full text-[11px] font-medium text-[#384b39]" title="Conectado com Google Calendar & Sheets">
+          <span class="w-2 h-2 rounded-full bg-[#4f634f] dock-pulse"></span>
+          <span id="header-data-hoje">Google Workspace Ativo</span>
+        </div>
+
+        <!-- Botão Sincronizar Ecossistema Manualmente -->
+        <button type="button" class="w-8 h-8 rounded-full bg-[#f5ece7] hover:bg-[#ebdce7] text-[#72526d] flex items-center justify-center transition-all active:scale-95" onclick="carregarDadosApp()" title="Sincronizar Agenda e Tarefas com Google Workspace">
+          <span class="material-symbols-outlined text-[18px]">sync</span>
+        </button>
+
+        <!-- Botão + Nova Tarefa -->
+        <button type="button" class="px-3.5 py-1.5 bg-[#72526d] hover:bg-[#5f445b] text-white rounded-full text-xs font-semibold shadow-botanical hover:shadow transition-all flex items-center gap-1.5 active:scale-95" id="btn-header-nova-tarefa" onclick="abrirModalNovaTarefa()">
+          <span class="material-symbols-outlined text-[16px]">add</span>
           <span>Tarefa</span>
         </button>
-        <button class="btn-icon btn-sm" id="btn-open-settings" title="Configurações & Gatilhos">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+
+        <!-- Botão + Novo Projeto -->
+        <button type="button" class="hidden sm:flex px-3 py-1.5 bg-[#f5ece7] hover:bg-[#ebdce7] text-[#72526d] border border-[#d2c2cd] rounded-full text-xs font-semibold transition-all items-center gap-1.5 active:scale-95" id="btn-header-novo-projeto" onclick="abrirModalNovoProjeto()">
+          <span class="material-symbols-outlined text-[16px]">create_new_folder</span>
+          <span>Projeto</span>
         </button>
+
+        <!-- Botão de Configurações & Gatilhos -->
+        <button type="button" class="w-8 h-8 rounded-full bg-[#f5ece7] hover:bg-[#ebdce7] text-[#4e444c] flex items-center justify-center transition-all" id="btn-open-settings" onclick="abrirModalConfiguracoes()" title="Configurações & Gatilho Rollover">
+          <span class="material-symbols-outlined text-[18px]">settings</span>
+        </button>
+
+        <!-- Foto da Usuária (Substituindo o placeholder pela foto real) -->
+        <div class="relative group cursor-pointer" title="<?= usuarioLogado ?>">
+          <img id="header-user-avatar" src="data:image/jpeg;base64,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" alt="Foto da Usuária" class="w-9 h-9 rounded-full object-cover ring-2 ring-[#72526d]/30 shadow-sm transition-transform group-hover:scale-105">
+          <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+        </div>
       </div>
+    </div>
+
+    <!-- Navegação Mobile (Pills em carrossel horizontal em telas pequenas) -->
+    <div class="md:hidden px-4 pb-2 pt-1 flex items-center gap-1.5 overflow-x-auto hide-scrollbar">
+      <button type="button" class="nav-tab active px-3 py-1 rounded-full text-[11px] font-semibold bg-[#72526d] text-white whitespace-nowrap" data-tab="agenda-semanal" onclick="alternarAba('agenda-semanal')">Agenda</button>
+      <button type="button" class="nav-tab px-3 py-1 rounded-full text-[11px] font-semibold bg-[#f5ece7] text-[#4e444c] whitespace-nowrap" data-tab="quadro-de-projetos" onclick="alternarAba('quadro-de-projetos')">Projetos</button>
+      <button type="button" class="nav-tab px-3 py-1 rounded-full text-[11px] font-semibold bg-[#f5ece7] text-[#4e444c] whitespace-nowrap" data-tab="fila-de-bloqueios" onclick="alternarAba('fila-de-bloqueios')">Bloqueios</button>
+      <button type="button" class="nav-tab px-3 py-1 rounded-full text-[11px] font-semibold bg-[#f5ece7] text-[#4e444c] whitespace-nowrap" data-tab="historico-e-metricas" onclick="alternarAba('historico-e-metricas')">Métricas</button>
     </div>
   </header>
 
   <!-- =========================================================================
-       2. CONTEÚDO PRINCIPAL
+       2. CONTEÚDO PRINCIPAL (4 TELAS SPA)
        ========================================================================= -->
-  <main class="app-container">
-    
-    <!-- Seletor de Modo de Visualização Temporal: Dia / Semana / Mês -->
-    <div class="view-mode-container">
-      <div class="view-mode-selector" role="tablist">
-        <button class="mode-btn" id="btn-mode-dia" data-mode="dia">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-          <span>Dia</span>
-        </button>
-        <button class="mode-btn active" id="btn-mode-semana" data-mode="semana">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <span>Semana</span>
-        </button>
-        <button class="mode-btn" id="btn-mode-mes" data-mode="mes">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="10" x2="9" y2="21"/><line x1="15" y1="10" x2="15" y2="21"/></svg>
-          <span>Mês</span>
-        </button>
-      </div>
-    </div>
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-28">
 
-    <!-- Barra de Navegação do Período (Adapta-se ao Modo Dia / Semana / Mês) -->
-    <div class="week-navigator">
-      <button class="btn-icon" id="btn-prev-week" title="Período Anterior">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
+    <!-- =======================================================================
+         TELA 1: AGENDA SEMANAL & COMPROMISSOS GOOGLE WORKSPACE
+         ======================================================================= -->
+    <section id="view-agenda-semanal" class="view-tab-content">
       
-      <div class="week-nav-info" id="btn-current-week" title="Clique para voltar para Hoje / Período Atual">
-        <div class="week-range-text" id="week-display-range">Carregando...</div>
-        <div class="week-subtext" id="week-display-status">Hoje / Atual</div>
-      </div>
-      
-      <button class="btn-icon" id="btn-next-week" title="Próximo Período">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-    </div>
+      <!-- Sub-Barra de Navegação da Semana & Filtros -->
+      <div class="bg-white/80 backdrop-blur-sm border border-[#ebdce7] rounded-2xl p-4 shadow-botanical mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        
+        <!-- Controles de Ciclo / Semana -->
+        <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+          <div class="flex items-center gap-1 bg-[#f5ece7] p-1 rounded-xl border border-[#d2c2cd]/50">
+            <button type="button" class="w-8 h-8 rounded-lg hover:bg-white text-[#72526d] flex items-center justify-center transition-all" id="btn-prev-week" onclick="navegarPeriodoAnterior()" title="Semana Anterior">
+              <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+            </button>
+            <button type="button" class="px-3 py-1 rounded-lg text-xs font-bold text-[#72526d] hover:bg-white transition-all" id="btn-current-week" onclick="irParaHoje()" title="Voltar para Hoje">
+              Hoje
+            </button>
+            <button type="button" class="w-8 h-8 rounded-lg hover:bg-white text-[#72526d] flex items-center justify-center transition-all" id="btn-next-week" onclick="navegarProximoPeriodo()" title="Próxima Semana">
+              <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+            </button>
+          </div>
 
-    <!-- Abas / Filtros Rápidos -->
-    <div class="filter-tabs">
-      <button class="filter-tab active" data-tab="semana">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span>Agenda & Tarefas</span>
-      </button>
-      <button class="filter-tab" data-tab="projetos">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-        <span>Projetos</span>
-        <span class="tab-badge" id="badge-count-projetos">0</span>
-      </button>
-      <button class="filter-tab" data-tab="todas-tarefas">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        <span>Todas as Tarefas</span>
-        <span class="tab-badge" id="badge-count-tarefas">0</span>
-      </button>
-      <button class="filter-tab" data-tab="aguardando" title="Filtrar tarefas em espera">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        <span>Aguardando</span>
-        <span class="tab-badge" id="badge-count-aguardando" style="background:#FEF3C7;color:#92400E;">0</span>
-      </button>
-    </div>
+          <div class="flex flex-col">
+            <span class="text-[10px] uppercase font-bold tracking-wider text-[#4f634f]" id="week-display-status">Ciclo Ativo</span>
+            <span class="text-sm font-bold text-[#211a1e] font-headline" id="week-display-range">Carregando ciclo...</span>
+          </div>
+        </div>
 
-    <!-- VIEW 0: VISÃO DIÁRIA (DIA) -->
-    <section id="view-dia" class="view-section" style="display:none;">
-      <div id="day-view-container">
-        <!-- Renderizado dinamicamente via Scripts_UI.html -->
-      </div>
-    </section>
+        <!-- Seletor de Modo Temporal (Dia, Semana, Mês) & Filtros Rápidos -->
+        <div class="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
+          <div class="inline-flex p-1 bg-[#f5ece7] rounded-xl border border-[#d2c2cd]/50">
+            <button type="button" class="px-2.5 py-1 text-xs font-semibold rounded-lg text-[#4e444c] hover:text-[#211a1e]" id="btn-mode-dia" onclick="alterarModoVisualizacao('dia')">Dia</button>
+            <button type="button" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-[#72526d] text-white shadow-xs" id="btn-mode-semana" onclick="alterarModoVisualizacao('semana')">Semana</button>
+            <button type="button" class="px-2.5 py-1 text-xs font-semibold rounded-lg text-[#4e444c] hover:text-[#211a1e]" id="btn-mode-mes" onclick="alterarModoVisualizacao('mes')">Mês</button>
+          </div>
 
-    <!-- VIEW 1: VISÃO SEMANAL EM LISTA SANFONADA (ACCORDION) -->
-    <section id="view-semana" class="view-section">
-      <div class="week-accordion" id="week-accordion-container">
-        <!-- Renderizado dinamicamente via Scripts_UI.html -->
-        <div class="empty-state">Sincronizando agenda e tarefas...</div>
-      </div>
-    </section>
+          <div class="h-5 w-px bg-[#d2c2cd]/60 hidden sm:block"></div>
 
-    <!-- VIEW 1.2: VISÃO MENSAL EM GRID DE CALENDÁRIO -->
-    <section id="view-mes" class="view-section" style="display:none;">
-      <div id="month-view-container">
-        <!-- Renderizado dinamicamente via Scripts_UI.html -->
-      </div>
-    </section>
-
-    <!-- VIEW 2: GESTÃO DE PROJETOS (QUADRO KANBAN ESTILO TRELLO) -->
-    <section id="view-projetos" class="view-section" style="display:none;">
-      <div class="projects-toolbar">
-        <div class="projects-subnav">
-          <button type="button" class="projects-subnav-btn active" id="btn-subnav-ativos" data-sub="ativos">
-            <span>🚀 Projetos Ativos</span>
-            <span class="projects-subnav-count" id="count-subnav-ativos">0</span>
-          </button>
-          <button type="button" class="projects-subnav-btn" id="btn-subnav-arquivados" data-sub="arquivados">
-            <span>📦 Arquivados</span>
-            <span class="projects-subnav-count" id="count-subnav-arquivados">0</span>
+          <button type="button" class="px-3 py-1 text-xs font-medium rounded-xl border border-[#d2c2cd] hover:bg-[#f5ece7] text-[#4e444c] transition-all" id="btn-toggle-expand-all" onclick="alternarTodosAccordions()">
+            Expandir Todos
           </button>
         </div>
-        <button class="btn btn-primary btn-sm" id="btn-kanban-novo-projeto">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <span>+ Novo Projeto</span>
-        </button>
       </div>
 
-      <div id="projects-board-container">
-        <!-- Renderizado dinamicamente via Scripts_UI.html (Kanban ou Arquivados) -->
+      <!-- Ribbon de Métricas Rápidas do Ciclo -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+        
+        <div class="bg-white/70 backdrop-blur-sm border border-[#ebdce7] p-3.5 rounded-2xl shadow-xs flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-[#ffd7f6] text-[#72526d] flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[20px]">assignment</span>
+          </div>
+          <div>
+            <span class="text-lg font-bold text-[#211a1e] block leading-none" id="stat-tarefas-programadas">0</span>
+            <span class="text-[11px] text-[#80747d] font-medium">Tarefas Programadas</span>
+          </div>
+        </div>
+
+        <div class="bg-white/70 backdrop-blur-sm border border-[#ebdce7] p-3.5 rounded-2xl shadow-xs flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-[#d2e9cf] text-[#4f634f] flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[20px]">event_available</span>
+          </div>
+          <div>
+            <span class="text-lg font-bold text-[#211a1e] block leading-none" id="stat-reunioes-calendar">0</span>
+            <span class="text-[11px] text-[#80747d] font-medium">Reuniões no Calendar</span>
+          </div>
+        </div>
+
+        <div class="bg-white/70 backdrop-blur-sm border border-[#ebdce7] p-3.5 rounded-2xl shadow-xs flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-[#ffdbc8] text-[#7e5236] flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[20px]">task_alt</span>
+          </div>
+          <div>
+            <span class="text-lg font-bold text-[#211a1e] block leading-none" id="stat-taxa-conclusao">0%</span>
+            <span class="text-[11px] text-[#80747d] font-medium">Taxa de Conclusão</span>
+          </div>
+        </div>
+
+        <div class="bg-white/70 backdrop-blur-sm border border-[#ebdce7] p-3.5 rounded-2xl shadow-xs flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-[#ebdce7] text-[#72526d] flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[20px]">auto_mode</span>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-[#4f634f] block leading-tight" id="stat-rollover-status">Gatilho 00:01 Ativo</span>
+            <span class="text-[11px] text-[#80747d] font-medium">Rollover Noturno</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layout em 2 Colunas: Accordion da Semana (8 cols) + Dock Botânico (4 cols) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Coluna Esquerda: Timeline Accordion dos Dias -->
+        <div class="lg:col-span-8 flex flex-col gap-4" id="week-accordion-container">
+          <div class="p-8 text-center bg-white/60 rounded-2xl border border-dashed border-[#d2c2cd] text-[#80747d]">
+            Sincronizando agenda e tarefas com Google Workspace...
+          </div>
+        </div>
+
+        <!-- Coluna Direita: Dock Botânico Lateral (Citação + Mini Calendário + Microações) -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+          
+          <!-- Card de Inspiração Botânica Editorial -->
+          <div class="bg-gradient-to-br from-[#72526d]/10 via-[#fff8f5] to-[#4f634f]/10 border border-[#ebdce7] rounded-2xl p-5 shadow-botanical relative overflow-hidden">
+            <div class="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-[#ffd7f6]/40 blur-xl pointer-events-none"></div>
+            <div class="flex items-center gap-2 mb-2 text-[#72526d]">
+              <span class="material-symbols-outlined text-[18px]">local_florist</span>
+              <span class="text-[11px] font-bold uppercase tracking-wider">Inspiração do Dia</span>
+            </div>
+            <p class="font-headline italic text-sm text-[#211a1e] leading-relaxed mb-3">
+              "A produtividade consciente floresce no equilíbrio entre foco profundo e pausas regenerativas."
+            </p>
+            <span class="text-[10px] font-bold text-[#4f634f] tracking-wide block">GP360 Mindfulness & Gestão</span>
+          </div>
+
+          <!-- Mini Calendário Mensal Integrado -->
+          <div class="bg-white/90 border border-[#ebdce7] rounded-2xl p-5 shadow-botanical">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-bold uppercase tracking-wider text-[#72526d]" id="mini-calendar-month-name">Calendário do Mês</span>
+              <span class="material-symbols-outlined text-[16px] text-[#4f634f]">calendar_today</span>
+            </div>
+            <div id="mini-calendar-grid" class="grid grid-cols-7 gap-1 text-center text-xs">
+              <!-- Renderizado dinamicamente via JS -->
+            </div>
+          </div>
+
+          <!-- Acesso Rápido a Microações Executivas -->
+          <div class="bg-white/80 border border-[#ebdce7] rounded-2xl p-5 shadow-botanical">
+            <span class="text-xs font-bold uppercase tracking-wider text-[#211a1e] block mb-3">Microações Rápidas</span>
+            <div class="flex flex-col gap-2">
+              <button type="button" class="w-full text-left p-2.5 rounded-xl hover:bg-[#f5ece7] border border-transparent hover:border-[#ebdce7] flex items-center justify-between transition-all group" onclick="executarRolloverManual()">
+                <div class="flex items-center gap-2.5">
+                  <span class="material-symbols-outlined text-[18px] text-[#72526d] group-hover:rotate-45 transition-transform">autorenew</span>
+                  <span class="text-xs font-medium text-[#211a1e]">Executar Rollover Agora</span>
+                </div>
+                <span class="material-symbols-outlined text-[14px] text-[#80747d]">arrow_forward</span>
+              </button>
+
+              <button type="button" class="w-full text-left p-2.5 rounded-xl hover:bg-[#f5ece7] border border-transparent hover:border-[#ebdce7] flex items-center justify-between transition-all group" onclick="recarregarDadosApp()">
+                <div class="flex items-center gap-2.5">
+                  <span class="material-symbols-outlined text-[18px] text-[#4f634f]">sync</span>
+                  <span class="text-xs font-medium text-[#211a1e]">Sincronizar Planilha & Calendar</span>
+                </div>
+                <span class="material-symbols-outlined text-[14px] text-[#80747d]">arrow_forward</span>
+              </button>
+
+              <button type="button" class="w-full text-left p-2.5 rounded-xl hover:bg-[#f5ece7] border border-transparent hover:border-[#ebdce7] flex items-center justify-between transition-all group" onclick="abrirModalConfiguracoes()">
+                <div class="flex items-center gap-2.5">
+                  <span class="material-symbols-outlined text-[18px] text-[#7e5236]">tune</span>
+                  <span class="text-xs font-medium text-[#211a1e]">Configurações do Sistema</span>
+                </div>
+                <span class="material-symbols-outlined text-[14px] text-[#80747d]">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Ritmo Semanal Progress Card -->
+          <div class="bg-gradient-to-r from-[#d2e9cf]/60 to-[#ffd7f6]/40 border border-[#d2c2cd]/60 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <span class="text-[11px] font-bold text-[#384b39] block">Ritmo de Execução</span>
+              <span class="text-xs text-[#4e444c]" id="weekly-progress-label">0 de 0 concluídas</span>
+            </div>
+            <div class="w-20 bg-white/80 h-2 rounded-full overflow-hidden border border-[#d2c2cd]/50">
+              <div class="bg-[#4f634f] h-full rounded-full transition-all duration-500" id="weekly-progress-bar" style="width: 0%"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Contêineres Opcionais para Modo Dia e Modo Mês -->
+      <div id="day-view-container" style="display:none;" class="mt-4"></div>
+      <div id="month-view-container" style="display:none;" class="mt-4"></div>
+    </section>
+
+    <!-- =======================================================================
+         TELA 2: QUADRO DE PROJETOS (ATELIER KANBAN EXECUTIVO ESTILO TRELLO)
+         ======================================================================= -->
+    <section id="view-quadro-projetos" class="view-tab-content" style="display:none;">
+      
+      <!-- Cabeçalho do Quadro de Projetos -->
+      <div class="bg-white/80 backdrop-blur-sm border border-[#ebdce7] rounded-2xl p-5 shadow-botanical mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 text-[#72526d] mb-1">
+            <span class="material-symbols-outlined text-[18px]">view_kanban</span>
+            <span class="text-[11px] uppercase font-bold tracking-wider">Atelier Kanban Executivo</span>
+          </div>
+          <h2 class="text-xl font-headline font-bold text-[#211a1e]">Quadro de Projetos & Iniciativas</h2>
+        </div>
+
+        <!-- Filtros Rápidos, Alternador de Ativos/Arquivados & Botão Novo Projeto -->
+        <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end flex-wrap">
+          
+          <div class="inline-flex p-1 bg-[#f5ece7] rounded-xl border border-[#d2c2cd]/50">
+            <button type="button" class="px-3 py-1 text-xs font-bold rounded-lg bg-[#72526d] text-white shadow-xs" id="btn-subnav-ativos" onclick="alternarSubnavProjetos('ativos')">
+              Ativos (<span id="count-subnav-ativos">0</span>)
+            </button>
+            <button type="button" class="px-3 py-1 text-xs font-semibold rounded-lg text-[#4e444c] hover:text-[#211a1e]" id="btn-subnav-arquivados" onclick="alternarSubnavProjetos('arquivados')">
+              Arquivados (<span id="count-subnav-arquivados">0</span>)
+            </button>
+          </div>
+
+          <div class="relative min-w-[200px]">
+            <input type="text" id="input-busca-projetos" placeholder="Buscar iniciativas..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-[#d2c2cd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#72526d]/30" oninput="filtrarProjetosKanban()">
+            <span class="material-symbols-outlined text-[16px] text-[#80747d] absolute left-2.5 top-2">search</span>
+          </div>
+
+          <button type="button" class="px-3.5 py-1.5 bg-[#72526d] hover:bg-[#5f445b] text-white rounded-xl text-xs font-semibold shadow-botanical flex items-center gap-1.5 active:scale-95" id="btn-kanban-novo-projeto" onclick="abrirModalNovoProjeto()">
+            <span class="material-symbols-outlined text-[16px]">add</span>
+            <span>Nova Iniciativa</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Filtros por Área do Projeto & Seletor "Ver um de cada vez" -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar flex-1" id="project-area-chips">
+          <!-- Renderizado dinamicamente via JS -->
+        </div>
+        <div class="flex items-center gap-2 shrink-0" id="project-mode-selector-container">
+          <!-- Seletor: [🌟 Ver Todos em Grade] ou [📌 Ver Projeto Específico] -->
+        </div>
+      </div>
+
+      <!-- Área Dinâmica: Grade de Todos os Projetos OU Quadro Trello do Projeto Focado -->
+      <div id="projects-kanban-board" class="pb-10 pt-1">
+        <div class="p-8 text-center bg-white/60 rounded-2xl border border-dashed border-[#d2c2cd] text-[#80747d] w-full">
+          Carregando iniciativas...
+        </div>
       </div>
     </section>
 
-    <!-- VIEW 3: TODAS AS TAREFAS -->
-    <section id="view-todas-tarefas" class="view-section" style="display:none;">
-      <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;">
-        <input type="text" id="input-busca-tarefas" class="form-control" placeholder="Buscar por título, projeto ou passos..." style="max-width:320px;">
-        <select id="select-filtro-prioridade" class="form-control" style="max-width:160px;">
-          <option value="">Todas Prioridades</option>
-          <option value="Alta">Alta Prioridade</option>
-          <option value="Média">Média Prioridade</option>
-          <option value="Baixa">Baixa Prioridade</option>
-        </select>
-        <select id="select-filtro-status" class="form-control" style="max-width:160px;">
-          <option value="">Todos Status</option>
-          <option value="Pendente">Pendente</option>
-          <option value="Em Andamento">Em Andamento</option>
-          <option value="Aguardando">Aguardando</option>
-          <option value="Concluída">Concluída</option>
-        </select>
+    <!-- =======================================================================
+         TELA 3: FILA DE BLOQUEIOS & GARGALOS (AGING PIPELINE)
+         ======================================================================= -->
+    <section id="view-fila-bloqueios" class="view-tab-content" style="display:none;">
+      
+      <!-- Cabeçalho Executivo de Aging -->
+      <div class="bg-white/80 backdrop-blur-sm border border-[#ebdce7] rounded-2xl p-5 shadow-botanical mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 text-[#ba1a1a] mb-1">
+            <span class="material-symbols-outlined text-[18px]">hourglass_empty</span>
+            <span class="text-[11px] uppercase font-bold tracking-wider">Aging Pipeline & Follow-Up Ativo</span>
+          </div>
+          <h2 class="text-xl font-headline font-bold text-[#211a1e]">Gestão Ativa de Bloqueios & Gargalos</h2>
+          <p class="text-xs text-[#80747d] mt-0.5">Tarefas retidas por dependências externas organizadas por criticidade temporal.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div class="relative min-w-[220px]">
+            <input type="text" id="input-busca-bloqueios" placeholder="Filtrar por motivo ou contato..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-[#d2c2cd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#ba1a1a]/30" oninput="filtrarBloqueios()">
+            <span class="material-symbols-outlined text-[16px] text-[#80747d] absolute left-2.5 top-2">search</span>
+          </div>
+        </div>
       </div>
-      <div id="all-tasks-list-container" class="tasks-list">
-        <!-- Renderizado dinamicamente -->
+
+      <!-- 3 Faixas Executivas de Aging Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        
+        <!-- Faixa 1: 1 a 2 dias (Ritmo Regular) -->
+        <div class="bg-white border-l-4 border-l-[#4f634f] border border-[#ebdce7] rounded-2xl p-4 shadow-botanical">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-[#4f634f]">Faixa 1 (1 a 2 dias)</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d2e9cf] text-[#384b39]">Ritmo Normal</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-2xl font-bold text-[#211a1e]" id="count-faixa-1">0</span>
+            <span class="text-xs text-[#80747d]">tarefas em espera inicial</span>
+          </div>
+        </div>
+
+        <!-- Faixa 2: 3 a 5 dias (Atenção / Cobrança Urgente) -->
+        <div class="bg-white border-l-4 border-l-[#7e5236] border border-[#ebdce7] rounded-2xl p-4 shadow-botanical">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-[#7e5236]">Faixa 2 (3 a 5 dias)</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ffdbc8] text-[#7e5236]">Cobrança Urgente</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-2xl font-bold text-[#211a1e]" id="count-faixa-2">0</span>
+            <span class="text-xs text-[#80747d]">tarefas em atenção</span>
+          </div>
+        </div>
+
+        <!-- Faixa 3: 6+ dias (Crítico / Escalação C-Level) -->
+        <div class="bg-white border-l-4 border-l-[#ba1a1a] border border-[#ebdce7] rounded-2xl p-4 shadow-botanical">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-[#ba1a1a]">Faixa 3 (6+ dias)</span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ffdad6] text-[#ba1a1a] dock-pulse">Crítico / Escalar</span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-2xl font-bold text-[#ba1a1a]" id="count-faixa-3">0</span>
+            <span class="text-xs text-[#80747d]">gargalos crônicos</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista Interativa de Cartões de Bloqueio -->
+      <div class="flex flex-col gap-4" id="blocking-tasks-list">
+        <!-- Renderizado dinamicamente via JS -->
       </div>
     </section>
 
-    <!-- VIEW 4: FILTRO AGUARDANDO -->
-    <section id="view-aguardando" class="view-section" style="display:none;">
-      <div class="empty-state" style="margin-bottom:14px;background:#FFFBEB;border-color:#FDE68A;color:#92400E;text-align:left;">
-        <strong>Monitor de Tarefas Aguardando</strong>
-        <p style="font-size:12px;margin-top:2px;">Tarefas com dependência externa ou bloqueio. O contador avança automaticamente todos os dias com alertas visuais por tempo decorrido.</p>
+    <!-- =======================================================================
+         TELA 4: HISTÓRICO & MÉTRICAS (ATELIER DE GOVERNANÇA)
+         ======================================================================= -->
+    <section id="view-historico-metricas" class="view-tab-content" style="display:none;">
+      
+      <!-- Cabeçalho com Roseta Watermark -->
+      <div class="bg-white/80 backdrop-blur-sm border border-[#ebdce7] rounded-2xl p-6 shadow-botanical mb-8 rosette-watermark relative overflow-hidden">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
+          <div>
+            <div class="flex items-center gap-2 text-[#72526d] mb-1">
+              <span class="material-symbols-outlined text-[20px]">insights</span>
+              <span class="text-[11px] uppercase font-bold tracking-wider">Atelier de Governança & Métricas</span>
+            </div>
+            <h2 class="text-2xl font-headline font-bold text-[#211a1e]">Tempo de Execução & Auditoria</h2>
+            <p class="text-xs text-[#80747d] mt-1">Registros consolidados de esforço por projeto e logs do motor de rollover.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button type="button" class="px-3.5 py-1.5 bg-[#f5ece7] hover:bg-[#ebdce7] text-[#72526d] border border-[#d2c2cd] rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all" onclick="window.print()">
+              <span class="material-symbols-outlined text-[16px]">print</span>
+              <span>Imprimir Relatório</span>
+            </button>
+            <button type="button" class="px-3.5 py-1.5 bg-[#72526d] hover:bg-[#5f445b] text-white rounded-xl text-xs font-semibold shadow-botanical flex items-center gap-1.5 transition-all" onclick="recarregarDadosApp()">
+              <span class="material-symbols-outlined text-[16px]">refresh</span>
+              <span>Atualizar Métricas</span>
+            </button>
+          </div>
+        </div>
       </div>
-      <div id="waiting-tasks-list-container" class="tasks-list">
-        <!-- Renderizado dinamicamente -->
+
+      <!-- Seção de Análise Visual (Gráfico Donut + Cadência Diária + Motor Rollover) -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        
+        <!-- Card 1: Distribuição de Tempo por Projeto (Donut SVG) -->
+        <div class="bg-white border border-[#ebdce7] rounded-2xl p-5 shadow-botanical flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-bold uppercase tracking-wider text-[#72526d]">Tempo por Iniciativa</span>
+              <span class="material-symbols-outlined text-[18px] text-[#72526d]">pie_chart</span>
+            </div>
+            
+            <!-- SVG Donut Chart -->
+            <div class="flex items-center justify-center my-4" id="donut-chart-wrapper">
+              <svg width="150" height="150" viewBox="0 0 42 42" class="transform -rotate-90">
+                <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#ebdce7" stroke-width="5"></circle>
+                <circle id="donut-slice-1" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#72526d" stroke-width="5" stroke-dasharray="55 45" stroke-dashoffset="0"></circle>
+                <circle id="donut-slice-2" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#4f634f" stroke-width="5" stroke-dasharray="30 70" stroke-dashoffset="-55"></circle>
+                <circle id="donut-slice-3" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#7e5236" stroke-width="5" stroke-dasharray="15 85" stroke-dashoffset="-85"></circle>
+              </svg>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-2 pt-2 border-t border-[#ebdce7]" id="metricas-legend-projetos">
+            <!-- Legenda gerada dinamicamente via JS -->
+          </div>
+        </div>
+
+        <!-- Card 2: Cadência Diária (Bar Chart SVG x Meta 8h) -->
+        <div class="bg-white border border-[#ebdce7] rounded-2xl p-5 shadow-botanical flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-bold uppercase tracking-wider text-[#4f634f]">Cadência Diária (Meta: 8h)</span>
+              <span class="material-symbols-outlined text-[18px] text-[#4f634f]">bar_chart</span>
+            </div>
+
+            <!-- Gráfico de Barras Diárias -->
+            <div class="h-40 flex items-end justify-between gap-3 pt-6 pb-2 px-2 relative" id="cadencia-bar-chart">
+              <!-- Linha de Meta 8h -->
+              <div class="absolute top-10 left-0 right-0 border-b border-dashed border-[#ba1a1a]/40 flex justify-end">
+                <span class="text-[9px] text-[#ba1a1a] pr-1 -mt-3 font-semibold">Meta 8h</span>
+              </div>
+              
+              <!-- Barras Seg a Sex renderizadas via JS -->
+            </div>
+          </div>
+
+          <div class="pt-2 border-t border-[#ebdce7] text-center">
+            <span class="text-xs text-[#80747d]">Horas registradas nas sessões de cronômetro nesta semana</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Painel de Saúde do Motor de Rollover -->
+        <div class="bg-white border border-[#ebdce7] rounded-2xl p-5 shadow-botanical flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-bold uppercase tracking-wider text-[#7e5236]">Motor de Rollover Noturno</span>
+              <span class="material-symbols-outlined text-[18px] text-[#7e5236]">schedule</span>
+            </div>
+
+            <div class="space-y-3 mb-4">
+              <div class="p-3 bg-[#fbf2ed] rounded-xl border border-[#ebdce7]">
+                <span class="text-[10px] font-bold uppercase text-[#7e5236] block">Gatilho do Apps Script</span>
+                <span class="text-xs font-bold text-[#211a1e] block mt-0.5">executarRolloverTarefas (00:01)</span>
+                <span class="text-[11px] text-[#4f634f] font-medium flex items-center gap-1 mt-1">
+                  <span class="w-2 h-2 rounded-full bg-[#4f634f]"></span>
+                  Status: Instalado e Ativo
+                </span>
+              </div>
+
+              <div class="p-3 bg-[#f5ece7] rounded-xl border border-[#ebdce7]">
+                <span class="text-[10px] font-bold uppercase text-[#72526d] block">Regra de Negócio</span>
+                <p class="text-[11px] text-[#4e444c] mt-0.5 leading-tight">
+                  Tarefas pendentes com Data &lt; Hoje têm a Data_Programada avançada para a data corrente de forma idempotente.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" class="w-full py-2 bg-[#f5ece7] hover:bg-[#ebdce7] text-[#72526d] border border-[#d2c2cd] rounded-xl text-xs font-bold transition-all" onclick="executarRolloverManual()">
+            Forçar Auditoria / Rollover Imediato
+          </button>
+        </div>
+
       </div>
+
+      <!-- Tabela Detalhada de Sessões do Cronômetro (HISTORICO_TEMPO) -->
+      <div class="bg-white border border-[#ebdce7] rounded-2xl p-5 shadow-botanical">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <h3 class="text-base font-bold text-[#211a1e]">Auditoria de Sessões Gravadas</h3>
+            <span class="text-xs text-[#80747d]">Log imutável de durações da aba HISTORICO_TEMPO</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <input type="text" id="input-busca-historico" placeholder="Buscar por tarefa ou projeto..." class="px-3 py-1.5 text-xs bg-white border border-[#d2c2cd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#72526d]/30" oninput="filtrarTabelaHistorico()">
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b border-[#ebdce7] text-[#80747d] uppercase tracking-wider text-[10px]">
+                <th class="py-2.5 px-3">ID Sessão</th>
+                <th class="py-2.5 px-3">Tarefa / Ação</th>
+                <th class="py-2.5 px-3">Projeto</th>
+                <th class="py-2.5 px-3">Data</th>
+                <th class="py-2.5 px-3">Horário</th>
+                <th class="py-2.5 px-3">Duração</th>
+                <th class="py-2.5 px-3">Usuário</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-historico-body" class="divide-y divide-[#f5ece7]">
+              <!-- Linhas geradas dinamicamente via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
   </main>
 
   <!-- =========================================================================
-       3. WIDGET FLUTUANTE DO CRONÔMETRO ATIVO (MINI TIMER)
+       3. DOCK FLUTUANTE DE PRODUTIVIDADE (CRONÔMETRO FIXO)
        ========================================================================= -->
-  <aside id="floating-timer-bar" class="floating-timer-bar">
-    <div class="timer-indicator">
-      <div class="pulse-dot"></div>
-      <div class="timer-task-info">
-        <span class="timer-task-title" id="floating-timer-title">Executando Tarefa...</span>
-        <span class="timer-project-name" id="floating-timer-project">Projeto</span>
+  <aside id="floating-timer-bar" aria-label="Dock de Produtividade" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-[#0F172A]/92 backdrop-blur-md text-white border border-slate-700/60 shadow-dock rounded-full px-5 py-2.5 flex items-center gap-4 transition-all duration-300 max-w-[95vw] sm:max-w-max">
+    
+    <!-- Indicador de Status & Tarefa Ativa -->
+    <div class="flex items-center gap-3">
+      <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 dock-pulse shrink-0"></div>
+      <div class="flex flex-col min-w-0 max-w-[140px] sm:max-w-[220px]">
+        <span class="text-xs font-semibold text-white truncate leading-tight" id="floating-timer-title">Nenhuma tarefa ativa</span>
+        <span class="text-[10px] text-slate-400 truncate" id="floating-timer-project">Clique em Play em qualquer tarefa</span>
       </div>
     </div>
-    
-    <div class="timer-digits" id="floating-timer-digits">00:00:00</div>
-    
-    <div class="timer-controls">
-      <button class="btn-timer-action btn-timer-pause" id="btn-floating-pause" title="Pausar / Retomar Cronômetro">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-        <span id="btn-floating-pause-text">Pausar</span>
+
+    <!-- Dígitos do Cronômetro -->
+    <div class="font-mono text-sm sm:text-base font-bold tracking-wider text-emerald-300 px-2 py-0.5 bg-slate-800/80 rounded-lg border border-slate-700" id="floating-timer-digits">
+      00:00:00
+    </div>
+
+    <!-- Controles Táteis -->
+    <div class="flex items-center gap-1.5">
+      <button type="button" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center transition-all" id="btn-floating-pause" onclick="pausarOuRetomarCronometro()" title="Pausar / Retomar">
+        <span class="material-symbols-outlined text-[18px]" id="floating-pause-icon">pause</span>
       </button>
-      <button class="btn-timer-action btn-timer-stop" id="btn-floating-stop" title="Finalizar e Gravar Sessão">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14"/></svg>
-        <span>Salvar</span>
+
+      <button type="button" class="px-3 py-1 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1" id="btn-floating-stop" onclick="salvarSessaoCronometro()" title="Gravar Sessão no Sheets">
+        <span class="material-symbols-outlined text-[14px]">save</span>
+        <span class="hidden sm:inline">Salvar</span>
+      </button>
+
+      <button type="button" class="w-7 h-7 rounded-full hover:bg-slate-800 text-slate-400 hover:text-rose-400 flex items-center justify-center transition-all" id="btn-floating-reset" onclick="descartarCronometro()" title="Descartar Sessão">
+        <span class="material-symbols-outlined text-[16px]">close</span>
       </button>
     </div>
   </aside>
@@ -218,43 +600,42 @@
   <!-- =========================================================================
        4. MODAL: NOVA / EDITAR TAREFA
        ========================================================================= -->
-  <div class="modal-overlay" id="modal-task-overlay">
-    <div class="modal-sheet">
-      <div class="modal-header">
-        <h3 class="modal-title" id="modal-task-title">Nova Tarefa</h3>
-        <button class="btn-icon btn-sm" id="btn-close-task-modal">✕</button>
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" id="modal-task-overlay" style="display:none;">
+    <div class="bg-white rounded-2xl border border-[#ebdce7] shadow-botanical-lg max-w-lg w-full p-6 modal-sheet relative">
+      <div class="flex items-center justify-between pb-4 border-b border-[#ebdce7] mb-4">
+        <h3 class="text-lg font-headline font-bold text-[#211a1e]" id="modal-task-title">Nova Tarefa</h3>
+        <button type="button" class="w-8 h-8 rounded-full hover:bg-[#f5ece7] text-[#80747d] flex items-center justify-center transition-all" onclick="fecharModalTarefa()">✕</button>
       </div>
-      
-      <form id="form-task">
+
+      <form id="form-task" onsubmit="salvarTarefaForm(event)">
         <input type="hidden" id="task-id">
         <input type="hidden" id="task-data-inicio-aguardando">
-        
-        <div class="form-group">
-          <label class="form-label" for="task-title">Título da Tarefa *</label>
-          <input type="text" id="task-title" class="form-control" placeholder="Ex: Consolidar relatório de indicadores" required>
+
+        <div class="mb-3">
+          <label class="block text-xs font-bold text-[#4e444c] uppercase tracking-wider mb-1" for="task-title">Título da Tarefa *</label>
+          <input type="text" id="task-title" required placeholder="Ex: Consolidar relatório de indicadores" class="w-full px-3 py-2 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#72526d]/30">
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="task-project">Projeto Vinculado</label>
-          <select id="task-project" class="form-control">
+        <div class="mb-3">
+          <label class="block text-xs font-bold text-[#4e444c] uppercase tracking-wider mb-1" for="task-project">Iniciativa / Projeto Vinculado</label>
+          <select id="task-project" class="w-full px-3 py-2 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#72526d]/30">
             <option value="">(Sem Projeto Vinculado)</option>
           </select>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="task-next-steps">Próximos Passos / Ação Imediata</label>
-          <textarea id="task-next-steps" class="form-control" placeholder="Descreva brevemente o que precisa ser feito nesta tarefa..."></textarea>
+        <div class="mb-3">
+          <label class="block text-xs font-bold text-[#4e444c] uppercase tracking-wider mb-1" for="task-next-steps">Próximo Passo Chave / Ação Imediata</label>
+          <textarea id="task-next-steps" rows="2" placeholder="Descreva sucintamente o passo imediato para avançar..." class="w-full px-3 py-2 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#72526d]/30"></textarea>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-          <div class="form-group">
-            <label class="form-label" for="task-date">Data Programada *</label>
-            <input type="date" id="task-date" class="form-control" required>
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div>
+            <label class="block text-xs font-bold text-[#4e444c] uppercase tracking-wider mb-1" for="task-date">Data Programada *</label>
+            <input type="date" id="task-date" required class="w-full px-3 py-2 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#72526d]/30">
           </div>
-          
-          <div class="form-group">
-            <label class="form-label" for="task-priority">Prioridade</label>
-            <select id="task-priority" class="form-control">
+          <div>
+            <label class="block text-xs font-bold text-[#4e444c] uppercase tracking-wider mb-1" for="task-priority">Prioridade</label>
+            <select id="task-priority" class="w-full px-3 py-2 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#72526d]/30">
               <option value="Alta">Alta</option>
               <option value="Média" selected>Média</option>
               <option value="Baixa">Baixa</option>
@@ -262,31 +643,31 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="task-status">Status</label>
-          <select id="task-status" class="form-control">
+        <div class="mb-3">
+          <label class="block text-xs font-bold text-[#4e444c] uppercase tracking-wider mb-1" for="task-status">Status da Tarefa</label>
+          <select id="task-status" onchange="verificarMudancaStatusTarefa()" class="w-full px-3 py-2 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#72526d]/30">
             <option value="Pendente" selected>Pendente</option>
             <option value="Em Andamento">Em Andamento</option>
-            <option value="Aguardando">Aguardando</option>
+            <option value="Aguardando">Aguardando (Bloqueio / Espera Externa)</option>
             <option value="Concluída">Concluída</option>
             <option value="Arquivada">Arquivada</option>
           </select>
         </div>
 
-        <!-- Campo dinâmico exibido quando Status = Aguardando -->
-        <div class="form-group" id="group-motivo-aguardando" style="display:none;background:#FFFBEB;padding:12px;border-radius:8px;border:1px solid #FDE68A;">
-          <label class="form-label" for="task-motivo-aguardando" style="color:#92400E;">Motivo de Aguardando *</label>
-          <input type="text" id="task-motivo-aguardando" class="form-control" placeholder="Ex: Aguardando retorno da área jurídica">
+        <!-- Campo dinâmico quando Status = Aguardando -->
+        <div id="group-motivo-aguardando" style="display:none;" class="mb-3 p-3 bg-[#ffdbc8]/40 border border-[#7e5236]/30 rounded-xl">
+          <label class="block text-xs font-bold text-[#7e5236] uppercase tracking-wider mb-1" for="task-motivo-aguardando">Motivo do Bloqueio *</label>
+          <input type="text" id="task-motivo-aguardando" placeholder="Ex: Aguardando retorno da área jurídica" class="w-full px-3 py-1.5 text-xs bg-white border border-[#7e5236]/40 rounded-lg focus:outline-none">
         </div>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:8px;flex-wrap:wrap;">
-          <div style="display:flex;gap:6px;">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-delete-task" style="display:none;color:#9F1239;border-color:#FECDD3;">Excluir</button>
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-archive-task" style="display:none;">📦 Arquivar</button>
+        <div class="flex items-center justify-between pt-4 border-t border-[#ebdce7] mt-4">
+          <div class="flex items-center gap-2">
+            <button type="button" class="px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50 rounded-xl transition-all" id="btn-delete-task" style="display:none;" onclick="excluirTarefaAtual()">Excluir</button>
+            <button type="button" class="px-3 py-1.5 text-xs text-[#80747d] hover:bg-[#f5ece7] rounded-xl transition-all" id="btn-archive-task" style="display:none;" onclick="arquivarTarefaAtual()">Arquivar</button>
           </div>
-          <div style="display:flex;gap:8px;margin-left:auto;">
-            <button type="button" class="btn btn-secondary" id="btn-cancel-task">Cancelar</button>
-            <button type="submit" class="btn btn-primary" id="btn-save-task">Gravar Tarefa</button>
+          <div class="flex items-center gap-2">
+            <button type="button" class="px-3.5 py-1.5 text-xs font-semibold text-[#80747d] hover:bg-[#f5ece7] rounded-xl transition-all" onclick="fecharModalTarefa()">Cancelar</button>
+            <button type="submit" class="px-4 py-1.5 bg-[#72526d] hover:bg-[#5f445b] text-white text-xs font-bold rounded-xl shadow-botanical transition-all active:scale-95">Salvar Tarefa</button>
           </div>
         </div>
       </form>
@@ -296,37 +677,37 @@
   <!-- =========================================================================
        5. MODAL: NOVO / EDITAR PROJETO
        ========================================================================= -->
-  <div class="modal-overlay" id="modal-project-overlay">
-    <div class="modal-sheet">
-      <div class="modal-header">
-        <h3 class="modal-title" id="modal-project-title">Novo Projeto</h3>
-        <button class="btn-icon btn-sm" id="btn-close-project-modal">✕</button>
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" id="modal-project-overlay" style="display:none;">
+    <div class="bg-white rounded-2xl border border-[#ebdce7] shadow-botanical-lg max-w-lg w-full p-6 modal-sheet relative">
+      <div class="flex items-center justify-between pb-4 border-b border-[#ebdce7] mb-4">
+        <h3 class="text-lg font-headline font-bold text-[#211a1e]" id="modal-project-title">Nova Iniciativa</h3>
+        <button type="button" class="w-8 h-8 rounded-full hover:bg-[#f5ece7] text-[#80747d] flex items-center justify-center transition-all" onclick="fecharModalProjeto()">✕</button>
       </div>
-      
-      <form id="form-project">
+
+      <form id="form-project" onsubmit="salvarProjetoForm(event)">
         <input type="hidden" id="project-id">
-        
-        <div class="form-group">
-          <label class="form-label" for="project-name">Nome do Projeto *</label>
-          <input type="text" id="project-name" class="form-control" placeholder="Ex: Expansão Logística Regional" required>
+
+        <div class="mb-3">
+          <label class="block text-xs font-bold text-[#4e444c] uppercase tracking-wider mb-1" for="project-name">Nome da Iniciativa *</label>
+          <input type="text" id="project-name" required placeholder="Ex: Expansão Logística Regional" class="w-full px-3 py-2 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#72526d]/30">
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="project-area">Área / Contexto</label>
-          <input type="text" id="project-area" class="form-control" placeholder="Ex: Operações, RH, TI, Comercial">
+        <div class="mb-3">
+          <label class="block text-xs font-bold text-[#4e444c] uppercase tracking-wider mb-1" for="project-area">Área / Contexto</label>
+          <input type="text" id="project-area" placeholder="Ex: Logística, RH, TI, Estratégia" class="w-full px-3 py-2 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#72526d]/30">
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Cor Pastel de Identificação</label>
-          <div class="color-chips-picker" id="project-color-picker">
-            <!-- Chips gerados via JS -->
+        <div class="mb-3">
+          <label class="block text-xs font-bold text-[#4e444c] uppercase tracking-wider mb-1">Cor Pastel (Washi Tape do Quadro)</label>
+          <div class="flex items-center gap-2 pt-1" id="project-color-picker">
+            <!-- Paleta de cores selecionáveis via JS -->
           </div>
-          <input type="hidden" id="project-color" value="#EDE9FE">
+          <input type="hidden" id="project-color" value="#ffd7f6">
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="project-status">Status do Projeto</label>
-          <select id="project-status" class="form-control">
+        <div class="mb-3">
+          <label class="block text-xs font-bold text-[#4e444c] uppercase tracking-wider mb-1" for="project-status">Status</label>
+          <select id="project-status" class="w-full px-3 py-2 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#72526d]/30">
             <option value="Ativo" selected>Ativo</option>
             <option value="Pausado">Pausado</option>
             <option value="Concluído">Concluído</option>
@@ -334,20 +715,18 @@
           </select>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="project-obs">Observações</label>
-          <textarea id="project-obs" class="form-control" placeholder="Objetivos estratégicos, links úteis ou observações gerais..."></textarea>
+        <div class="mb-3">
+          <label class="block text-xs font-bold text-[#4e444c] uppercase tracking-wider mb-1" for="project-obs">Observações & Objetivos</label>
+          <textarea id="project-obs" rows="2" placeholder="Metas estratégicas, links e notas..." class="w-full px-3 py-2 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#72526d]/30"></textarea>
         </div>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:8px;flex-wrap:wrap;">
+        <div class="flex items-center justify-between pt-4 border-t border-[#ebdce7] mt-4">
           <div>
-            <button type="button" class="btn btn-archive-danger btn-sm" id="btn-archive-project" style="display:none;">
-              📦 Arquivar Projeto
-            </button>
+            <button type="button" class="px-3 py-1.5 text-xs text-[#80747d] hover:bg-[#f5ece7] rounded-xl transition-all" id="btn-archive-project" style="display:none;" onclick="arquivarProjetoAtual()">📦 Arquivar</button>
           </div>
-          <div style="display:flex;gap:8px;margin-left:auto;">
-            <button type="button" class="btn btn-secondary" id="btn-cancel-project">Cancelar</button>
-            <button type="submit" class="btn btn-primary" id="btn-save-project">Salvar Projeto</button>
+          <div class="flex items-center gap-2">
+            <button type="button" class="px-3.5 py-1.5 text-xs font-semibold text-[#80747d] hover:bg-[#f5ece7] rounded-xl transition-all" onclick="fecharModalProjeto()">Cancelar</button>
+            <button type="submit" class="px-4 py-1.5 bg-[#72526d] hover:bg-[#5f445b] text-white text-xs font-bold rounded-xl shadow-botanical transition-all active:scale-95">Salvar Iniciativa</button>
           </div>
         </div>
       </form>
@@ -355,23 +734,49 @@
   </div>
 
   <!-- =========================================================================
-       6. MODAL: RÁPIDO PARA MOTIVO DE AGUARDANDO
+       6. MODAL: TEMPLATE DE COBRANÇA EXECUTIVA PROATIVA (FOLLOW-UP)
        ========================================================================= -->
-  <div class="modal-overlay" id="modal-waiting-reason-overlay">
-    <div class="modal-sheet" style="max-width:440px;">
-      <div class="modal-header">
-        <h3 class="modal-title">Motivo de Aguardando</h3>
-        <button class="btn-icon btn-sm" id="btn-close-waiting-reason">✕</button>
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" id="modal-followup" style="display:none;">
+    <div class="bg-white rounded-2xl border border-[#ebdce7] shadow-botanical-lg max-w-lg w-full p-6 modal-sheet relative">
+      <div class="flex items-center justify-between pb-3 border-b border-[#ebdce7] mb-4">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[#72526d]">Template Instantâneo</span>
+          <h3 class="text-base font-headline font-bold text-[#211a1e]">Cobrança Executiva Cordial</h3>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-full hover:bg-[#f5ece7] text-[#80747d] flex items-center justify-center transition-all" onclick="fecharModalFollowup()">✕</button>
       </div>
-      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">
-        Informe por quem ou pelo que esta tarefa está aguardando para que o contador e o badge sejam ativados.
-      </p>
-      <div class="form-group">
-        <input type="text" id="input-quick-waiting-reason" class="form-control" placeholder="Ex: Retorno do fornecedor sobre orçamento" required>
+
+      <div class="space-y-3 mb-4">
+        <div>
+          <label class="block text-[11px] font-bold text-[#4e444c] uppercase mb-1">Destinatário</label>
+          <input type="text" id="followup-destinatario-nome" class="w-full px-3 py-1.5 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl" placeholder="Nome do Responsável">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-[#4e444c] uppercase mb-1">E-mail</label>
+          <input type="email" id="followup-destinatario-email" class="w-full px-3 py-1.5 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl" placeholder="contato@empresa.com">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-[#4e444c] uppercase mb-1">Assunto</label>
+          <input type="text" id="followup-assunto" class="w-full px-3 py-1.5 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-[#4e444c] uppercase mb-1">Corpo da Mensagem</label>
+          <textarea id="followup-mensagem" rows="6" class="w-full p-3 text-xs bg-[#fff8f5] border border-[#d2c2cd] rounded-xl leading-relaxed"></textarea>
+        </div>
       </div>
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
-        <button type="button" class="btn btn-secondary" id="btn-cancel-quick-waiting">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="btn-confirm-quick-waiting">Confirmar Status</button>
+
+      <div class="flex items-center justify-between pt-3 border-t border-[#ebdce7]">
+        <button type="button" class="px-3.5 py-1.5 text-xs font-semibold text-[#80747d] hover:bg-[#f5ece7] rounded-xl transition-all" onclick="fecharModalFollowup()">Fechar</button>
+        <div class="flex items-center gap-2">
+          <button type="button" class="px-3 py-1.5 text-xs font-semibold bg-[#f5ece7] hover:bg-[#ebdce7] text-[#72526d] border border-[#d2c2cd] rounded-xl flex items-center gap-1 transition-all" onclick="copiarTextoFollowup()">
+            <span class="material-symbols-outlined text-[14px]">content_copy</span>
+            <span>Copiar</span>
+          </button>
+          <button type="button" class="px-4 py-1.5 bg-[#4f634f] hover:bg-[#3d4f3d] text-white text-xs font-bold rounded-xl shadow-botanical flex items-center gap-1.5 transition-all" onclick="dispararEmailFollowup()">
+            <span class="material-symbols-outlined text-[14px]">send</span>
+            <span>Disparar E-mail</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -379,40 +784,43 @@
   <!-- =========================================================================
        7. MODAL: CONFIGURAÇÕES & GATILHOS
        ========================================================================= -->
-  <div class="modal-overlay" id="modal-settings-overlay">
-    <div class="modal-sheet">
-      <div class="modal-header">
-        <h3 class="modal-title">Configurações do Ecossistema</h3>
-        <button class="btn-icon btn-sm" id="btn-close-settings">✕</button>
+  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" id="modal-settings-overlay" style="display:none;">
+    <div class="bg-white rounded-2xl border border-[#ebdce7] shadow-botanical-lg max-w-md w-full p-6 modal-sheet relative">
+      <div class="flex items-center justify-between pb-3 border-b border-[#ebdce7] mb-4">
+        <h3 class="text-base font-headline font-bold text-[#211a1e]">Configurações do Ecossistema</h3>
+        <button type="button" class="w-8 h-8 rounded-full hover:bg-[#f5ece7] text-[#80747d] flex items-center justify-center transition-all" onclick="fecharModalConfiguracoes()">✕</button>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:16px;">
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px;">
-          <h4 style="font-size:14px;font-weight:700;color:var(--text-main);margin-bottom:4px;">Gatilho Diário de Rollover (00:01)</h4>
-          <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
-            Executa automaticamente na madrugada varrendo tarefas vencidas e atualizando a data programada para hoje.
-          </p>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-            <span id="trigger-status-badge" style="font-size:12px;font-weight:700;padding:4px 8px;border-radius:4px;background:#F1F5F9;color:#475569;">Verificando...</span>
-            <button class="btn btn-secondary btn-sm" id="btn-install-trigger">Instalar Gatilho</button>
+      <div class="space-y-4 mb-5">
+        <div class="p-3.5 bg-[#fbf2ed] rounded-xl border border-[#ebdce7]">
+          <h4 class="text-xs font-bold text-[#211a1e] mb-1">Gatilho Noturno de Rollover (00:01)</h4>
+          <p class="text-[11px] text-[#80747d] mb-3">Varre tarefas vencidas na madrugada e avança a data de forma automática.</p>
+          <div class="flex items-center justify-between">
+            <span id="trigger-status-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">Verificando...</span>
+            <button type="button" class="px-2.5 py-1 text-[11px] font-bold bg-[#72526d] text-white rounded-lg hover:bg-[#5f445b] transition-all" onclick="instalarGatilhoRollover()">Instalar Gatilho</button>
           </div>
         </div>
 
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:14px;">
-          <h4 style="font-size:14px;font-weight:700;color:var(--text-main);margin-bottom:4px;">Banco de Dados (Google Sheets)</h4>
-          <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">
-            Verifica ou inicializa as 4 abas obrigatórias: PROJETOS, TAREFAS, HISTORICO_TEMPO e CONFIGURACOES.
-          </p>
-          <button class="btn btn-secondary btn-sm" id="btn-run-setup">Verificar Estrutura da Planilha</button>
+        <div class="p-3.5 bg-[#f5ece7] rounded-xl border border-[#ebdce7]">
+          <h4 class="text-xs font-bold text-[#211a1e] mb-1">Estrutura da Planilha</h4>
+          <p class="text-[11px] text-[#80747d] mb-3">Verifica e inicializa as abas: PROJETOS, TAREFAS, HISTORICO_TEMPO e CONFIGURACOES.</p>
+          <button type="button" class="w-full py-1.5 text-[11px] font-bold bg-white text-[#72526d] border border-[#d2c2cd] rounded-lg hover:bg-[#fbf2ed] transition-all" onclick="executarSetupPlanilha()">Verificar Estrutura</button>
         </div>
+      </div>
+
+      <div class="flex justify-end pt-3 border-t border-[#ebdce7]">
+        <button type="button" class="px-4 py-1.5 bg-[#f5ece7] hover:bg-[#ebdce7] text-[#72526d] text-xs font-semibold rounded-xl" onclick="fecharModalConfiguracoes()">Fechar</button>
       </div>
     </div>
   </div>
 
   <!-- =========================================================================
-       8. TOAST CONTAINER DE NOTIFICAÇÕES
+       8. NOTIFICAÇÃO TOAST FLUTUANTE
        ========================================================================= -->
-  <div class="toast-container" id="toast-container"></div>
+  <div id="toastNotification" class="fixed bottom-6 right-6 z-50 bg-[#211a1e] text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs border border-white/10 pointer-events-none transition-transform">
+    <span class="material-symbols-outlined text-emerald-400 text-[18px]" id="toastIcon">check_circle</span>
+    <span id="toastMessage">Operação realizada com sucesso!</span>
+  </div>
 
   <!-- Inclusão modular da Camada de Controle Reativa (Vanilla JS) -->
   <?!= include('Scripts_UI'); ?>

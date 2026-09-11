@@ -27,6 +27,16 @@ const SHEET_NAMES = Object.freeze({
 });
 
 /**
+ * Configuração de integração com o Google Calendar
+ * Restringe a busca exclusivamente à agenda pessoal 'Fabiane Satie' marcada na interface
+ */
+const CALENDARIO_CONFIG = Object.freeze({
+  NOME_AGENDA_ALVO: 'Fabiane Satie',
+  FILTRAR_APENAS_SELECIONADA: true,
+  IGNORAR_AGENDAS_SECUNDARIAS: ['Aniversários', 'Tarefas', 'ARENA MAGALU', 'Feriados no Brasil']
+});
+
+/**
  * Definição estrita das colunas de cada aba da planilha (Ordem mandatória)
  */
 const SHEET_HEADERS = Object.freeze({

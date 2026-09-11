@@ -736,6 +736,106 @@ function registrarSessaoTempo(idTarefa, dataExecucao, horaInicio, horaFim, durac
 }
 
 /**
+ * Cria uma nova iniciativa / projeto com ID único e bloqueio de concorrência
+ * 
+ * @param {Object} projetoPayload Dados da iniciativa { Nome_Projeto, Area_Contexto, Cor_Pastel, Status, Observacoes }
+ * @return {Object} Resposta com o projeto criado
+ */
+function criarProjeto(projetoPayload) {
+  return Security_executarComLock(function() {
+    if (!projetoPayload || !projetoPayload.Nome_Projeto) {
+      throw new Error('O nome da iniciativa é obrigatório.');
+    }
+    
+    const ss = DB_obterPlanilha();
+    const sheet = ss.getSheetByName(SHEET_NAMES.PROJETOS);
+    if (!sheet) throw new Error('Aba PROJETOS não localizada no banco de dados.');
+    
+    const idProjeto = Utils_gerarId('PRJ');
+    const hojeISO = Utils_obterDataHojeISO();
+    const nome = Security_sanitizarString(projetoPayload.Nome_Projeto);
+    const area = Security_sanitizarString(projetoPayload.Area_Contexto || 'Geral');
+    const cor = projetoPayload.Cor_Pastel || '#ffd7f6';
+    const status = projetoPayload.Status || STATUS_PROJETO.ATIVO;
+    const obs = Security_sanitizarString(projetoPayload.Observacoes || '');
+    
+    sheet.appendRow([
+      idProjeto,
+      nome,
+      area,
+      cor,
+      status,
+      hojeISO,
+      obs
+    ]);
+    
+    return Utils_criarRespostaSucesso({
+      ID_Projeto: idProjeto,
+      Nome_Projeto: nome,
+      Area_Contexto: area,
+      Cor_Pastel: cor,
+      Status: status,
+      Data_Criacao: hojeISO,
+      Observacoes: obs
+    }, `Iniciativa "${nome}" cadastrada com sucesso!`);
+  });
+}
+
+/**
+ * Atualiza os dados de uma iniciativa / projeto existente
+ * 
+ * @param {Object} projetoPayload Dados da iniciativa { ID_Projeto, Nome_Projeto, Area_Contexto, Cor_Pastel, Status, Observacoes }
+ * @return {Object} Resposta com o projeto atualizado
+ */
+function atualizarProjeto(projetoPayload) {
+  return Security_executarComLock(function() {
+    if (!projetoPayload || !projetoPayload.ID_Projeto) {
+      throw new Error('ID da iniciativa obrigatório para atualização.');
+    }
+    
+    const ss = DB_obterPlanilha();
+    const sheet = ss.getSheetByName(SHEET_NAMES.PROJETOS);
+    if (!sheet) throw new Error('Aba PROJETOS não localizada.');
+    
+    const dados = sheet.getDataRange().getValues();
+    let linhaIndex = -1;
+    
+    for (let i = 1; i < dados.length; i++) {
+      if (String(dados[i][0]).trim() === String(projetoPayload.ID_Projeto).trim()) {
+        linhaIndex = i + 1;
+        break;
+      }
+    }
+    
+    if (linhaIndex === -1) {
+      throw new Error(`Iniciativa ${projetoPayload.ID_Projeto} não localizada.`);
+    }
+    
+    const nome = Security_sanitizarString(projetoPayload.Nome_Projeto);
+    const area = Security_sanitizarString(projetoPayload.Area_Contexto || 'Geral');
+    const cor = projetoPayload.Cor_Pastel || '#ffd7f6';
+    const status = projetoPayload.Status || STATUS_PROJETO.ATIVO;
+    const obs = Security_sanitizarString(projetoPayload.Observacoes || '');
+    
+    // Atualiza colunas 2 a 5 e 7 (não altera ID nem Data_Criacao)
+    sheet.getRange(linhaIndex, 2).setValue(nome);
+    sheet.getRange(linhaIndex, 3).setValue(area);
+    sheet.getRange(linhaIndex, 4).setValue(cor);
+    sheet.getRange(linhaIndex, 5).setValue(status);
+    sheet.getRange(linhaIndex, 7).setValue(obs);
+    
+    return Utils_criarRespostaSucesso({
+      ID_Projeto: projetoPayload.ID_Projeto,
+      Nome_Projeto: nome,
+      Area_Contexto: area,
+      Cor_Pastel: cor,
+      Status: status,
+      Observacoes: obs
+    }, `Iniciativa "${nome}" atualizada com sucesso!`);
+  });
+}
+
+/**
  * Altera o status do projeto para Arquivado
  * 
  * @param {string} idProjeto ID do projeto a ser arquivado
@@ -834,4 +934,99 @@ function arquivarTarefa(idTarefa) {
 function desarquivarTarefa(idTarefa) {
   return atualizarStatusTarefa(idTarefa, STATUS_TAREFA.PENDENTE);
 }
+
+/**
+ * Retorna o log completo de sessões gravadas em HISTORICO_TEMPO enriquecido
+ * com dados do projeto e título da tarefa para a Visão de Governança e Métricas.
+ * 
+ * @return {Object} Lista de sessões
+ */
+function obterHistoricoTempoCompleto() {
+  try {
+    const ss = DB_obterPlanilha();
+    const sheetHistorico = ss.getSheetByName(SHEET_NAMES.HISTORICO_TEMPO);
+    const sheetTarefas = ss.getSheetByName(SHEET_NAMES.TAREFAS);
+    const sheetProjetos = ss.getSheetByName(SHEET_NAMES.PROJETOS);
+    
+    if (!sheetHistorico) return Utils_criarRespostaSucesso([]);
+    
+    const dadosHist = sheetHistorico.getDataRange().getValues();
+    const dadosTarefas = sheetTarefas ? sheetTarefas.getDataRange().getValues() : [];
+    const dadosProjetos = sheetProjetos ? sheetProjetos.getDataRange().getValues() : [];
+    
+    const mapaProjetos = {};
+    for (let i = 1; i < dadosProjetos.length; i++) {
+      if (dadosProjetos[i][0]) {
+        mapaProjetos[String(dadosProjetos[i][0]).trim()] = {
+          nome: String(dadosProjetos[i][1] || '').trim(),
+          cor: String(dadosProjetos[i][3] || '#EDE9FE').trim()
+        };
+      }
+    }
+    
+    const mapaTarefas = {};
+    for (let i = 1; i < dadosTarefas.length; i++) {
+      if (dadosTarefas[i][0]) {
+        const idProj = String(dadosTarefas[i][1] || '').trim();
+        const proj = mapaProjetos[idProj] || { nome: 'Geral', cor: '#EDE9FE' };
+        mapaTarefas[String(dadosTarefas[i][0]).trim()] = {
+          titulo: String(dadosTarefas[i][2] || '').trim(),
+          idProjeto: idProj,
+          nomeProjeto: proj.nome,
+          corProjeto: proj.cor
+        };
+      }
+    }
+    
+    const sessoes = [];
+    for (let i = dadosHist.length - 1; i >= 1; i--) {
+      const l = dadosHist[i];
+      if (!l[0]) continue;
+      
+      const idTarefa = String(l[1] || '').trim();
+      const tInfo = mapaTarefas[idTarefa] || { titulo: 'Tarefa Avulsa', nomeProjeto: 'Sem Projeto', corProjeto: '#EDE9FE' };
+      const duracaoSegs = parseInt(l[5], 10) || 0;
+      
+      sessoes.push({
+        idSessao: String(l[0]).trim(),
+        idTarefa: idTarefa,
+        tituloTarefa: tInfo.titulo,
+        nomeProjeto: tInfo.nomeProjeto,
+        corProjeto: tInfo.corProjeto,
+        dataExecucao: Utils_formatarDataISO(l[2]),
+        dataExecucaoBR: Utils_formatarDataBR(l[2]),
+        horaInicio: String(l[3] || '').trim(),
+        horaFim: String(l[4] || '').trim(),
+        duracaoSegundos: duracaoSegs,
+        duracaoFormatada: Utils_formatarSegundosParaHHMMSS(duracaoSegs),
+        usuario: String(l[6] || '').trim()
+      });
+    }
+    
+    return Utils_criarRespostaSucesso(sessoes);
+  } catch (err) {
+    return Utils_criarRespostaErro('Falha ao obter histórico de tempo: ' + err.message);
+  }
+}
+
+/**
+ * Envia um e-mail formal de cobrança/follow-up de bloqueio via GmailApp
+ * 
+ * @param {string} destinatario E-mail de destino
+ * @param {string} assunto Assunto do e-mail
+ * @param {string} corpoTexto Mensagem em texto simples
+ * @return {Object} Confirmação
+ */
+function enviarCobrancaBloqueio(destinatario, assunto, corpoTexto) {
+  try {
+    if (!destinatario || !assunto || !corpoTexto) {
+      throw new Error('Destinatário, assunto e corpo são obrigatórios.');
+    }
+    GmailApp.sendEmail(destinatario, assunto, corpoTexto);
+    return Utils_criarRespostaSucesso({}, 'E-mail de cobrança enviado com sucesso!');
+  } catch (err) {
+    return Utils_criarRespostaErro('Não foi possível enviar o e-mail: ' + err.message);
+  }
+}
+
 

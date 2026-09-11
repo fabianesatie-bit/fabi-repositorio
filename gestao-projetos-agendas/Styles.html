@@ -1,1678 +1,194 @@
+<!-- =========================================================================
+     GP360 ATELIER BOTÂNICO EXECUTIVO - DESIGN SYSTEM & ESTILOS GLOBAIS
+     ========================================================================= -->
+
+<!-- Fontes Tipográficas: Playfair Display + Plus Jakarta Sans + Material Symbols -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+
+<!-- Tailwind CSS via CDN com Configuração Customizada dos Tokens Botânicos -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          'surface-variant': '#ebdce7',
+          'outline-variant': '#d2c2cd',
+          'surface-bright': '#fff8f5',
+          'secondary-container': '#d2e9cf',
+          'on-secondary': '#ffffff',
+          'surface-container-highest': '#e9e1db',
+          'inverse-surface': '#372e33',
+          'secondary-fixed': '#d2e9cf',
+          'surface-container-lowest': '#ffffff',
+          'error': '#ba1a1a',
+          'on-surface-variant': '#4e444c',
+          'outline': '#80747d',
+          'surface': '#fff8f5',
+          'secondary': '#4f634f',
+          'on-primary': '#ffffff',
+          'on-error': '#ffffff',
+          'primary': '#72526d',
+          'primary-fixed': '#ffd7f6',
+          'on-secondary-container': '#384b39',
+          'primary-fixed-dim': '#dfb7d9',
+          'on-background': '#211a1e',
+          'on-surface': '#211a1e',
+          'primary-container': '#8c6a86',
+          'tertiary-container': '#9a6a4c',
+          'tertiary': '#7e5236',
+          'surface-container-high': '#efe7e1',
+          'surface-container': '#f5ece7',
+          'surface-dim': '#e6ded9',
+          'surface-container-low': '#fbf2ed',
+          'background': '#fff8f5',
+          'error-container': '#ffdad6',
+          'on-secondary-fixed-variant': '#384b39'
+        },
+        fontFamily: {
+          headline: ['"Playfair Display"', 'serif'],
+          body: ['"Plus Jakarta Sans"', 'sans-serif'],
+          sans: ['"Plus Jakarta Sans"', 'sans-serif']
+        },
+        boxShadow: {
+          'botanical': '0 4px 20px -2px rgba(114, 82, 109, 0.08)',
+          'botanical-lg': '0 10px 30px -4px rgba(114, 82, 109, 0.12)',
+          'dock': '0 20px 40px -10px rgba(15, 23, 42, 0.35)'
+        }
+      }
+    }
+  };
+</script>
+
 <style>
-/* =============================================================================
-   GP360 ECOSYSTEM - DESIGN SYSTEM SOFT PASTEL
-   Arquivo: Styles.html
-   Diretrizes: Mobile-First, Paleta Pastel, Touch Targets >= 44px, Animações Suaves
-   ============================================================================= */
-
-:root {
-  /* Paleta Base Soft Pastel */
-  --primary: #7C3AED;
-  --primary-light: #F3E8FF;
-  --primary-hover: #6D28D9;
-  --primary-border: #DDD6FE;
-  
-  --mint-success: #10B981;
-  --mint-light: #ECFDF5;
-  --mint-border: #A7F3D0;
-  --mint-text: #065F46;
-
-  --peach-alert: #F59E0B;
-  --peach-light: #FFFBEB;
-  --peach-border: #FDE68A;
-  --peach-text: #92400E;
-
-  --coral-critical: #F43F5E;
-  --coral-light: #FFF1F2;
-  --coral-border: #FECDD3;
-  --coral-text: #9F1239;
-
-  --sky-blue: #3B82F6;
-  --sky-light: #EFF6FF;
-  --sky-border: #BFDBFE;
-  --sky-text: #1E40AF;
-
-  /* Superfícies e Tipografia */
-  --bg-app: #F8FAFC;
-  --bg-surface: #FFFFFF;
-  --bg-muted: #F1F5F9;
-  --text-main: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #64748B;
-  --border-subtle: #E2E8F0;
-  
-  /* Raios e Sombras */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-pill: 9999px;
-  
-  --shadow-subtle: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
-  --shadow-card: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-  --shadow-floating: 0 12px 24px -4px rgba(15, 23, 42, 0.12), 0 6px 12px -3px rgba(15, 23, 42, 0.08);
-
-  /* Dimensões Mínimas de Toque */
-  --touch-min: 44px;
-}
-
-/* Reset Universal & Base */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  -webkit-tap-highlight-color: transparent;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--bg-app);
-  color: var(--text-main);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  padding-bottom: 96px; /* Espaço para o mini timer flutuante */
-}
-
-/* Container Responsivo */
-.app-container {
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 12px 16px;
-}
-
-/* =============================================================================
-   1. APP BAR & HEADER
-   ============================================================================= */
-.app-header {
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-subtle);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: var(--shadow-subtle);
-}
-
-.header-content {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.brand-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.brand-logo-badge {
-  background: linear-gradient(135deg, #7C3AED, #9333EA);
-  color: #FFFFFF;
-  font-weight: 800;
-  font-size: 14px;
-  letter-spacing: 0.5px;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.25);
-}
-
-.brand-info h1 {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text-main);
-  line-height: 1.2;
-}
-
-.brand-info p {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* =============================================================================
-   2. BOTÕES & INTERATIVIDADE (TOUCH TARGET >= 44px)
-   ============================================================================= */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: var(--touch-min);
-  min-width: var(--touch-min);
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  text-decoration: none;
-  user-select: none;
-}
-
-.btn-primary {
-  background-color: var(--primary);
-  color: #FFFFFF;
-  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);
-}
-
-.btn-primary:active {
-  background-color: var(--primary-hover);
-  transform: scale(0.98);
-}
-
-.btn-secondary {
-  background-color: var(--bg-surface);
-  color: var(--text-secondary);
-  border-color: var(--border-subtle);
-}
-
-.btn-secondary:active {
-  background-color: var(--bg-muted);
-}
-
-.btn-icon {
-  padding: 8px;
-  width: var(--touch-min);
-  height: var(--touch-min);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-icon:active {
-  background: var(--bg-muted);
-}
-
-.btn-sm {
-  min-height: 36px;
-  min-width: 36px;
-  padding: 4px 10px;
-  font-size: 12px;
-}
-
-/* =============================================================================
-   3. BARRA DE NAVEGAÇÃO DA SEMANA
-   ============================================================================= */
-.week-navigator {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 8px 12px;
-  margin-top: 12px;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: var(--shadow-subtle);
-}
-
-.week-nav-info {
-  text-align: center;
-  flex: 1;
-}
-
-.week-range-text {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.week-subtext {
-  font-size: 12px;
-  color: var(--primary);
-  font-weight: 600;
-}
-
-/* =============================================================================
-   3.1 SELETOR DE MODO DE VISUALIZAÇÃO TEMPORAL (DIA / SEMANA / MÊS)
-   ============================================================================= */
-.view-mode-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 10px;
-  margin-bottom: 12px;
-}
-
-.view-mode-selector {
-  display: inline-flex;
-  background: #E2E8F0;
-  padding: 3px;
-  border-radius: var(--radius-pill);
-  gap: 2px;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);
-}
-
-.mode-btn {
-  border: none;
-  background: transparent;
-  padding: 6px 18px;
-  border-radius: var(--radius-pill);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 36px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  user-select: none;
-}
-
-.mode-btn:hover {
-  color: var(--text-main);
-}
-
-.mode-btn.active {
-  background: var(--bg-surface);
-  color: var(--primary);
-  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.15);
-}
-
-/* =============================================================================
-   3.2 ESTILOS DA VISÃO DIÁRIA (DIA)
-   ============================================================================= */
-.day-hero-metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.metric-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  box-shadow: var(--shadow-subtle);
-}
-
-.metric-card-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.metric-card-value {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--text-main);
-  margin-top: 2px;
-}
-
-.metric-card.highlight {
-  border-left: 4px solid var(--primary);
-}
-
-.metric-card.success {
-  border-left: 4px solid var(--mint-success);
-}
-
-.metric-card.warning {
-  border-left: 4px solid var(--peach-alert);
-}
-
-/* =============================================================================
-   3.3 ESTILOS DA VISÃO MENSAL (MÊS - GRID DE CALENDÁRIO)
-   ============================================================================= */
-.month-calendar-wrapper {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 14px;
-  box-shadow: var(--shadow-subtle);
-  margin-bottom: 16px;
-}
-
-.month-weekdays-header {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  margin-bottom: 8px;
-  text-align: center;
-}
-
-.weekday-header-col {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  padding: 6px 0;
-}
-
-.weekday-header-col.weekend {
-  color: var(--coral-text);
-}
-
-.month-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-}
-
-.month-day-cell {
-  min-height: 76px;
-  background: #F8FAFC;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 6px 4px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  user-select: none;
-}
-
-.month-day-cell:hover {
-  border-color: var(--primary-border);
-  background: #FFFFFF;
-  box-shadow: var(--shadow-subtle);
-  transform: translateY(-1px);
-}
-
-.month-day-cell.other-month {
-  opacity: 0.35;
-  background: transparent;
-}
-
-.month-day-cell.is-today {
-  border: 2px solid var(--primary);
-  background: var(--primary-light);
-}
-
-.month-day-cell.is-selected {
-  outline: 2px solid var(--primary);
-  background: #EDE9FE;
-}
-
-.month-cell-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-
-.month-cell-number {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-main);
-  line-height: 1;
-}
-
-.month-day-cell.is-today .month-cell-number {
-  color: var(--primary);
-  font-weight: 800;
-}
-
-.month-cell-cal-icon {
-  width: 12px;
-  height: 12px;
-  color: var(--primary);
-}
-
-.month-cell-indicators {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-}
-
-.month-cell-badge {
-  font-size: 9px;
-  font-weight: 700;
-  padding: 1px 4px;
-  border-radius: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.2;
-}
-
-.month-cell-dots {
-  display: flex;
-  gap: 3px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-top: 2px;
-}
-
-.month-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.month-drawer {
-  margin-top: 14px;
-  border-top: 1px dashed var(--border-subtle);
-  padding-top: 14px;
-  animation: fadeIn 0.2s ease;
-}
-
-.month-drawer-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.filter-tabs {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  margin-bottom: 16px;
-  scrollbar-width: none;
-}
-
-.filter-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.filter-tab {
-  min-height: 40px;
-  padding: 6px 14px;
-  border-radius: var(--radius-pill);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-}
-
-.filter-tab.active {
-  background: var(--primary-light);
-  color: var(--primary);
-  border-color: var(--primary-border);
-}
-
-.filter-tab .tab-badge {
-  background: rgba(0, 0, 0, 0.06);
-  padding: 2px 6px;
-  border-radius: var(--radius-pill);
-  font-size: 11px;
-}
-
-/* =============================================================================
-   5. VISÃO SEMANAL: LISTA SANFONADA (ACCORDION) MOBILE-FIRST
-   ============================================================================= */
-.week-accordion {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.day-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-subtle);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-/* Destaque para o dia atual ("Hoje") */
-.day-card.is-today {
-  border: 2px solid var(--primary);
-  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.12);
-}
-
-.day-header {
-  min-height: 56px;
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  user-select: none;
-  background: var(--bg-surface);
-  transition: background-color 0.15s ease;
-}
-
-.day-header:active {
-  background-color: var(--bg-muted);
-}
-
-.day-header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.day-date-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  background: var(--bg-muted);
-  border-radius: var(--radius-md);
-  font-weight: 700;
-  line-height: 1;
-}
-
-.day-card.is-today .day-date-badge {
-  background: var(--primary);
-  color: #FFFFFF;
-}
-
-.day-number {
-  font-size: 17px;
-}
-
-.day-month {
-  font-size: 10px;
-  text-transform: uppercase;
-  margin-top: 2px;
-  opacity: 0.8;
-}
-
-.day-titles {
-  display: flex;
-  flex-direction: column;
-}
-
-.day-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-main);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.badge-today {
-  background: var(--primary-light);
-  color: var(--primary);
-  font-size: 10px;
-  font-weight: 800;
-  padding: 2px 6px;
-  border-radius: var(--radius-pill);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.day-counters-text {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.day-header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.accordion-chevron {
-  width: 24px;
-  height: 24px;
-  color: var(--text-muted);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.day-card.open .accordion-chevron {
-  transform: rotate(180deg);
-}
-
-/* Corpo do Accordion Retrátil */
-.day-body {
-  padding: 0 16px 16px 16px;
-  display: none;
-  animation: fadeIn 0.2s ease;
-}
-
-.day-card.open .day-body {
-  display: block;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* =============================================================================
-   6. SEÇÃO DE EVENTOS DO GOOGLE CALENDAR
-   ============================================================================= */
-.section-subtitle {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-  margin-top: 12px;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.calendar-events-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.calendar-event-card {
-  background: #F8FAFC;
-  border-left: 4px solid var(--primary);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.cal-time-badge {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--primary);
-  background: var(--primary-light);
-  padding: 2px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-.cal-details {
-  flex: 1;
-}
-
-.cal-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.cal-location {
-  font-size: 11px;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 2px;
-}
-
-/* =============================================================================
-   7. CARDS DE TAREFAS & BADGES SOFT PASTEL
-   ============================================================================= */
-.tasks-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.task-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  transition: all 0.2s ease;
-}
-
-.task-card:hover {
-  border-color: #CBD5E1;
-  box-shadow: var(--shadow-subtle);
-}
-
-.task-card.status-concluida {
-  opacity: 0.65;
-  background: #F8FAFC;
-}
-
-.task-card.status-concluida .task-title {
-  text-decoration: line-through;
-}
-
-.task-top-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
-  flex-wrap: wrap;
-}
-
-.project-pill {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: var(--radius-pill);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.priority-badge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-}
-
-.priority-alta {
-  background: var(--coral-light);
-  color: var(--coral-text);
-  border: 1px solid var(--coral-border);
-}
-
-.priority-media {
-  background: var(--peach-light);
-  color: var(--peach-text);
-  border: 1px solid var(--peach-border);
-}
-
-.priority-baixa {
-  background: #F1F5F9;
-  color: #475569;
-  border: 1px solid #E2E8F0;
-}
-
-.task-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-main);
-  margin-bottom: 4px;
-  line-height: 1.3;
-}
-
-.task-next-steps {
-  font-size: 12px;
-  color: var(--text-secondary);
-  background: #F8FAFC;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  margin-top: 6px;
-  margin-bottom: 8px;
-  border-left: 2px solid #CBD5E1;
-}
-
-.task-next-steps strong {
-  color: var(--text-main);
-  font-size: 11px;
-}
-
-/* =============================================================================
-   8. BADGE OBRIGATÓRIO: DIAS AGUARDANDO COM COLOR CODING
-   ============================================================================= */
-.badge-waiting-container {
-  margin-top: 6px;
-  margin-bottom: 8px;
-}
-
-.badge-waiting {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  line-height: 1.2;
-}
-
-/* 1 a 2 dias: Azul Suave (#EFF6FF / texto #1E40AF) */
-.badge-waiting-low {
-  background-color: #EFF6FF !important;
-  color: #1E40AF !important;
-  border: 1px solid #BFDBFE !important;
-}
-
-/* 3 a 5 dias: Laranja/Pêssego Suave (#FFFBEB / texto #92400E) */
-.badge-waiting-med {
-  background-color: #FFFBEB !important;
-  color: #92400E !important;
-  border: 1px solid #FDE68A !important;
-}
-
-/* 6+ dias: Rosa/Coral Suave (#FFF1F2 / texto #9F1239) */
-.badge-waiting-high {
-  background-color: #FFF1F2 !important;
-  color: #9F1239 !important;
-  border: 1px solid #FECDD3 !important;
-  animation: pulseSubtle 2s infinite ease-in-out;
-}
-
-@keyframes pulseSubtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
-}
-
-.waiting-reason-snippet {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-style: italic;
-  display: block;
-  margin-top: 2px;
-}
-
-/* =============================================================================
-   9. AÇÕES DA TAREFA & MINI TIMER POR CARD
-   ============================================================================= */
-.task-actions-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--border-subtle);
-  flex-wrap: wrap;
-}
-
-.task-actions-left {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.task-actions-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Botão de Adiar (+1 Dia) */
-.btn-postpone {
-  background: #F8FAFC;
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 38px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-postpone:active {
-  background: var(--bg-muted);
-  transform: scale(0.96);
-}
-
-/* Botão do Cronômetro Ativo no Card */
-.btn-timer-card {
-  background: var(--primary-light);
-  border: 1px solid var(--primary-border);
-  color: var(--primary);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 38px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.btn-timer-card.running {
-  background: #FEE2E2;
-  border-color: #FCA5A5;
-  color: #DC2626;
-}
-
-.status-select {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  min-height: 38px;
-  cursor: pointer;
-}
-
-/* =============================================================================
-   10. WIDGET FLUTUANTE DO CRONÔMETRO ATIVO (MINI TIMER DE RODAPÉ)
-   ============================================================================= */
-.floating-timer-bar {
-  position: fixed;
-  bottom: 16px;
-  left: 16px;
-  right: 16px;
-  max-width: 650px;
-  margin: 0 auto;
-  background: #1E1B4B; /* Púrpura profundo elegante */
-  color: #FFFFFF;
-  border-radius: var(--radius-lg);
-  padding: 12px 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: var(--shadow-floating);
-  z-index: 1000;
-  transform: translateY(120%);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(8px);
-}
-
-.floating-timer-bar.active {
-  transform: translateY(0);
-}
-
-.timer-indicator {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.pulse-dot {
-  width: 12px;
-  height: 12px;
-  background-color: #EF4444;
-  border-radius: 50%;
-  animation: pulseRecording 1.5s infinite ease-in-out;
-  flex-shrink: 0;
-}
-
-@keyframes pulseRecording {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-  70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-}
-
-.timer-task-info {
-  display: flex;
-  flex-direction: column;
-  max-width: 220px;
-  overflow: hidden;
-}
-
-.timer-task-title {
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: #F8FAFC;
-}
-
-.timer-project-name {
-  font-size: 11px;
-  color: #A5B4FC;
-}
-
-.timer-digits {
-  font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
-  font-size: 20px;
-  font-weight: 800;
-  color: #38BDF8;
-  letter-spacing: 1px;
-}
-
-.timer-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-timer-action {
-  min-height: 38px;
-  padding: 6px 12px;
-  border-radius: var(--radius-md);
-  font-size: 12px;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.btn-timer-pause {
-  background: rgba(255, 255, 255, 0.15);
-  color: #FFFFFF;
-}
-
-.btn-timer-stop {
-  background: var(--coral-critical);
-  color: #FFFFFF;
-}
-
-/* =============================================================================
-   11. MODAIS & OVERLAYS
-   ============================================================================= */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(4px);
-  z-index: 2000;
-  display: flex;
-  align-items: flex-end; /* Bottom sheet no mobile */
-  justify-content: center;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.25s ease, visibility 0.25s ease;
-}
-
-.modal-overlay.open {
-  opacity: 1;
-  visibility: visible;
-}
-
-.modal-sheet {
-  background: var(--bg-surface);
-  width: 100%;
-  max-width: 550px;
-  border-radius: 20px 20px 0 0;
-  padding: 20px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: var(--shadow-floating);
-  transform: translateY(100%);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.modal-overlay.open .modal-sheet {
-  transform: translateY(0);
-}
-
-@media (min-width: 640px) {
-  .modal-overlay {
-    align-items: center;
-    padding: 20px;
+  /* Base & Reset */
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: #fff8f5;
+    color: #211a1e;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    padding-bottom: 90px; /* Espaço para o Dock Flutuante de Produtividade */
+    overflow-x: hidden;
+  }
+
+  /* Material Symbols Helper */
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    vertical-align: middle;
+  }
+
+  /* Custom Scrollbars suaves */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #d2c2cd;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #80747d;
+  }
+
+  /* Scrollbar oculta para o Kanban e Carrosséis horizontais */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Efeito de Fita Washi Tape */
+  .washi-tape {
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .washi-tape::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 20%;
+    right: 20%;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.45);
+    border-left: 2px dashed rgba(0, 0, 0, 0.08);
+    border-right: 2px dashed rgba(0, 0, 0, 0.08);
+    pointer-events: none;
+    transform: rotate(-0.5deg);
+  }
+
+  /* Animações e Transições */
+  .accordion-content {
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+  }
+  .accordion-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Modais com Backdrop Blur */
+  .modal-backdrop {
+    background-color: rgba(33, 26, 30, 0.4);
+    backdrop-filter: blur(4px);
+    transition: opacity 0.2s ease;
   }
   .modal-sheet {
-    border-radius: var(--radius-lg);
-    transform: scale(0.95);
+    transform: scale(0.97);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
   }
-  .modal-overlay.open .modal-sheet {
+  .modal-active .modal-sheet {
     transform: scale(1);
   }
-}
 
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.modal-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.form-group {
-  margin-bottom: 14px;
-}
-
-.form-label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 6px;
-}
-
-.form-control {
-  width: 100%;
-  min-height: var(--touch-min);
-  padding: 10px 14px;
-  font-size: 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
-  color: var(--text-main);
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.form-control:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
-}
-
-textarea.form-control {
-  min-height: 72px;
-  resize: vertical;
-}
-
-.color-chips-picker {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.color-chip {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease;
-}
-
-.color-chip.selected {
-  transform: scale(1.15);
-  border-color: var(--text-main);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-}
-
-/* =============================================================================
-   12. TOAST DE FEEDBACK
-   ============================================================================= */
-.toast-container {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  left: 16px;
-  max-width: 400px;
-  margin: 0 auto;
-  z-index: 3000;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  pointer-events: none;
-}
-
-.toast {
-  background: #0F172A;
-  color: #FFFFFF;
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: var(--shadow-floating);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  animation: slideDownToast 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  pointer-events: auto;
-}
-
-.toast.toast-success {
-  background: #065F46;
-}
-
-.toast.toast-error {
-  background: #9F1239;
-}
-
-@keyframes slideDownToast {
-  from { opacity: 0; transform: translateY(-16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Estado vazio */
-.empty-state {
-  padding: 24px 16px;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 13px;
-  border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: #F8FAFC;
-  margin-top: 8px;
-}
-
-/* =============================================================================
-   13. PROJETOS: QUADRO KANBAN ESTILO TRELLO & MODO ARQUIVAR
-   ============================================================================= */
-.projects-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.projects-subnav {
-  display: inline-flex;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-pill);
-  padding: 3px;
-  gap: 2px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-}
-
-.projects-subnav-btn {
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  border-radius: var(--radius-pill);
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-}
-
-.projects-subnav-btn:hover {
-  color: var(--text-main);
-}
-
-.projects-subnav-btn.active {
-  background: var(--primary);
-  color: #FFFFFF;
-  box-shadow: 0 2px 4px rgba(124, 58, 237, 0.25);
-}
-
-.projects-subnav-count {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.projects-subnav-btn:not(.active) .projects-subnav-count {
-  background: var(--bg-muted);
-  color: var(--text-secondary);
-}
-
-/* Container do Quadro Kanban (Rolagem horizontal fluida) */
-.projects-kanban-board {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  overflow-x: auto;
-  padding-bottom: 20px;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-}
-
-.projects-kanban-board::-webkit-scrollbar {
-  height: 8px;
-}
-
-.projects-kanban-board::-webkit-scrollbar-track {
-  background: #F1F5F9;
-  border-radius: 4px;
-}
-
-.projects-kanban-board::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  border-radius: 4px;
-}
-
-.projects-kanban-board::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
-}
-
-/* Coluna de Projeto Estilo Trello */
-.kanban-project-column {
-  width: 320px;
-  min-width: 290px;
-  max-width: 88vw;
-  flex-shrink: 0;
-  background: #F8FAFC;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  scroll-snap-align: start;
-  overflow: hidden;
-  transition: box-shadow 0.2s ease;
-}
-
-.kanban-project-column:hover {
-  box-shadow: var(--shadow-subtle);
-}
-
-.kanban-column-stripe {
-  height: 6px;
-  width: 100%;
-}
-
-.kanban-column-header {
-  padding: 12px 14px 8px 14px;
-  background: #FFFFFF;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.kanban-column-header-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.kanban-column-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text-main);
-  line-height: 1.25;
-  margin-bottom: 4px;
-  word-break: break-word;
-}
-
-.kanban-column-obs {
-  font-size: 11px;
-  color: var(--text-muted);
-  line-height: 1.3;
-  margin-bottom: 6px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.kanban-column-meta-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-.kanban-column-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.btn-kanban-header-action {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  transition: all 0.15s ease;
-}
-
-.btn-kanban-header-action:hover {
-  background: var(--bg-muted);
-  color: var(--text-main);
-}
-
-/* Lista de Cartões da Coluna */
-.kanban-cards-container {
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
-  max-height: 520px;
-}
-
-.kanban-empty-tasks {
-  padding: 20px 10px;
-  text-align: center;
-  font-size: 12px;
-  color: var(--text-muted);
-  border: 1px dashed #CBD5E1;
-  border-radius: var(--radius-md);
-  background: #FFFFFF;
-}
-
-/* Cartão de Tarefa Estilo Trello */
-.kanban-task-card {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-  position: relative;
-}
-
-.kanban-task-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-subtle);
-  border-color: #CBD5E1;
-}
-
-.kanban-card-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  margin-bottom: 6px;
-  flex-wrap: wrap;
-}
-
-.kanban-card-date-badge {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: #F1F5F9;
-  color: #475569;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.kanban-card-date-badge.is-today {
-  background: #FEF3C7;
-  color: #92400E;
-  border: 1px solid #FDE68A;
-}
-
-.kanban-card-title {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text-main);
-  line-height: 1.3;
-  margin-bottom: 4px;
-}
-
-.kanban-card-next-steps {
-  font-size: 11px;
-  color: var(--text-secondary);
-  background: #F8FAFC;
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin-top: 4px;
-  margin-bottom: 6px;
-  border-left: 2px solid #CBD5E1;
-  line-height: 1.3;
-}
-
-.kanban-card-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px dashed #F1F5F9;
-}
-
-.kanban-card-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.btn-card-quick-check {
-  background: #ECFDF5;
-  color: #065F46;
-  border: 1px solid #A7F3D0;
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.15s ease;
-}
-
-.btn-card-quick-check:hover {
-  background: #D1FAE5;
-}
-
-.btn-card-quick-timer {
-  background: #EDE9FE;
-  color: #5B21B6;
-  border: 1px solid #DDD6FE;
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.15s ease;
-}
-
-.btn-card-quick-timer:hover {
-  background: #DDD6FE;
-}
-
-/* Botão Estilo Trello: + Adicionar Tarefa */
-.kanban-add-card-btn {
-  background: transparent;
-  border: none;
-  width: 100%;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-align: left;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border-top: 1px solid #E2E8F0;
-  background: #FFFFFF;
-  transition: all 0.15s ease;
-}
-
-.kanban-add-card-btn:hover {
-  background: #F1F5F9;
-  color: var(--primary);
-}
-
-/* Seção de Concluídas da Coluna */
-.kanban-completed-toggle {
-  background: transparent;
-  border: none;
-  font-size: 11px;
-  color: var(--text-muted);
-  padding: 6px 12px;
-  cursor: pointer;
-  text-align: center;
-  width: 100%;
-}
-
-.kanban-completed-toggle:hover {
-  text-decoration: underline;
-  color: var(--text-secondary);
-}
-
-/* Galeria de Projetos Arquivados */
-.archived-projects-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 14px;
-}
-
-.archived-project-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 14px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 12px;
-  opacity: 0.9;
-}
-
-.archived-project-card:hover {
-  border-color: #CBD5E1;
-  box-shadow: var(--shadow-subtle);
-}
-
-.btn-unarchive {
-  background: #FEF3C7;
-  color: #92400E;
-  border: 1px solid #FDE68A;
-  border-radius: var(--radius-sm);
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.15s ease;
-}
-
-.btn-unarchive:hover {
-  background: #FDE68A;
-}
-
-.btn-archive-danger {
-  background: #FFF1F2;
-  color: #9F1239;
-  border: 1px solid #FECDD3;
-}
-
-.btn-archive-danger:hover {
-  background: #FFE4E6;
-}
+  /* Dock Flutuante de Produtividade */
+  .dock-pulse {
+    animation: dockPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @keyframes dockPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+  }
+
+  /* Selo da Roseta Botânica d'água */
+  .rosette-watermark {
+    background-image: radial-gradient(circle at center, rgba(114, 82, 109, 0.04) 0%, transparent 70%);
+  }
+
+  /* Toast Notification */
+  #toastNotification {
+    transform: translateY(120%);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  #toastNotification.show {
+    transform: translateY(0);
+  }
 </style>
