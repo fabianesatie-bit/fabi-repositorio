@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Coordenação - Evento Regional</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #F8FAFC; color: #334155; }
+        .bento-card { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 1rem; box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03); padding: 1.5rem; }
+        .badge-ok { background-color: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+        .badge-pendente { background-color: #FFF1F2; color: #9F1239; border: 1px solid #FECDD3; }
+        .btn-primary { background-color: #7C3AED; color: white; transition: background-color 0.3s; }
+        .btn-primary:hover { background-color: #6D28D9; }
+        .btn-disabled { background-color: #CBD5E1; cursor: not-allowed; }
+    </style>
+</head>
+<body class="p-6 md:p-10">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header & Controles -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div class="border-l-4 border-purple-600 pl-4">
+                <h1 class="text-3xl font-bold text-gray-800">Visão Geral - Piloto Regional</h1>
+                <p class="text-gray-500 mt-1">Gestão de Inscrições de Gerentes.</p>
+            </div>
+            
+            <div class="flex gap-3 w-full md:w-auto">
+                <select id="filtroRegional" class="border border-gray-300 rounded-lg px-4 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 w-full md:w-48" onchange="renderizarTabela()">
+                    <option value="TODAS">Todas as Regionais</option>
+                    <option value="BRASILIA">Brasília</option>
+                    <option value="UBERLANDIA">Uberlândia</option>
+                    <option value="JUIZ DE FORA">Juiz de Fora</option>
+                    <option value="BELO HORIZONTE">Belo Horizonte</option>
+                    <option value="CAMPO GRANDE">Campo Grande</option>
+                    <option value="CUIABA">Cuiabá</option>
+                    <option value="ESCRITORIO">Escritório (Em Treinamento)</option> <!-- ADICIONADO -->
+                </select>
+                
+                <button id="btnDisparar" onclick="dispararEmails()" class="btn-primary px-6 py-2 rounded-lg font-semibold text-sm shadow-sm hidden">
+                    Disparar E-mails (Pendentes)
+                </button>
+            </div>
+        </div>
+
+        <!-- Loader -->
+        <div id="loader" class="text-center py-10">
+            <p class="text-purple-600 font-semibold animate-pulse">Cruzando bases de dados corporativas...</p>
+        </div>
+
+        <!-- Bento Grid -->
+        <div id="dashboardGrid" class="hidden grid grid-cols-1 md:grid-cols-4 gap-6">
+            
+            <!-- KPIs -->
+            <div class="bento-card flex flex-col justify-center items-center text-center bg-gray-50">
+                <h3 class="text-sm font-medium text-gray-500">Total de Gerentes</h3>
+                <p id="kpiTotal" class="text-4xl font-bold mt-2 text-gray-700">0</p>
+            </div>
+            <div class="bento-card flex flex-col justify-center items-center text-center bg-green-50 border-green-100">
+                <h3 class="text-sm font-medium text-green-600">Preenchidos OK</h3>
+                <p id="kpiPreenchidos" class="text-4xl font-bold mt-2 text-green-700">0</p>
+            </div>
+            <div class="bento-card flex flex-col justify-center items-center text-center bg-red-50 border-red-100">
+                <h3 class="text-sm font-medium text-red-600">Pendentes</h3>
+                <p id="kpiPendentes" class="text-4xl font-bold mt-2 text-red-700">0</p>
+            </div>
+
+            <!-- Listagem Completa -->
+            <div class="bento-card col-span-1 md:col-span-4">
+                <h3 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Status por Filial</h3>
+                <div class="overflow-x-auto max-h-96">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="sticky top-0 bg-white shadow-sm">
+                            <tr class="text-sm text-gray-500 bg-gray-50 border-b">
+                                <th class="py-3 px-4 font-semibold">Regional</th>
+                                <th class="py-3 px-4 font-semibold">Filial</th>
+                                <th class="py-3 px-4 font-semibold">Nome do Gerente</th>
+                                <th class="py-3 px-4 font-semibold text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaDados" class="text-sm divide-y divide-gray-100">
+                            <!-- Linhas injetadas via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let dadosGlobais = [];
+
+        document.addEventListener("DOMContentLoaded", function() {
+            google.script.run.withSuccessHandler(function(res) {
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('dashboardGrid').classList.remove('hidden');
+                
+                if(res.sucesso) {
+                    dadosGlobais = res.payload.gerentes;
+                    
+                    document.getElementById('kpiTotal').innerText = res.payload.totalGeral;
+                    document.getElementById('kpiPreenchidos').innerText = res.payload.preenchidos;
+                    document.getElementById('kpiPendentes').innerText = res.payload.pendentes;
+                    
+                    if(res.payload.isSuperAdmin) {
+                        document.getElementById('btnDisparar').classList.remove('hidden');
+                    }
+                    
+                    renderizarTabela();
+                } else {
+                    alert("Erro ao carregar Dashboard: " + res.erro);
+                }
+            }).carregarDadosDashboard(); 
+        });
+
+        function renderizarTabela() {
+            const filtroReg = document.getElementById('filtroRegional').value.toUpperCase();
+            const tbody = document.getElementById('tabelaDados');
+            let htmlTabela = '';
+            
+            const dadosFiltrados = dadosGlobais.filter(item => {
+                let rNormalizada = item.regional.toUpperCase().replace(/[ÁÀÂÃ]/g, 'A').replace(/[ÍÌÎ]/g, 'I');
+                if(filtroReg === 'TODAS') return true;
+                return rNormalizada.includes(filtroReg);
+            });
+
+            dadosFiltrados.forEach(function(item) {
+                const badgeClass = item.status === "Preenchido OK" ? "badge-ok" : "badge-pendente";
+                htmlTabela += `<tr class="hover:bg-gray-50 transition-colors">
+                                <td class="py-3 px-4 text-gray-600 whitespace-nowrap">${item.regional}</td>
+                                <td class="py-3 px-4 font-medium text-gray-700">${item.filial}</td>
+                                <td class="py-3 px-4 text-gray-600">${item.nome}</td>
+                                <td class="py-3 px-4 text-center">
+                                    <span class="${badgeClass} px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap">
+                                        ${item.status}
+                                    </span>
+                                </td>
+                               </tr>`;
+            });
+            
+            if(dadosFiltrados.length === 0) {
+                htmlTabela = `<tr><td colspan="4" class="py-6 text-center text-gray-400">Nenhum gerente encontrado para este filtro.</td></tr>`;
+            }
+            tbody.innerHTML = htmlTabela;
+        }
+
+        function dispararEmails() {
+            const btn = document.getElementById('btnDisparar');
+            if(!confirm("Atenção: Isso enviará um e-mail de convite para TODOS os gerentes com status 'Pendente'. Deseja continuar?")) return;
+            
+            btn.disabled = true;
+            btn.innerText = "Disparando...";
+            btn.classList.add('btn-disabled');
+
+            google.script.run.withSuccessHandler(function(res) {
+                if(res.sucesso) {
+                    alert(`Sucesso! ${res.enviados} e-mails foram disparados para os gerentes pendentes.`);
+                } else {
+                    alert("Erro ao disparar: " + res.erro);
+                }
+                btn.disabled = false;
+                btn.innerText = "Disparar E-mails (Pendentes)";
+                btn.classList.remove('btn-disabled');
+            }).dispararConvites();
+        }
+    </script>
+</body>
+</html>

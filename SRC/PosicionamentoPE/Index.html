@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Coleta de Dados - Piloto Regional</title>
+    <!-- Soft Pastel UI (Design System GP360) -->
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #F8FAFC;
+        color: #334155;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+      }
+      .card-container {
+        background: #FFFFFF;
+        max-width: 800px;
+        width: 100%;
+        padding: 40px;
+        border-radius: 14px;
+        box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05);
+        border-top: 5px solid #7C3AED;
+      }
+      h2 { color: #6B21A8; font-weight: 600; margin-top: 0; }
+      p.subtitle { color: #64748B; font-size: 0.95em; margin-bottom: 25px; }
+      
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+      .form-group { margin-bottom: 20px; }
+      label { display: block; font-weight: 500; margin-bottom: 8px; color: #475569; font-size: 0.9em; }
+      .req { color: #F43F5E; }
+      
+      input, select, textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        box-sizing: border-box;
+        background-color: #F8FAFC;
+        font-size: 14px;
+        transition: all 0.3s ease;
+      }
+      input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: #7C3AED;
+        background-color: #FFFFFF;
+        box-shadow: 0 0 0 3px #E9D5FF;
+      }
+      
+      .highlight-input { background-color: #FFFBEB; border-color: #FCD34D; }
+      
+      .btn {
+        background-color: #7C3AED;
+        color: #FFFFFF;
+        border: none;
+        padding: 14px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        width: 100%;
+        transition: background-color 0.3s;
+      }
+      .btn:hover { background-color: #6D28D9; }
+      .btn:disabled { background-color: #CBD5E1; cursor: not-allowed; }
+      
+      .alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: 500; font-size: 0.95em; }
+      .alert-info { background-color: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; }
+      .alert-error { background-color: #FFF1F2; color: #9F1239; border: 1px solid #FECDD3; }
+      .alert-success { background-color: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+      .alert-warning { background-color: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
+      
+      .hidden { display: none !important; }
+      .readonly-field { background-color: #F1F5F9; color: #94A3B8; cursor: not-allowed; }
+      
+      @media (max-width: 600px) {
+        .grid-2 { grid-template-columns: 1fr; }
+        .card-container { padding: 20px; }
+      }
+    </style>
+  </head>
+  <body>
+    
+    <div class="card-container">
+      <h2>Coleta de Dados - Evento Regional</h2>
+      <p class="subtitle">Preencha os dados abaixo com atenção. Informações marcadas com <span class="req">*</span> são obrigatórias.</p>
+      
+      <div id="statusAlert"></div>
+      
+      <form id="formColeta" novalidate class="hidden">
+        
+        <h3 style="color:#2563EB; font-size:1.1em; border-bottom:1px solid #E2E8F0; padding-bottom:10px;">1. Validação de Identidade</h3>
+        
+        <div class="grid-2">
+          <div class="form-group">
+            <label>E-mail Logado (Permissão)</label>
+            <input type="text" id="dispEmail" class="readonly-field" readonly>
+          </div>
+          <div class="form-group">
+            <label>ID Crachá (Matrícula) <span class="req">*</span></label>
+            <input type="number" id="inpId" required placeholder="Ex: 12345" style="border-left: 4px solid #F59E0B;">
+          </div>
+        </div>
+
+        <div id="areaDadosCompletos" class="hidden">
+          <h3 style="color:#2563EB; font-size:1.1em; border-bottom:1px solid #E2E8F0; padding-bottom:10px; margin-top:30px;">2. Informações Logísticas e Pessoais</h3>
+          
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Nome Completo (Automático)</label>
+              <input type="text" id="inpNome" class="readonly-field" readonly>
+            </div>
+            <div class="form-group">
+              <label>Sexo <span class="req">*</span></label>
+              <select id="inpSexo" class="highlight-input" required>
+                <option value="">Selecione...</option>
+                <option value="Feminino">Feminino</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label>DDD <span class="req">*</span></label>
+              <input type="number" id="inpDdd" class="highlight-input" required placeholder="Ex: 11" min="11" max="99">
+            </div>
+            <div class="form-group">
+              <label>Celular <span class="req">*</span></label>
+              <input type="number" id="inpCelular" class="highlight-input" required placeholder="Ex: 987654321">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Restrição Alimentar (Alergias) <span class="req">*</span></label>
+            <input type="text" id="inpRestricao" class="highlight-input" required placeholder="Nenhuma, intolerância à lactose, etc...">
+          </div>
+          
+          <div class="grid-2">
+            <div class="form-group">
+              <label>E-mail Corporativo (Magalu) <span class="req">*</span></label>
+              <input type="email" id="inpEmailMagalu" class="highlight-input" required placeholder="nome@magazineluiza.com.br">
+            </div>
+            <div class="form-group">
+              <label>E-mail Pessoal Secundário <span class="req">*</span></label>
+              <input type="email" id="inpEmailPessoal" class="highlight-input" required placeholder="nome@gmail.com">
+            </div>
+          </div>
+
+          <!-- CAMPO GATILHO: TIPO TRANSPORTE -->
+          <div class="form-group">
+            <label>Tipo de Transporte Principal <span class="req">*</span></label>
+            <select id="inpTransporte" class="highlight-input" required>
+              <option value="">Selecione...</option>
+              <option value="Aéreo">Aéreo</option>
+              <option value="Rodoviário">Rodoviário (Ônibus)</option>
+              <option value="Próprio">Carro Próprio</option>
+              <option value="Rota">Rota da Empresa</option>
+            </select>
+          </div>
+
+          <!-- DIV CONDICIONAL: AEROPORTOS (inicia oculta) -->
+          <div id="divAeroportos" class="grid-2 hidden">
+            <div class="form-group">
+              <label>Aeroporto Preferência (1ª Opção) <span class="req">*</span></label>
+              <input type="text" id="inpAero1" class="highlight-input" placeholder="Sigla ou Nome">
+            </div>
+            <div class="form-group">
+              <label>Aeroporto Preferência (2ª Opção)</label>
+              <input type="text" id="inpAero2" class="highlight-input" placeholder="Sigla ou Nome">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Sugestões/Observações sobre Rotas</label>
+            <input type="text" id="inpObsRotas" class="highlight-input" placeholder="(Alguma observação)">
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Cidade Base de Embarque <span class="req">*</span></label>
+              <input type="text" id="inpCidadeEmbarque" class="highlight-input" required placeholder="De onde você sai?">
+            </div>
+            <div class="form-group">
+              <label>Possui Mobilidade Reduzida? <span class="req">*</span></label>
+              <select id="inpMobilidade" class="highlight-input" required>
+                <option value="">Selecione...</option>
+                <option value="Não">Não</option>
+                <option value="Sim">Sim, preciso de adaptação</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Observações Gerais</label>
+            <textarea id="inpObsGerais" class="highlight-input" rows="3" placeholder="Qualquer outra informação relevante para a logística..."></textarea>
+          </div>
+          
+          <!-- CAMPOS OCULTOS -->
+          <input type="hidden" id="inpRegionalAuto">
+          <input type="hidden" id="inpFilialAuto">
+          <input type="hidden" id="inpRgAuto">
+          <input type="hidden" id="inpOrgaoAuto">
+          <input type="hidden" id="inpCpfAuto">
+          <input type="hidden" id="inpNascimentoAuto">
+          <input type="hidden" id="inpCargoAuto">
+
+          <button type="button" class="btn" id="btnEnviar" onclick="validarEEnviar()">Confirmar Inscrição</button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      // 1. Controle de Exibição Dinâmica (Aeroportos)
+      document.getElementById('inpTransporte').addEventListener('change', function() {
+        const divAero = document.getElementById('divAeroportos');
+        const inpAero1 = document.getElementById('inpAero1');
+        const inpAero2 = document.getElementById('inpAero2');
+        
+        if (this.value === 'Aéreo') {
+          divAero.classList.remove('hidden');
+          inpAero1.required = true; // Torna o 1º aeroporto obrigatório
+        } else {
+          divAero.classList.add('hidden');
+          inpAero1.required = false; // Remove obrigatoriedade
+          inpAero1.value = ""; // Limpa os dados se já estivessem preenchidos
+          inpAero2.value = "";
+        }
+      });
+
+      // 2. Inicialização e Trava de Acesso
+      document.addEventListener("DOMContentLoaded", function() {
+        mostrarAlerta("info", "Autenticando sessão do Google...");
+        google.script.run.withSuccessHandler(function(res) {
+            document.getElementById('dispEmail').value = res.emailLogado || 'Sessão Ativa';
+            document.getElementById('statusAlert').innerHTML = '';
+            document.getElementById('formColeta').classList.remove('hidden');
+        }).withFailureHandler(function(err) {
+            mostrarAlerta("error", "Erro ao carregar permissões.");
+        }).obterInfoSessao(); 
+      });
+
+      // 3. Busca de Dados Automática
+      document.getElementById('inpId').addEventListener('change', function() {
+        var cracha = this.value.trim();
+        if(!cracha) return;
+        
+        mostrarAlerta("info", "Buscando dados na base corporativa...");
+        document.getElementById('areaDadosCompletos').classList.add('hidden');
+        
+        google.script.run.withSuccessHandler(function(res) {
+          if(res.sucesso) {
+             document.getElementById('statusAlert').innerHTML = '';
+             document.getElementById('inpNome').value = res.dados.nome;
+             
+             document.getElementById('inpRegionalAuto').value = res.dados.regional;
+             document.getElementById('inpFilialAuto').value = res.dados.filial;
+             document.getElementById('inpRgAuto').value = res.dados.rg || "";
+             document.getElementById('inpOrgaoAuto').value = res.dados.orgao || "";
+             document.getElementById('inpCpfAuto').value = res.dados.cpf || "";
+             document.getElementById('inpNascimentoAuto').value = res.dados.nascimento || "";
+             document.getElementById('inpCargoAuto').value = res.dados.cargo || "";
+
+             document.getElementById('areaDadosCompletos').classList.remove('hidden');
+          } else {
+             mostrarAlerta("warning", res.msg); 
+          }
+        }).validarEBuscarID(cracha); 
+      });
+
+      // 4. Validação Manual e Envio
+      function validarEEnviar() {
+        const form = document.getElementById('formColeta');
+        
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          mostrarAlerta("error", "Por favor, preencha todos os campos sinalizados com (*).");
+          return;
+        }
+        
+        const payload = {
+           id: document.getElementById('inpId').value,
+           nomeCompleto: document.getElementById('inpNome').value,
+           regional: document.getElementById('inpRegionalAuto').value,
+           filial: document.getElementById('inpFilialAuto').value,
+           rg: document.getElementById('inpRgAuto').value,
+           orgao: document.getElementById('inpOrgaoAuto').value,
+           cpf: document.getElementById('inpCpfAuto').value,
+           nascimento: document.getElementById('inpNascimentoAuto').value,
+           cargo: document.getElementById('inpCargoAuto').value,
+           sexo: document.getElementById('inpSexo').value,
+           ddd: document.getElementById('inpDdd').value,
+           celular: document.getElementById('inpCelular').value,
+           restricaoAlimentar: document.getElementById('inpRestricao').value,
+           emailMagalu: document.getElementById('inpEmailMagalu').value,
+           emailPessoal: document.getElementById('inpEmailPessoal').value,
+           tipoTransporte: document.getElementById('inpTransporte').value,
+           observacaoRotas: document.getElementById('inpObsRotas').value,
+           aeroporto1: document.getElementById('inpAero1').value,
+           aeroporto2: document.getElementById('inpAero2').value,
+           cidadeEmbarque: document.getElementById('inpCidadeEmbarque').value,
+           mobilidadeReduzida: document.getElementById('inpMobilidade').value,
+           observacoesGerais: document.getElementById('inpObsGerais').value
+        };
+        
+        document.getElementById('btnEnviar').disabled = true;
+        document.getElementById('btnEnviar').innerText = "Salvando...";
+        mostrarAlerta("info", "Gravando dados, aguarde...");
+        
+        google.script.run.withSuccessHandler(function(res) {
+           if(res.sucesso) {
+             document.getElementById('formColeta').classList.add('hidden');
+             mostrarAlerta("success", "✅ " + res.msg + "<br><br>Você pode fechar esta página.");
+           } else {
+             mostrarAlerta("warning", "⚠️ " + res.msg);
+             document.getElementById('btnEnviar').disabled = false;
+             document.getElementById('btnEnviar').innerText = "Confirmar Inscrição";
+           }
+        }).withFailureHandler(function(err) {
+             mostrarAlerta("error", "Erro de conexão. Tente novamente.");
+             document.getElementById('btnEnviar').disabled = false;
+             document.getElementById('btnEnviar').innerText = "Confirmar Inscrição";
+        }).salvarDados(payload);
+      }
+      
+      function mostrarAlerta(tipo, mensagem) {
+         const alertDiv = document.getElementById('statusAlert');
+         alertDiv.className = "alert alert-" + tipo;
+         alertDiv.innerHTML = mensagem;
+         alertDiv.style.display = "block";
+      }
+    </script>
+  </body>
+</html>

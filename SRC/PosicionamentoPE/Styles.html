@@ -1,0 +1,98 @@
+<style>
+  :root {
+    --primary: #7C3AED;      /* Roxo Suave */
+    --primary-bg: #F3E8FF;
+    --secondary: #2563EB;    /* Azul Suave */
+    --success: #10B981;      /* Menta */
+    --warning: #F59E0B;      /* Pêssego */
+    --danger: #F43F5E;       /* Rosa/Coral */
+    --bg-page: #F8FAFC;
+    --bg-card: #FFFFFF;
+    --border: #E2E8F0;
+    --text-main: #1E293B;
+    --text-muted: #64748B;
+  }
+
+  * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+  
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+  }
+
+  .header-accent {
+    height: 6px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+    width: 100%;
+    position: fixed;
+    top: 0; left: 0; z-index: 10;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 50px auto;
+    padding: 20px;
+  }
+
+  .form-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 30px;
+    box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03);
+  }
+
+  .header-title h2 { margin: 0 0 10px 0; color: var(--primary); }
+  .header-title p { margin: 0; color: var(--text-muted); font-size: 14px; }
+  
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--secondary);
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 5px;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;}
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;}
+  
+  .input-group { display: flex; flex-direction: column; margin-bottom: 15px; }
+  .input-group label { font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #475569; }
+  
+  input, select, textarea {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s ease;
+  }
+  
+  input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-bg); }
+  
+  .readonly-input { background-color: #F1F5F9; color: var(--text-muted); border-style: dashed; }
+  
+  /* Destaque para campos do gerente (Design System Solicitado) */
+  .highlight-input { border-left: 4px solid var(--warning); background-color: #FAFAFA; }
+  .text-orange { color: var(--warning); font-weight: bold; }
+
+  button {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  button:hover { background-color: #6B21A8; }
+  
+  /* Mobile Responsivo */
+  @media (max-width: 600px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+</style>

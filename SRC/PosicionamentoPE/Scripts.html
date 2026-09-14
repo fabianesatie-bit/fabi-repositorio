@@ -1,0 +1,116 @@
+<script>
+  /**
+   * ARQUIVO: Scripts.html
+   * OBJETIVO: Gerenciar eventos de clique e submissão integrando com o backend.
+   */
+
+  function buscarColaborador() {
+    var id = document.getElementById("inpId").value;
+    if (!id) {
+      Swal.fire('Atenção', 'Digite o ID do Crachá primeiro.', 'warning');
+      return;
+    }
+
+    document.getElementById("loader").style.display = "block";
+    document.getElementById("btnBuscar").disabled = true;
+
+    // Chama o backend via google.script.run
+    google.script.run
+      .withSuccessHandler(function(response) {
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("btnBuscar").disabled = false;
+
+        if (response.status === "SUCESSO") {
+          // Preenche os readonly
+          document.getElementById("inpNome").value = response.nome;
+          document.getElementById("inpCargo").value = response.cargo;
+          document.getElementById("inpRegional").value = response.regional;
+          document.getElementById("inpFilial").value = response.filial;
+          document.getElementById("inpNascimento").value = response.dataNascimento;
+          document.getElementById("inpCpf").value = response.cpf;
+          document.getElementById("inpRg").value = response.rg;
+          document.getElementById("inpOrgao").value = response.orgaoExpedidor;
+
+          // Libera a área de preenchimento
+          document.getElementById("areaAutomaticos").style.display = "block";
+          
+          Swal.fire({
+            toast: true, position: 'top-end', icon: 'success',
+            title: 'Dados carregados!', showConfirmButton: false, timer: 3000
+          });
+        } 
+        else if (response.status === "DUPLICADO") {
+          Swal.fire('Você já preencheu!', response.mensagem, 'info');
+        } 
+        else {
+          Swal.fire('Erro', response.mensagem, 'error');
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById("loader").style.display = "none";
+        document.getElementById("btnBuscar").disabled = false;
+        Swal.fire('Erro Interno', error.message, 'error');
+      })
+      .buscarDadosColaborador(id);
+  }
+
+  // Interceptar o submit do formulário
+  document.getElementById("formEvento").addEventListener("submit", function(e) {
+    e.preventDefault();
+    
+    // Coleta o objeto inteiro para enviar ao backend
+    var dadosForm = {
+      id: document.getElementById("inpId").value,
+      nome: document.getElementById("inpNome").value,
+      cargo: document.getElementById("inpCargo").value,
+      regional: document.getElementById("inpRegional").value,
+      filial: document.getElementById("inpFilial").value,
+      nascimento: document.getElementById("inpNascimento").value,
+      cpf: document.getElementById("inpCpf").value,
+      rg: document.getElementById("inpRg").value,
+      orgao: document.getElementById("inpOrgao").value,
+      sexo: document.getElementById("inpSexo").value,
+      ddd: document.getElementById("inpDdd").value,
+      celular: document.getElementById("inpCelular").value,
+      emailMagalu: document.getElementById("inpEmailMagalu").value,
+      emailPessoal: document.getElementById("inpEmailPessoal").value,
+      restricao: document.getElementById("inpRestricao").value,
+      mobilidade: document.getElementById("inpMobilidade").value,
+      transporte: document.getElementById("inpTransporte").value,
+      cidadeEmbarque: document.getElementById("inpCidadeEmb").value,
+      aero1: document.getElementById("inpAero1").value,
+      aero2: document.getElementById("inpAero2").value,
+      obsRotas: document.getElementById("inpObsRotas").value,
+      obsGerais: document.getElementById("inpObsGerais").value
+    };
+
+    var btn = document.getElementById("btnSalvar");
+    btn.innerText = "Salvando...";
+    btn.disabled = true;
+
+    google.script.run
+      .withSuccessHandler(function(response) {
+        btn.innerText = "Salvar Informações";
+        btn.disabled = false;
+        
+        if (response.status === "SUCESSO") {
+          Swal.fire({
+            title: 'Sucesso!',
+            text: 'Suas informações foram salvas. A equipe entrará em contato.',
+            icon: 'success',
+            confirmButtonColor: '#7C3AED'
+          }).then(() => {
+            // Recarrega a página para limpar
+            google.script.run.withSuccessHandler(function(url) {
+              window.open(url, '_top');
+            }).getScriptUrl(); // requer uma função helper getScriptUrl, ou apenas recarrega o form
+            document.getElementById("formEvento").reset();
+            document.getElementById("areaAutomaticos").style.display = "none";
+          });
+        } else {
+          Swal.fire('Atenção', response.mensagem, 'warning');
+        }
+      })
+      .salvarFormulario(dadosForm);
+  });
+</script>
