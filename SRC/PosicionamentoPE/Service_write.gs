@@ -11,6 +11,16 @@ function normalizarFilialId(val) {
   return String(num);
 }
 
+// Converte datas do formato HTML (YYYY-MM-DD) para Brasileiro (DD/MM/YYYY)
+function formatarDataInclusao(dataStr) {
+  if (!dataStr) return "";
+  if (String(dataStr).indexOf('-') === 4) {
+    var p = dataStr.split('-');
+    return p[2] + '/' + p[1] + '/' + p[0];
+  }
+  return dataStr;
+}
+
 function salvarDados(payload) {
   try {
     // BLINDAGEM DE INTEGRIDADE (BACK-END): Se o transporte não for aéreo, zera aeroportos à força.
@@ -28,10 +38,9 @@ function salvarDados(payload) {
     
     var dados = sheet.getDataRange().getValues();
     
-    // Verificação Anti-Duplicidade (ID fica na Coluna L - índice 11)
     for (var i = 1; i < dados.length; i++) {
       var matriculaExistente = String(dados[i][11]).trim(); 
-      if (matriculaExistente === String(payload.id).trim()) {
+      if (matriculaExistente !== "" && matriculaExistente === String(payload.id).trim()) {
         return { 
           sucesso: false, 
           msg: "Você já preencheu este formulário anteriormente. Para alterações de rotas e outros detalhes, envie um e-mail diretamente para: " + EMAIL_AGENCIA 
@@ -39,46 +48,86 @@ function salvarDados(payload) {
       }
     }
     
-    // Preparação para Gravação - A e B vazias para a Agência
     var novaLinha = new Array(28).fill("");
     
-    novaLinha[0] = ""; // Coluna A - VAZIA (Agência)
-    novaLinha[1] = ""; // Coluna B - VAZIA (Agência)
-    novaLinha[2] = payload.regional; // Coluna C - REGIONAL
-    novaLinha[3] = normalizarFilialId(payload.filial); // Coluna D - FILIAL
-    novaLinha[4] = payload.nomeCompleto; // Coluna E - NOME
-    novaLinha[5] = payload.sexo; // Coluna F - SEXO
-    novaLinha[6] = payload.rg; // Coluna G - RG
-    novaLinha[7] = payload.orgao; // Coluna H - ÓRGÃO
-    novaLinha[8] = payload.cpf; // Coluna I - CPF
+    novaLinha[0] = ""; // Coluna A - VAZIA
+    novaLinha[1] = ""; // Coluna B - VAZIA
+    novaLinha[2] = payload.regional; 
+    novaLinha[3] = normalizarFilialId(payload.filial); 
+    novaLinha[4] = payload.nomeCompleto; 
+    novaLinha[5] = payload.sexo; 
+    novaLinha[6] = payload.rg; 
+    novaLinha[7] = payload.orgao; 
+    novaLinha[8] = payload.cpf; 
     
-    // Formatação segura de Data
     var dataNasc = payload.nascimento;
     if (dataNasc && typeof dataNasc.getTime === 'function') {
       novaLinha[9] = Utilities.formatDate(dataNasc, Session.getScriptTimeZone(), "dd/MM/yyyy");
     } else {
-      novaLinha[9] = dataNasc; // Coluna J - NASCIMENTO
+      novaLinha[9] = dataNasc;
     }
     
-    novaLinha[10] = payload.cargo; // Coluna K - CARGO
-    novaLinha[11] = payload.id; // Coluna L - ID CRACHÁ
-    novaLinha[12] = payload.ddd; // Coluna M - DDD
-    novaLinha[13] = payload.celular; // Coluna N - CELULAR
-    novaLinha[14] = ""; // Coluna O - HOSPEDAGEM (Oculto no momento)
-    novaLinha[15] = ""; // Coluna P - DATA HOSPEDAGEM (Oculto)
-    novaLinha[16] = ""; // Coluna Q - DUPLA DE QUARTO (Oculto)
-    novaLinha[17] = payload.restricaoAlimentar; // Coluna R - RESTRIÇÃO
-    novaLinha[18] = payload.emailMagalu; // Coluna S - EMAIL CORP
-    novaLinha[19] = payload.emailPessoal; // Coluna T - EMAIL PESSOAL
-    novaLinha[20] = payload.tipoTransporte; // Coluna U - TRANSPORTE
-    novaLinha[21] = payload.observacaoRotas; // Coluna V - OBS ROTAS
-    novaLinha[22] = payload.aeroporto1; // Coluna W - AERO 1
-    novaLinha[23] = payload.aeroporto2; // Coluna X - AERO 2
-    novaLinha[24] = payload.cidadeEmbarque; // Coluna Y - CIDADE EMBARQUE
-    novaLinha[25] = payload.mobilidadeReduzida; // Coluna Z - MOBILIDADE
-    novaLinha[26] = payload.observacoesGerais; // Coluna AA - OBS GERAIS
+    novaLinha[10] = payload.cargo; 
+    novaLinha[11] = payload.id; // O ID garante que o painel conte apenas a gerente!
+    novaLinha[12] = payload.ddd; 
+    novaLinha[13] = payload.celular; 
+    novaLinha[14] = ""; 
+    novaLinha[15] = ""; 
+    novaLinha[16] = ""; 
+    novaLinha[17] = payload.restricaoAlimentar; 
+    novaLinha[18] = payload.emailMagalu; 
+    novaLinha[19] = payload.emailPessoal; 
+    novaLinha[20] = payload.tipoTransporte; 
+    novaLinha[21] = payload.observacaoRotas; 
+    novaLinha[22] = payload.aeroporto1; 
+    novaLinha[23] = payload.aeroporto2; 
+    novaLinha[24] = payload.cidadeEmbarque; 
+    novaLinha[25] = payload.mobilidadeReduzida; 
+    novaLinha[26] = payload.observacoesGerais; 
     
     sheet.appendRow(novaLinha);
+    
+    if (payload.isLactante === 'Sim') {
+      // Cria a linha 2 (Acompanhante)
+      var linhaAcomp = new Array(28).fill("");
+      linhaAcomp[2] = payload.regional;
+      linhaAcomp[3] = normalizarFilialId(payload.filial);
+      linhaAcomp[4] = payload.nomeAcompanhante;
+      linhaAcomp[5] = "Não Informado";
+      linhaAcomp[6] = payload.rgAcompanhante;
+      linhaAcomp[8] = payload.cpfAcompanhante;
+      linhaAcomp[9] = formatarDataInclusao(payload.nascAcompanhante);
+      linhaAcomp[10] = "ACOMPANHANTE LACTANTE"; 
+      linhaAcomp[11] = ""; // ID VAZIO (Ignora no Dashboard)
+      linhaAcomp[12] = payload.ddd; // Usa o contato da gerente
+      linhaAcomp[13] = payload.celular;
+      linhaAcomp[18] = payload.emailMagalu; // Amarração de dados
+      linhaAcomp[20] = payload.tipoTransporte;
+      linhaAcomp[22] = payload.aeroporto1;
+      linhaAcomp[23] = payload.aeroporto2;
+      linhaAcomp[24] = payload.cidadeEmbarque;
+      
+      sheet.appendRow(linhaAcomp);
+
+      // Cria a linha 3 (Bebê)
+      var linhaBebe = new Array(28).fill("");
+      linhaBebe[2] = payload.regional;
+      linhaBebe[3] = normalizarFilialId(payload.filial);
+      linhaBebe[4] = payload.nomeBebe;
+      linhaBebe[5] = "Não Informado";
+      linhaBebe[9] = formatarDataInclusao(payload.nascBebe);
+      linhaBebe[10] = "BEBÊ LACTANTE";
+      linhaBebe[11] = ""; // ID VAZIO (Ignora no Dashboard)
+      linhaBebe[12] = payload.ddd;
+      linhaBebe[13] = payload.celular;
+      linhaBebe[18] = payload.emailMagalu;
+      linhaBebe[20] = payload.tipoTransporte;
+      linhaBebe[22] = payload.aeroporto1;
+      linhaBebe[23] = payload.aeroporto2;
+      linhaBebe[24] = payload.cidadeEmbarque;
+      
+      sheet.appendRow(linhaBebe);
+    }
     
     return { sucesso: true, msg: "Dados validados e salvos com sucesso!" };
     

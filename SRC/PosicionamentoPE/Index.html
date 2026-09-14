@@ -4,7 +4,6 @@
     <base target="_top">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Coleta de Dados - Piloto Regional</title>
-    <!-- Soft Pastel UI (Design System GP360) -->
     <style>
       body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -28,6 +27,7 @@
       p.subtitle { color: #64748B; font-size: 0.95em; margin-bottom: 25px; }
       
       .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+      .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
       .form-group { margin-bottom: 20px; }
       label { display: block; font-weight: 500; margin-bottom: 8px; color: #475569; font-size: 0.9em; }
       .req { color: #F43F5E; }
@@ -76,13 +76,12 @@
       .readonly-field { background-color: #F1F5F9; color: #94A3B8; cursor: not-allowed; }
       
       @media (max-width: 600px) {
-        .grid-2 { grid-template-columns: 1fr; }
+        .grid-2, .grid-3 { grid-template-columns: 1fr; }
         .card-container { padding: 20px; }
       }
     </style>
   </head>
   <body>
-    
     <div class="card-container">
       <h2>Coleta de Dados - Evento Regional</h2>
       <p class="subtitle">Preencha os dados abaixo com atenção. Informações marcadas com <span class="req">*</span> são obrigatórias.</p>
@@ -123,6 +122,55 @@
             </div>
           </div>
 
+          <div class="form-group">
+            <label>Você é mãe lactante e precisará levar acompanhante e o bebê? <span class="req">*</span></label>
+            <select id="inpLactante" class="highlight-input" required>
+              <option value="">Selecione...</option>
+              <option value="Não">Não</option>
+              <option value="Sim">Sim, preciso cadastrá-los</option>
+            </select>
+          </div>
+
+          <!-- Div Condicional: Acompanhante e Bebê (Oculta por padrão) -->
+          <div id="divLactante" class="hidden" style="background-color: #FDF4FF; padding: 20px; border-radius: 8px; border-left: 4px solid #D946EF; margin-bottom: 20px;">
+            <h4 style="color: #A21CAF; margin-top: 0; margin-bottom: 15px;">Dados Adicionais (Acompanhante e Bebê)</h4>
+            
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Nome Completo (Acompanhante) <span class="req">*</span></label>
+                <input type="text" id="inpNomeAcompanhante" class="highlight-input" placeholder="Nome do adulto">
+              </div>
+              <div class="form-group">
+                <label>Nascimento (Acompanhante) <span class="req">*</span></label>
+                <input type="date" id="inpNascAcompanhante" class="highlight-input">
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>RG (Acompanhante) <span class="req">*</span></label>
+                <input type="text" id="inpRgAcompanhante" class="highlight-input" placeholder="Apenas números">
+              </div>
+              <div class="form-group">
+                <label>CPF (Acompanhante) <span class="req">*</span></label>
+                <input type="text" id="inpCpfAcompanhante" class="highlight-input" placeholder="Apenas números">
+              </div>
+            </div>
+
+            <hr style="border-top: 1px dashed #E879F9; margin: 15px 0;">
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Nome Completo (Bebê) <span class="req">*</span></label>
+                <input type="text" id="inpNomeBebe" class="highlight-input" placeholder="Nome da criança">
+              </div>
+              <div class="form-group">
+                <label>Data de Nascimento (Bebê) <span class="req">*</span></label>
+                <input type="date" id="inpNascBebe" class="highlight-input">
+              </div>
+            </div>
+          </div>
+          
           <div class="grid-2">
             <div class="form-group">
               <label>DDD <span class="req">*</span></label>
@@ -150,7 +198,6 @@
             </div>
           </div>
 
-          <!-- CAMPO GATILHO: TIPO TRANSPORTE -->
           <div class="form-group">
             <label>Tipo de Transporte Principal <span class="req">*</span></label>
             <select id="inpTransporte" class="highlight-input" required>
@@ -162,7 +209,6 @@
             </select>
           </div>
 
-          <!-- DIV CONDICIONAL: AEROPORTOS (inicia oculta) -->
           <div id="divAeroportos" class="grid-2 hidden">
             <div class="form-group">
               <label>Aeroporto Preferência (1ª Opção) <span class="req">*</span></label>
@@ -199,7 +245,6 @@
             <textarea id="inpObsGerais" class="highlight-input" rows="3" placeholder="Qualquer outra informação relevante para a logística..."></textarea>
           </div>
           
-          <!-- CAMPOS OCULTOS -->
           <input type="hidden" id="inpRegionalAuto">
           <input type="hidden" id="inpFilialAuto">
           <input type="hidden" id="inpRgAuto">
@@ -214,7 +259,25 @@
     </div>
 
     <script>
-      // 1. Controle de Exibição Dinâmica (Aeroportos)
+      // Controle de Exibição Dinâmica (Lactantes)
+      document.getElementById('inpLactante').addEventListener('change', function() {
+        const divLact = document.getElementById('divLactante');
+        const reqFields = ['inpNomeAcompanhante', 'inpNascAcompanhante', 'inpRgAcompanhante', 'inpCpfAcompanhante', 'inpNomeBebe', 'inpNascBebe'];
+        
+        if (this.value === 'Sim') {
+          divLact.classList.remove('hidden');
+          reqFields.forEach(id => document.getElementById(id).required = true);
+        } else {
+          divLact.classList.add('hidden');
+          reqFields.forEach(id => {
+            const el = document.getElementById(id);
+            el.required = false;
+            el.value = ""; // Limpa os dados em caso de desistência
+          });
+        }
+      });
+
+      // Controle de Exibição Dinâmica (Aeroportos)
       document.getElementById('inpTransporte').addEventListener('change', function() {
         const divAero = document.getElementById('divAeroportos');
         const inpAero1 = document.getElementById('inpAero1');
@@ -222,16 +285,16 @@
         
         if (this.value === 'Aéreo') {
           divAero.classList.remove('hidden');
-          inpAero1.required = true; // Torna o 1º aeroporto obrigatório
+          inpAero1.required = true;
         } else {
           divAero.classList.add('hidden');
-          inpAero1.required = false; // Remove obrigatoriedade
-          inpAero1.value = ""; // Limpa os dados se já estivessem preenchidos
+          inpAero1.required = false;
+          inpAero1.value = ""; 
           inpAero2.value = "";
         }
       });
 
-      // 2. Inicialização e Trava de Acesso
+      // Inicialização e Trava de Acesso
       document.addEventListener("DOMContentLoaded", function() {
         mostrarAlerta("info", "Autenticando sessão do Google...");
         google.script.run.withSuccessHandler(function(res) {
@@ -243,7 +306,6 @@
         }).obterInfoSessao(); 
       });
 
-      // 3. Busca de Dados Automática
       document.getElementById('inpId').addEventListener('change', function() {
         var cracha = this.value.trim();
         if(!cracha) return;
@@ -271,7 +333,6 @@
         }).validarEBuscarID(cracha); 
       });
 
-      // 4. Validação Manual e Envio
       function validarEEnviar() {
         const form = document.getElementById('formColeta');
         
@@ -292,6 +353,16 @@
            nascimento: document.getElementById('inpNascimentoAuto').value,
            cargo: document.getElementById('inpCargoAuto').value,
            sexo: document.getElementById('inpSexo').value,
+           
+           // Novos campos Lactante
+           isLactante: document.getElementById('inpLactante').value,
+           nomeAcompanhante: document.getElementById('inpNomeAcompanhante').value,
+           nascAcompanhante: document.getElementById('inpNascAcompanhante').value,
+           rgAcompanhante: document.getElementById('inpRgAcompanhante').value,
+           cpfAcompanhante: document.getElementById('inpCpfAcompanhante').value,
+           nomeBebe: document.getElementById('inpNomeBebe').value,
+           nascBebe: document.getElementById('inpNascBebe').value,
+
            ddd: document.getElementById('inpDdd').value,
            celular: document.getElementById('inpCelular').value,
            restricaoAlimentar: document.getElementById('inpRestricao').value,
