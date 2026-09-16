@@ -71,6 +71,38 @@ function normalizeName(str) {
 }
 
 /**
+ * NORMALIZADOR DE HORAS (Anti-Timestamp de Objeto Date do Google Sheets)
+ * Converte Date, strings "HH:MM", decimais e inteiros em valor arredondado de no máximo 2 dígitos.
+ */
+function normalizarTempoHoras(val) {
+    if (val === null || val === undefined || val === '') return 0;
+    let horas = 0;
+
+    // Se o Google Sheets entregou um objeto Date (horário como 04:00:00 ou fórmula)
+    if (val instanceof Date) {
+        horas = val.getHours() + (val.getMinutes() / 60);
+    } else if (typeof val === 'string') {
+        let str = val.trim().replace(',', '.');
+        let matchHora = str.match(/^(\d{1,2}):(\d{2})/);
+        if (matchHora) {
+            horas = parseInt(matchHora[1], 10) + (parseInt(matchHora[2], 10) / 60);
+        } else {
+            let n = parseFloat(str.replace(/[^0-9.-]/g, ''));
+            horas = isNaN(n) ? 0 : n;
+        }
+    } else if (typeof val === 'number') {
+        horas = val;
+    }
+
+    // Se for valor negativo ou timestamp espúrio em milissegundos (> 1000 horas em uma única ação)
+    if (horas < 0 || horas > 1000) return 0;
+
+    // Arredonda para número inteiro (máximo 2 dígitos por ação individual, ex: até 99h)
+    let arredondado = Math.round(horas);
+    return arredondado > 99 ? 99 : arredondado;
+}
+
+/**
  * BLINDAGEM ANTI-FUSO HORÁRIO (Timezone Shift)
  */
 function dataParaStringISO(dataVal, fallbackIsoData = null) {
@@ -121,6 +153,25 @@ function extrairMesAno(dataValor) {
     return "0000-00";
 }
 
+function obterMapaAbas(ss) {
+    let mapa = {};
+    if (!ss) return mapa;
+    let sheets = ss.getSheets();
+    for (let i = 0; i < sheets.length; i++) {
+        mapa[normalizeName(sheets[i].getName())] = sheets[i];
+    }
+    return mapa;
+}
+
+function buscarAbaNoMapa(mapaAbas, names) {
+    if (!mapaAbas) return null;
+    let targetNames = names.map(normalizeName);
+    for (let i = 0; i < targetNames.length; i++) {
+        if (mapaAbas[targetNames[i]]) return mapaAbas[targetNames[i]];
+    }
+    return null;
+}
+
 function getSheetSafe(ss, names) {
     let sheets = ss.getSheets();
     let targetNames = names.map(normalizeName);
@@ -166,13 +217,29 @@ function gerarPlanilhaStatus(dadosJson) {
 
 function obterCargaMestreDashboard() {
     let avisos = [];
+    console.time("CargaMestre_Total");
     try {
-        const emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
-        const isAdmin = (emailLogado === 'fabiane.satie@magazineluiza.com.br');
-        const canViewRoi = (emailLogado === 'fabiane.satie@magazineluiza.com.br' || emailLogado === 'tarcisio.maniglia@magazineluiza.com.br');
+        let emailLogado = "";
+        try {
+            emailLogado = Session.getActiveUser().getEmail().toLowerCase().trim();
+        } catch(eMailErr) {
+            console.warn("Não foi possível capturar o e-mail ativo:", eMailErr.message);
+        }
+        
+        console.log("Iniciando obterCargaMestreDashboard para o usuário:", emailLogado || "(E-mail não capturado)");
+
+        // LISTA DE ADMINISTRADORES AUTORIZADOS
+        const administradores = [
+            'fabiane.satie@magazineluiza.com.br',
+            'lorena.castro@magazineluiza.com.br'
+        ];
+        const isAdmin = administradores.includes(emailLogado);
+        
+        // PERMISSÃO DE ROI
+        const canViewRoi = isAdmin || (emailLogado === 'tarcisio.maniglia@magazineluiza.com.br');
         
         let regionaisPermitidas = new Set();
-        let role = 'COORDENADOR';
+        let role = isAdmin ? 'ADMIN' : 'COORDENADOR';
         let acesso = { email: emailLogado, isAdmin: isAdmin, canViewRoi: canViewRoi, role: role };
         
         let masterData = {}; 
@@ -188,8 +255,12 @@ function obterCargaMestreDashboard() {
         let hojeIsoMes = Utilities.formatDate(hojeIsoObj, "America/Sao_Paulo", "yyyy-MM");
 
         let ssMaster;
-        try { ssMaster = SpreadsheetApp.openById(DB_MASTER); } 
-        catch(e) { return JSON.stringify({ sucesso: false, erro: `Falha ao acessar GP360. Permissão negada.` }); }
+        try {
+            console.time("Leitura_DB_MASTER");
+            ssMaster = SpreadsheetApp.openById(DB_MASTER);
+        } catch(e) {
+            return JSON.stringify({ sucesso: false, erro: `Falha ao acessar GP360. Permissão negada no Drive para o e-mail: ${emailLogado || 'desconhecido'}` });
+        }
         
         let injetarAcaoVirtual = (idFilial, dataRaw, motivo, obs, peso, origem = 'VIRTUAL', autorEspecifico = null) => {
             if(!idFilial || !masterData[idFilial]) return;
@@ -225,7 +296,7 @@ function obterCargaMestreDashboard() {
                 if (em === emailLogado) {
                     if (cargo.includes('GERENTEGP') || cargo.includes('GERENTE GP')) acesso.role = 'GERENTEGP';
                     else if (cargo.includes('DIRETOR') || cargo.includes('DIRETORIA')) acesso.role = 'DIRETORRH';
-                    else if (isAdmin || nivelAcesso.includes('MASTER')) acesso.role = 'ADMIN';
+                    else if (isAdmin || nivelAcesso.includes('MASTER') || nivelAcesso.includes('ADMIN')) acesso.role = 'ADMIN';
                     else acesso.role = 'COORDENADOR';
                     
                     if (regStr) regStr.split(',').forEach(r => regionaisPermitidas.add(r.trim().toUpperCase()));
@@ -247,8 +318,11 @@ function obterCargaMestreDashboard() {
             }
         }
         
-        if (!isAdmin && regionaisPermitidas.size === 0 && acesso.role !== 'DIRETORRH' && acesso.role !== 'GERENTEGP') {
-            return JSON.stringify({ sucesso: false, erro: `Conta sem regionais autorizadas.` });
+        // Se for admin, garante acesso irrestrito
+        if (isAdmin) {
+            regionaisPermitidas.add('TODAS');
+        } else if (regionaisPermitidas.size === 0 && acesso.role !== 'DIRETORRH' && acesso.role !== 'GERENTEGP') {
+            return JSON.stringify({ sucesso: false, erro: `Conta (${emailLogado || 'desconhecida'}) sem regionais autorizadas. Solicite liberação na aba DADOS_USUARIOS.` });
         }
 
         const shLojas = ssMaster.getSheetByName('DADOS_LOJAS');
@@ -286,7 +360,6 @@ function obterCargaMestreDashboard() {
         if (shLanc) {
             const dadosLanc = shLanc.getDataRange().getValues();
 
-            /* STREAMING_CHUNK:Processando lancamentos e visitas... */
             for(let i = 1; i < dadosLanc.length; i++) {
                 let dataAcao = dadosLanc[i][12]; 
                 if (!dataAcao) continue;
@@ -340,6 +413,10 @@ function obterCargaMestreDashboard() {
 
                 if (passaFiltroAcesso) {
                     if(mesStr !== "0000-00") filtrosGlobais.meses.add(mesStr);
+                    
+                    // NORMALIZAÇÃO DE TEMPO (HORAS) COM PROTEÇÃO ANTI-TIMESTAMP
+                    let tempoHoras = isAvulso ? 0 : normalizarTempoHoras(dadosLanc[i][20]);
+
                     let acaoObj = {
                         idFilial: idL, destinoBruto: destinoFilialBruto, mes: mesStr, dataStr: extrairDataBR(dataAcao), dataIso: isoAcao, autor: nomeAutorCorreto,
                         motivo: motivoVal, obs: String(dadosLanc[i][10] || '').trim(),
@@ -349,7 +426,7 @@ function obterCargaMestreDashboard() {
                         // Zera o peso se for apenas deslocamento avulso
                         moedas: isAvulso ? 0 : (parseFloat(String(dadosLanc[i][9] || '').replace(/\./g, '').replace(',','.')) || 0), 
                         pessoas: isAvulso ? 0 : (Number(dadosLanc[i][19]) || 0), 
-                        tempo: isAvulso ? 0 : (Number(dadosLanc[i][20]) || 0),
+                        tempo: tempoHoras,
                         
                         isVisita: isVisita && !isAvulso, isVisitaUnica: isVisitaUnica, isSocial: isSocial && !isAvulso, roteiro: tipoRoteiro, origemVirtual: 'FISICA',
                         isAvulsoFinanceiro: isAvulso
@@ -363,15 +440,17 @@ function obterCargaMestreDashboard() {
                 }
             }
         }
+        console.timeEnd("Leitura_DB_MASTER");
 
         let roiEstatico = {};
 
         try {
+            console.time("Leitura_DB_DASH");
             const ssDash = SpreadsheetApp.openById(DB_DASH);
+            const mapaDash = obterMapaAbas(ssDash);
             
-            /* STREAMING_CHUNK:Consolidando ROI estatico... */
-            // LEITURA ULTRALEVE DE ROI: Apenas lê o que o robô já mastigou para injetar no Business Impact Mural
-            let shROI = getSheetSafe(ssDash, ['HISTORICO_ROI_VISITAS']);
+            // LEITURA ULTRALEVE DE ROI
+            let shROI = buscarAbaNoMapa(mapaDash, ['HISTORICO_ROI_VISITAS']);
             if(shROI) {
                 let dR = shROI.getDataRange().getValues();
                 for(let i=1; i<dR.length; i++) {
@@ -382,33 +461,62 @@ function obterCargaMestreDashboard() {
                 }
             }
 
-            let mapDash = (shNames, parser) => { let sh = getSheetSafe(ssDash, shNames); if(sh) { let d = sh.getDataRange().getValues(); for(let i=1; i<d.length; i++) parser(d[i]); } };
+            let mapDash = (shNames, parser) => {
+                let sh = buscarAbaNoMapa(mapaDash, shNames);
+                if(sh) {
+                    let d = sh.getDataRange().getValues();
+                    for(let i=1; i<d.length; i++) parser(d[i]);
+                }
+            };
             
-            mapDash(['HISTORICO_VENDA_ANO'], r => { let idL = normalizarFilialId(r[0]); if(idL && masterData[idL]) { let atingAcumulado = parseFloat(String(r[7]).replace('%','').replace(',','.')); if(!isNaN(atingAcumulado)) masterData[idL].indicadores.venda = (atingAcumulado < 10) ? atingAcumulado : (atingAcumulado/100); } });
-            mapDash(['HISTORICO_TXDESL', 'HISTORICO_INDICADORES_GP'], r => { let idL = normalizarFilialId(r[0]); if(idL && masterData[idL]) { let tx = parseFloat(String(r[9]).replace('%','').replace(',','.')); if(!isNaN(tx)) masterData[idL].indicadores.txSaida = (tx < 10) ? tx : (tx/100); } });
-            mapDash(['HISTORICO_QUADRO'], d => { let idL = normalizarFilialId(d[0]); let cargo = String(d[7] || '').trim(); let cargoUpper = cargo.toUpperCase(); if(idL && masterData[idL] && !cargoUpper.includes('INTERMITENTE') && !cargoUpper.includes('MONTAGEM') && !cargoUpper.includes('MONTADOR')) { let v = parseFloat(d[12]); if(!isNaN(v) && v > 0) { masterData[idL].pendencias.vagasInfo.push({ cargo: cargo, qtd: v }); } } });
+            mapDash(['HISTORICO_QUADRO'], d => {
+                let idL = normalizarFilialId(d[0]);
+                let cargo = String(d[7] || '').trim();
+                let cargoUpper = cargo.toUpperCase();
+                if(idL && masterData[idL] && !cargoUpper.includes('INTERMITENTE') && !cargoUpper.includes('MONTAGEM') && !cargoUpper.includes('MONTADOR')) {
+                    let v = parseFloat(d[12]);
+                    if(!isNaN(v) && v > 0) { masterData[idL].pendencias.vagasInfo.push({ cargo: cargo, qtd: v }); }
+                }
+            });
             
             let mapBHAux = {};
             mapDash(['HISTORICO_BH_ACUMULADO'], d => {
-                let idL = normalizarFilialId(d[1]); let dtIso = dataParaStringISO(d[0], hojeIsoDia);
+                let idL = normalizarFilialId(d[1]);
+                let dtIso = dataParaStringISO(d[0], hojeIsoDia);
                 if(idL && masterData[idL] && dtIso <= hojeIsoDia) { 
                     let hrs = parseFloat(String(d[9]).replace(',','.'));
                     if(!isNaN(hrs)) {
                         if(!mapBHAux[idL]) mapBHAux[idL] = { maxDate: dtIso, total: 0, criticos: [] };
                         if(dtIso > mapBHAux[idL].maxDate) { mapBHAux[idL].maxDate = dtIso; mapBHAux[idL].total = 0; mapBHAux[idL].criticos = []; }
-                        if(dtIso === mapBHAux[idL].maxDate) { mapBHAux[idL].total += hrs; if(hrs >= 5) mapBHAux[idL].criticos.push({ nome: String(d[6]).trim(), id: String(d[5]).trim(), horas: hrs }); }
+                        if(dtIso === mapBHAux[idL].maxDate) {
+                            mapBHAux[idL].total += hrs;
+                            if(hrs >= 5) mapBHAux[idL].criticos.push({ nome: String(d[6]).trim(), id: String(d[5]).trim(), horas: hrs });
+                        }
                     }
                 }
             });
-            Object.keys(mapBHAux).forEach(idL => { masterData[idL].indicadores.bancoHoras = mapBHAux[idL].total; masterData[idL].pendencias.bancoHoras = mapBHAux[idL].criticos; });
-
-            let mapNPS = {}; 
-            mapDash(['HISTORICO_NPS'], d => { let idL = normalizarFilialId(d[1]); let dtIso = dataParaStringISO(d[0], hojeIsoDia); if(idL && masterData[idL] && dtIso <= hojeIsoDia) { let npsVal = parseFloat(String(d[6]).replace(',','.')); if(!isNaN(npsVal)) { if(!mapNPS[idL] || dtIso > mapNPS[idL].date) { mapNPS[idL] = { date: dtIso, val: npsVal }; } } } });
-            Object.keys(mapNPS).forEach(idL => { masterData[idL].indicadores.nps = mapNPS[idL].val; });
+            Object.keys(mapBHAux).forEach(idL => {
+                masterData[idL].indicadores.bancoHoras = mapBHAux[idL].total;
+                masterData[idL].pendencias.bancoHoras = mapBHAux[idL].criticos;
+            });
 
             let registrosNPSV = {}; 
-            mapDash(['HISTORICO_NPS_VENDEDORES'], d => { let nome = String(d[1]).trim(); let idL = normalizarFilialId(d[2]); let dtIso = dataParaStringISO(d[0], hojeIsoDia); let npsV = parseFloat(String(d[7]).replace(',','.')); if(idL && nome && masterData[idL] && !isNaN(npsV) && dtIso <= hojeIsoDia) { if(!registrosNPSV[idL]) registrosNPSV[idL] = { maxDate: dtIso, records: [] }; if(dtIso > registrosNPSV[idL].maxDate) { registrosNPSV[idL].maxDate = dtIso; registrosNPSV[idL].records = []; } if(dtIso === registrosNPSV[idL].maxDate) { registrosNPSV[idL].records.push({ nome: nome, nota: npsV }); } } });
-            Object.keys(registrosNPSV).forEach(idL => { registrosNPSV[idL].records.forEach(r => { if(r.nota < 70) masterData[idL].pendencias.npsVendedores.push({ nome: r.nome, nota: r.nota }); }); });
+            mapDash(['HISTORICO_NPS_VENDEDORES'], d => {
+                let nome = String(d[1]).trim();
+                let idL = normalizarFilialId(d[2]);
+                let dtIso = dataParaStringISO(d[0], hojeIsoDia);
+                let npsV = parseFloat(String(d[7]).replace(',','.'));
+                if(idL && nome && masterData[idL] && !isNaN(npsV) && dtIso <= hojeIsoDia) {
+                    if(!registrosNPSV[idL]) registrosNPSV[idL] = { maxDate: dtIso, records: [] };
+                    if(dtIso > registrosNPSV[idL].maxDate) { registrosNPSV[idL].maxDate = dtIso; registrosNPSV[idL].records = []; }
+                    if(dtIso === registrosNPSV[idL].maxDate) { registrosNPSV[idL].records.push({ nome: nome, nota: npsV }); }
+                }
+            });
+            Object.keys(registrosNPSV).forEach(idL => {
+                registrosNPSV[idL].records.forEach(r => {
+                    if(r.nota < 70) masterData[idL].pendencias.npsVendedores.push({ nome: r.nome, nota: r.nota });
+                });
+            });
 
             // INJEÇÃO DOS DADOS DO ROI NO HISTÓRICO
             Object.keys(masterData).forEach(idL => {
@@ -426,13 +534,27 @@ function obterCargaMestreDashboard() {
                     }
                 });
             });
+            console.timeEnd("Leitura_DB_DASH");
 
-        } catch(e) { avisos.push("Base Dash inacessível: " + e.message); }
+        } catch(e) {
+            avisos.push("Base Dash inacessível: " + e.message);
+            console.warn("Aviso DB_DASH:", e.message);
+        }
 
-        /* STREAMING_CHUNK:Consolidando APURACOES e feeds... */
         try {
+            console.time("Leitura_DB_APUR");
             const ssApur = SpreadsheetApp.openById(DB_APUR);
-            let mapApur = (shNames, parser) => { let sh = getSheetSafe(ssApur, shNames); if(sh) { let d = sh.getDataRange().getValues(); for(let i=1; i<d.length; i++) { try { parser(d[i]); } catch(e){} } } };
+            const mapaApur = obterMapaAbas(ssApur);
+            
+            let mapApur = (shNames, parser) => {
+                let sh = buscarAbaNoMapa(mapaApur, shNames);
+                if(sh) {
+                    let d = sh.getDataRange().getValues();
+                    for(let i=1; i<d.length; i++) {
+                        try { parser(d[i]); } catch(e){}
+                    }
+                }
+            };
 
             mapApur(['HISTORICO_APURACAO'], r => {
                 let idL = normalizarFilialId(r[3]); 
@@ -484,18 +606,25 @@ function obterCargaMestreDashboard() {
                     masterData[idL].pendencias.feedbacksSLA.push({ mes: m, data: extrairDataBR(r[2]), gerente: String(r[9]||'').trim(), status: String(r[5]||''), dataRetorno: extrairDataBR(r[6]), evidenciaLink: String(r[8]||'') });
                 }
             });
-        } catch(e) { }
+            console.timeEnd("Leitura_DB_APUR");
+        } catch(e) {
+            avisos.push("Base Apur inacessível: " + e.message);
+            console.warn("Aviso DB_APUR:", e.message);
+        }
 
         try {
+            console.time("Leitura_DB_AGENTE");
             const ssAgente = SpreadsheetApp.openById(DB_AGENTE);
+            const mapaAgente = obterMapaAbas(ssAgente);
+            
             let dSet = new Set();
             try {
-                let shDesl = getSheetSafe(ssAgente, ['atualizacao_desligamento', 'desligamentos']);
+                let shDesl = buscarAbaNoMapa(mapaAgente, ['atualizacao_desligamento', 'desligamentos']);
                 if (shDesl) { let d = shDesl.getDataRange().getValues(); for(let i=1; i<d.length; i++) if(d[i][0]) dSet.add(String(d[i][0]).trim()); }
             } catch(e){}
 
             try {
-                let shAgenteHis = getSheetSafe(ssAgente, ['REGISTRO_FEEDBACK']);
+                let shAgenteHis = buscarAbaNoMapa(mapaAgente, ['REGISTRO_FEEDBACK']);
                 if (shAgenteHis) {
                     let d = shAgenteHis.getDataRange().getValues();
                     for (let i = 1; i < d.length; i++) {
@@ -525,12 +654,19 @@ function obterCargaMestreDashboard() {
                     }
                 }
             } catch(e) {}
-        } catch (e) { }
+            console.timeEnd("Leitura_DB_AGENTE");
+        } catch (e) {
+            avisos.push("Base Agente inacessível: " + e.message);
+            console.warn("Aviso DB_AGENTE:", e.message);
+        }
 
         try {
+            console.time("Leitura_DB_SOC");
             const ssSoc = SpreadsheetApp.openById(DB_SOC);
+            const mapaSoc = obterMapaAbas(ssSoc);
+            
             const procSoc = (n, tipo) => {
-                let sh = getSheetSafe(ssSoc, n);
+                let sh = buscarAbaNoMapa(mapaSoc, n);
                 if(sh) {
                     let d = sh.getDataRange().getValues();
                     for(let i=1; i<d.length; i++) {
@@ -547,7 +683,11 @@ function obterCargaMestreDashboard() {
             procSoc(['base_registro'], 'EQUIPE SS');
             procSoc(['base_historico'], 'EQUIPE SS');
             procSoc(['base_internos'], 'GP');
-        } catch(e) {}
+            console.timeEnd("Leitura_DB_SOC");
+        } catch(e) {
+            avisos.push("Base Social inacessível: " + e.message);
+            console.warn("Aviso DB_SOC:", e.message);
+        }
 
         let pMeses = Array.from(filtrosGlobais.meses).filter(Boolean).filter(m => { return m >= '2022-01' && m <= hojeIsoMes; }).sort().reverse();
         let pDir = Array.from(filtrosGlobais.diretorias).filter(Boolean).sort();
@@ -555,11 +695,17 @@ function obterCargaMestreDashboard() {
         let pFil = Array.from(filtrosGlobais.filiais).filter(Boolean).sort((a,b) => parseInt(a) - parseInt(b));
         let pCoord = Array.from(filtrosGlobais.coordenadores).filter(Boolean).sort();
 
+        console.timeEnd("CargaMestre_Total");
+        console.log("Carga mestre gerada com sucesso! Lojas:", Object.keys(masterData).length, "Ações mural:", acoesMuralGlobais.length);
+
         return JSON.stringify({ 
             sucesso: true, acesso: acesso, 
             filtrosGlobais: { meses: pMeses, coordenadores: pCoord, diretorias: pDir, regionais: pReg, filiais: pFil }, 
             coordFotos: coordFotos, dadosUnificados: masterData, acoesGlobais: acoesMuralGlobais, avisosSistema: avisos 
         });
 
-    } catch (err) { return JSON.stringify({ sucesso: false, erro: "Erro Crítico: " + err.message }); }
+    } catch (err) {
+        console.error("Erro Crítico em obterCargaMestreDashboard:", err);
+        return JSON.stringify({ sucesso: false, erro: "Erro Crítico: " + err.message });
+    }
 }
