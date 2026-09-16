@@ -1,6 +1,7 @@
 //=============================================================================
 // BACKEND OTIMIZADO: HUB DE GOVERNANÇA GP 360 (Visão Geral GP Sidebar)
 //=============================================================================
+
 const DB_MASTER = '1Nk0F5_tzevdbfmOTnpmhePdum6N22Ctf7g1N_ojuSjA'; // GP360
 const DB_DASH   = '1FKcQtoGI5Hz8vYefD450EcnO8rW36sTSPIsAQkEIVlc'; // Indicadores Novos
 const DB_APUR   = '1tn2FiNVWVMFM-3DC14_L0LaHGmd9O-teU2cvsIoajkk'; // Apurações
@@ -14,6 +15,10 @@ function doGet() {
         .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
 }
 
+/**
+ * RASTREADOR: Registra cliques do usuário na planilha de auditoria corporativa.
+ * Protegido com LockService contra concorrência e execuções manuais fantasmas.
+ */
 function registrarLogSidebar(acao, detalhe) {
     if (!acao || !detalhe) {
         console.warn("Execução manual ignorada: Parâmetros 'acao' e 'detalhe' ausentes.");
@@ -43,6 +48,10 @@ function registrarLogSidebar(acao, detalhe) {
     }
 }
 
+// ============================================================================
+// HELPERS DE PARSE E FORMATAÇÃO DE DADOS
+// ============================================================================
+
 function normalizarFilialId(id) {
     if (!id) return null;
     let num = parseInt(String(id).replace(/\D/g, ''), 10);
@@ -61,6 +70,9 @@ function normalizeName(str) {
     return String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 }
 
+/**
+ * BLINDAGEM ANTI-FUSO HORÁRIO (Timezone Shift)
+ */
 function dataParaStringISO(dataVal, fallbackIsoData = null) {
     if (!dataVal || String(dataVal).trim() === "") return fallbackIsoData;
     try {
@@ -119,6 +131,10 @@ function getSheetSafe(ss, names) {
     return null;
 }
 
+// ============================================================================
+// SERVIÇOS DE EXPORTAÇÃO
+// ============================================================================
+
 function gerarPlanilhaStatus(dadosJson) {
     try {
         let dados = JSON.parse(dadosJson);
@@ -144,6 +160,10 @@ function gerarPlanilhaStatus(dadosJson) {
     }
 }
 
+// ============================================================================
+// MOTOR PRINCIPAL DE DADOS (Consolidação de Lojas, Ações e KPIs)
+// ============================================================================
+
 function obterCargaMestreDashboard() {
     let avisos = [];
     try {
@@ -157,7 +177,7 @@ function obterCargaMestreDashboard() {
         
         let masterData = {}; 
         let acoesMuralGlobais = [];
-        let visitTracker = new Set(); // Engine de Deduplicação
+        let visitTracker = new Set(); // Engine Universal de Deduplicação
         
         let filtrosGlobais = { meses: new Set(), diretorias: new Set(), regionais: new Set(), filiais: new Set(), coordenadores: new Set() };
         let coordFotos = {};
@@ -180,7 +200,7 @@ function obterCargaMestreDashboard() {
                 autor: autor, motivo: motivo, obs: obs,
                 gastos: 0, km: 0, moedas: peso, pessoas: 1, tempo: 1,
                 isVisita: false, isVisitaUnica: false, isSocial: motivo.toUpperCase().includes('SOCIAL'),
-                origemVirtual: origem 
+                origemVirtual: origem, isAvulsoFinanceiro: false
             });
         };
 
@@ -266,6 +286,7 @@ function obterCargaMestreDashboard() {
         if (shLanc) {
             const dadosLanc = shLanc.getDataRange().getValues();
 
+            /* STREAMING_CHUNK:Processando lancamentos e visitas... */
             for(let i = 1; i < dadosLanc.length; i++) {
                 let dataAcao = dadosLanc[i][12]; 
                 if (!dataAcao) continue;
@@ -273,17 +294,16 @@ function obterCargaMestreDashboard() {
                 let destinoFilialBruto = String(dadosLanc[i][3] || '').trim(); 
                 let idL = normalizarFilialId(destinoFilialBruto); 
 
-                let motivoVal = String(dadosLanc[i][4] || '').trim(); // Motivo_Meta
+                let motivoVal = String(dadosLanc[i][4] || '').trim(); 
                 let tipoRoteiro = String(dadosLanc[i][17] || ''); 
                 
-                let isVisita = tipoRoteiro.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().includes("visitainloco") || tipoRoteiro.toUpperCase().includes("PRESENCIAL");
+                let isVisita = tipoRoteiro.toUpperCase().includes("PRESENCIAL") || tipoRoteiro.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().includes("visitainloco");
                 let roteiroLimpo = tipoRoteiro.toUpperCase();
                 let motivoUpper = motivoVal.toUpperCase();
 
+                // BARREIRA FINANCEIRA AVULSO
+                let isAvulso = destinoFilialBruto.toUpperCase().startsWith('AVULSO') || motivoUpper.includes('AVULSO') || motivoUpper.includes('SEDE/EVENTO');
                 let isSocial = motivoUpper.includes('SOCIAL') || motivoUpper.includes('ASSIST') || roteiroLimpo.includes('SOCIAL') || roteiroLimpo.includes('ASSIST');
-                
-                // NOVO: Validação de Lançamento Estritamente Financeiro (Avulso)
-                let isAvulso = destinoFilialBruto.toUpperCase().startsWith('AVULSO') || motivoUpper.includes('AVULSO');
 
                 let mesStr = extrairMesAno(dataAcao);
                 let isoAcao = dataParaStringISO(dataAcao);
@@ -344,12 +364,26 @@ function obterCargaMestreDashboard() {
             }
         }
 
+        let roiEstatico = {};
+
         try {
             const ssDash = SpreadsheetApp.openById(DB_DASH);
             
+            /* STREAMING_CHUNK:Consolidando ROI estatico... */
+            // LEITURA ULTRALEVE DE ROI: Apenas lê o que o robô já mastigou para injetar no Business Impact Mural
+            let shROI = getSheetSafe(ssDash, ['HISTORICO_ROI_VISITAS']);
+            if(shROI) {
+                let dR = shROI.getDataRange().getValues();
+                for(let i=1; i<dR.length; i++) {
+                    let dtIso = dataParaStringISO(dR[i][0]); let idL = normalizarFilialId(dR[i][1]);
+                    if(dtIso && idL) { 
+                        roiEstatico[idL + "_" + dtIso] = { vPre: dR[i][5], vPos: dR[i][6], nPre: dR[i][8], nPos: dR[i][9] }; 
+                    }
+                }
+            }
+
             let mapDash = (shNames, parser) => { let sh = getSheetSafe(ssDash, shNames); if(sh) { let d = sh.getDataRange().getValues(); for(let i=1; i<d.length; i++) parser(d[i]); } };
             
-            // Sempre carregar tabelas de Resumo Filial (Painel Geral)
             mapDash(['HISTORICO_VENDA_ANO'], r => { let idL = normalizarFilialId(r[0]); if(idL && masterData[idL]) { let atingAcumulado = parseFloat(String(r[7]).replace('%','').replace(',','.')); if(!isNaN(atingAcumulado)) masterData[idL].indicadores.venda = (atingAcumulado < 10) ? atingAcumulado : (atingAcumulado/100); } });
             mapDash(['HISTORICO_TXDESL', 'HISTORICO_INDICADORES_GP'], r => { let idL = normalizarFilialId(r[0]); if(idL && masterData[idL]) { let tx = parseFloat(String(r[9]).replace('%','').replace(',','.')); if(!isNaN(tx)) masterData[idL].indicadores.txSaida = (tx < 10) ? tx : (tx/100); } });
             mapDash(['HISTORICO_QUADRO'], d => { let idL = normalizarFilialId(d[0]); let cargo = String(d[7] || '').trim(); let cargoUpper = cargo.toUpperCase(); if(idL && masterData[idL] && !cargoUpper.includes('INTERMITENTE') && !cargoUpper.includes('MONTAGEM') && !cargoUpper.includes('MONTADOR')) { let v = parseFloat(d[12]); if(!isNaN(v) && v > 0) { masterData[idL].pendencias.vagasInfo.push({ cargo: cargo, qtd: v }); } } });
@@ -376,8 +410,26 @@ function obterCargaMestreDashboard() {
             mapDash(['HISTORICO_NPS_VENDEDORES'], d => { let nome = String(d[1]).trim(); let idL = normalizarFilialId(d[2]); let dtIso = dataParaStringISO(d[0], hojeIsoDia); let npsV = parseFloat(String(d[7]).replace(',','.')); if(idL && nome && masterData[idL] && !isNaN(npsV) && dtIso <= hojeIsoDia) { if(!registrosNPSV[idL]) registrosNPSV[idL] = { maxDate: dtIso, records: [] }; if(dtIso > registrosNPSV[idL].maxDate) { registrosNPSV[idL].maxDate = dtIso; registrosNPSV[idL].records = []; } if(dtIso === registrosNPSV[idL].maxDate) { registrosNPSV[idL].records.push({ nome: nome, nota: npsV }); } } });
             Object.keys(registrosNPSV).forEach(idL => { registrosNPSV[idL].records.forEach(r => { if(r.nota < 70) masterData[idL].pendencias.npsVendedores.push({ nome: r.nome, nota: r.nota }); }); });
 
+            // INJEÇÃO DOS DADOS DO ROI NO HISTÓRICO
+            Object.keys(masterData).forEach(idL => {
+                masterData[idL].historicoGP.forEach(h => {
+                    if(h.isVisita && h.isVisitaUnica && h.dataIso) {
+                        let chaveMatriz = idL + "_" + h.dataIso;
+                        if(roiEstatico[chaveMatriz]) {
+                            let rE = roiEstatico[chaveMatriz];
+                            h.vendaPre = rE.vPre; h.vendaPos = rE.vPos; 
+                            h.npsPre = rE.nPre; h.npsPos = rE.nPos; 
+                        } else {
+                            h.vendaPre = null; h.vendaPos = null; 
+                            h.npsPre = null; h.npsPos = null; 
+                        }
+                    }
+                });
+            });
+
         } catch(e) { avisos.push("Base Dash inacessível: " + e.message); }
 
+        /* STREAMING_CHUNK:Consolidando APURACOES e feeds... */
         try {
             const ssApur = SpreadsheetApp.openById(DB_APUR);
             let mapApur = (shNames, parser) => { let sh = getSheetSafe(ssApur, shNames); if(sh) { let d = sh.getDataRange().getValues(); for(let i=1; i<d.length; i++) { try { parser(d[i]); } catch(e){} } } };
