@@ -3,7 +3,8 @@
   <head>
     <base target="_top">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Coleta de Dados - Piloto Regional</title>
+    <title>Inscrição Posicionamento Estratégico 2026</title>
+    <!-- Soft Pastel UI (Design System GP360) -->
     <style>
       body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -23,8 +24,8 @@
         box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05);
         border-top: 5px solid #7C3AED;
       }
-      h2 { color: #6B21A8; font-weight: 600; margin-top: 0; }
-      p.subtitle { color: #64748B; font-size: 0.95em; margin-bottom: 25px; }
+      h2 { color: #6B21A8; font-weight: 600; margin-top: 0; text-align: center; }
+      p.subtitle { color: #64748B; font-size: 0.95em; margin-bottom: 25px; text-align: center; }
       
       .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
       .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
@@ -82,8 +83,14 @@
     </style>
   </head>
   <body>
+    
     <div class="card-container">
-      <h2>Coleta de Dados - Evento Regional</h2>
+      <!-- CABEÇALHO COM IMAGEM -->
+      <div style="text-align: center; margin-bottom: 25px;">
+         <img src="https://drive.google.com/uc?export=view&id=1dD9Z-1KK2iPVAsLorbljK9H6lg3GIHc3" alt="Banner Posicionamento" style="max-width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+      </div>
+
+      <h2>Inscrição Posicionamento Estratégico 2026</h2>
       <p class="subtitle">Preencha os dados abaixo com atenção. Informações marcadas com <span class="req">*</span> são obrigatórias.</p>
       
       <div id="statusAlert"></div>
@@ -92,14 +99,22 @@
         
         <h3 style="color:#2563EB; font-size:1.1em; border-bottom:1px solid #E2E8F0; padding-bottom:10px;">1. Validação de Identidade</h3>
         
-        <div class="grid-2">
+        <div class="grid-3">
           <div class="form-group">
             <label>E-mail Logado (Permissão)</label>
             <input type="text" id="dispEmail" class="readonly-field" readonly>
           </div>
           <div class="form-group">
+            <label>Origem do Colaborador <span class="req">*</span></label>
+            <select id="inpOrigem" class="highlight-input" required>
+              <option value="">Selecione...</option>
+              <option value="LOJAS">Lojas</option>
+              <option value="ESCRITORIO">Escritório</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label>ID Crachá (Matrícula) <span class="req">*</span></label>
-            <input type="number" id="inpId" required placeholder="Ex: 12345" style="border-left: 4px solid #F59E0B;">
+            <input type="number" id="inpId" required placeholder="Ex: 12345" style="border-left: 4px solid #F59E0B;" disabled title="Selecione a origem primeiro">
           </div>
         </div>
 
@@ -108,7 +123,7 @@
           
           <div class="grid-2">
             <div class="form-group">
-              <label>Nome Completo (Automático)</label>
+              <label>Nome Completo (Automático da Base)</label>
               <input type="text" id="inpNome" class="readonly-field" readonly>
             </div>
             <div class="form-group">
@@ -122,55 +137,41 @@
             </div>
           </div>
 
-          <div class="form-group">
-            <label>Você é mãe lactante e precisará levar acompanhante e o bebê? <span class="req">*</span></label>
-            <select id="inpLactante" class="highlight-input" required>
-              <option value="">Selecione...</option>
-              <option value="Não">Não</option>
-              <option value="Sim">Sim, preciso cadastrá-los</option>
+          <!-- VALIDAÇÃO DO NOME DO RG (SEGURANÇA DE EMBARQUE) -->
+          <div class="form-group" style="background-color: #EFF6FF; padding: 15px; border-radius: 8px; border-left: 4px solid #2563EB;">
+            <label>O nome exibido acima está <b>exatamente igual ao seu RG</b> (para emissão de passagem)? <span class="req">*</span></label>
+            <select id="inpConfirmaNome" class="highlight-input" required>
+              <option value="Sim">Sim, está correto para embarque</option>
+              <option value="Não">Não, preciso digitar como está no documento</option>
             </select>
           </div>
 
-          <!-- Div Condicional: Acompanhante e Bebê (Oculta por padrão) -->
-          <div id="divLactante" class="hidden" style="background-color: #FDF4FF; padding: 20px; border-radius: 8px; border-left: 4px solid #D946EF; margin-bottom: 20px;">
-            <h4 style="color: #A21CAF; margin-top: 0; margin-bottom: 15px;">Dados Adicionais (Acompanhante e Bebê)</h4>
-            
-            <div class="grid-2">
-              <div class="form-group">
-                <label>Nome Completo (Acompanhante) <span class="req">*</span></label>
-                <input type="text" id="inpNomeAcompanhante" class="highlight-input" placeholder="Nome do adulto">
-              </div>
-              <div class="form-group">
-                <label>Nascimento (Acompanhante) <span class="req">*</span></label>
-                <input type="date" id="inpNascAcompanhante" class="highlight-input">
-              </div>
-            </div>
-
-            <div class="grid-2">
-              <div class="form-group">
-                <label>RG (Acompanhante) <span class="req">*</span></label>
-                <input type="text" id="inpRgAcompanhante" class="highlight-input" placeholder="Apenas números">
-              </div>
-              <div class="form-group">
-                <label>CPF (Acompanhante) <span class="req">*</span></label>
-                <input type="text" id="inpCpfAcompanhante" class="highlight-input" placeholder="Apenas números">
-              </div>
-            </div>
-
-            <hr style="border-top: 1px dashed #E879F9; margin: 15px 0;">
-
-            <div class="grid-2">
-              <div class="form-group">
-                <label>Nome Completo (Bebê) <span class="req">*</span></label>
-                <input type="text" id="inpNomeBebe" class="highlight-input" placeholder="Nome da criança">
-              </div>
-              <div class="form-group">
-                <label>Data de Nascimento (Bebê) <span class="req">*</span></label>
-                <input type="date" id="inpNascBebe" class="highlight-input">
-              </div>
-            </div>
+          <div id="divNomeCorreto" class="form-group hidden">
+            <label>Digite seu Nome Completo EXATAMENTE como no RG <span class="req">*</span></label>
+            <input type="text" id="inpNomeCorreto" class="highlight-input" placeholder="Maria da Silva Santos">
           </div>
-          
+
+          <!-- LACTANTES COM NOVO TEXTO -->
+          <div class="form-group">
+             <label>Você é mãe lactante e precisará levar acompanhante e o bebê? (Lactantes com bebês de até 1 ano e 11 meses) <span class="req">*</span></label>
+             <select id="inpLactante" class="highlight-input" required>
+               <option value="Não">Não</option>
+               <option value="Sim">Sim</option>
+             </select>
+          </div>
+
+          <div id="divAcompanhantes" class="hidden" style="background-color: #F8FAFC; padding: 15px; border-radius: 8px; border: 1px dashed #7C3AED; margin-bottom: 20px;">
+             <h4 style="color: #6B21A8; margin-top: 0; margin-bottom: 15px;">Dados do Acompanhante e Bebê</h4>
+             <div class="grid-2">
+                <div class="form-group"><label>Nome do Acompanhante <span class="req">*</span></label><input type="text" id="inpNomeAcomp" class="highlight-input"></div>
+                <div class="form-group"><label>CPF do Acompanhante <span class="req">*</span></label><input type="text" id="inpCpfAcomp" class="highlight-input"></div>
+                <div class="form-group"><label>RG do Acompanhante <span class="req">*</span></label><input type="text" id="inpRgAcomp" class="highlight-input"></div>
+                <div class="form-group"><label>Data Nasc. Acompanhante <span class="req">*</span></label><input type="date" id="inpNascAcomp" class="highlight-input"></div>
+                <div class="form-group"><label>Nome do Bebê <span class="req">*</span></label><input type="text" id="inpNomeBebe" class="highlight-input"></div>
+                <div class="form-group"><label>Data Nasc. Bebê <span class="req">*</span></label><input type="date" id="inpNascBebe" class="highlight-input"></div>
+             </div>
+          </div>
+
           <div class="grid-2">
             <div class="form-group">
               <label>DDD <span class="req">*</span></label>
@@ -180,6 +181,12 @@
               <label>Celular <span class="req">*</span></label>
               <input type="number" id="inpCelular" class="highlight-input" required placeholder="Ex: 987654321">
             </div>
+          </div>
+
+          <!-- CONTATO DE EMERGÊNCIA -->
+          <div class="form-group">
+            <label>Contato de Emergência (Nome e Telefone com DDD) <span class="req">*</span></label>
+            <input type="text" id="inpEmergencia" class="highlight-input" required placeholder="Ex: João Silva - (11) 98888-7777">
           </div>
 
           <div class="form-group">
@@ -225,7 +232,11 @@
             <input type="text" id="inpObsRotas" class="highlight-input" placeholder="(Alguma observação)">
           </div>
 
-          <div class="grid-2">
+          <div class="grid-3">
+            <div class="form-group">
+              <label>Regional (Automático/Manual) <span class="req">*</span></label>
+              <input type="text" id="inpRegionalAuto" class="readonly-field" required readonly>
+            </div>
             <div class="form-group">
               <label>Cidade Base de Embarque <span class="req">*</span></label>
               <input type="text" id="inpCidadeEmbarque" class="highlight-input" required placeholder="De onde você sai?">
@@ -245,7 +256,7 @@
             <textarea id="inpObsGerais" class="highlight-input" rows="3" placeholder="Qualquer outra informação relevante para a logística..."></textarea>
           </div>
           
-          <input type="hidden" id="inpRegionalAuto">
+          <!-- CAMPOS OCULTOS -->
           <input type="hidden" id="inpFilialAuto">
           <input type="hidden" id="inpRgAuto">
           <input type="hidden" id="inpOrgaoAuto">
@@ -259,42 +270,63 @@
     </div>
 
     <script>
-      // Controle de Exibição Dinâmica (Lactantes)
-      document.getElementById('inpLactante').addEventListener('change', function() {
-        const divLact = document.getElementById('divLactante');
-        const reqFields = ['inpNomeAcompanhante', 'inpNascAcompanhante', 'inpRgAcompanhante', 'inpCpfAcompanhante', 'inpNomeBebe', 'inpNascBebe'];
-        
-        if (this.value === 'Sim') {
-          divLact.classList.remove('hidden');
-          reqFields.forEach(id => document.getElementById(id).required = true);
-        } else {
-          divLact.classList.add('hidden');
-          reqFields.forEach(id => {
-            const el = document.getElementById(id);
-            el.required = false;
-            el.value = ""; // Limpa os dados em caso de desistência
-          });
-        }
+      // Desbloqueia a matrícula somente após escolher a origem
+      document.getElementById('inpOrigem').addEventListener('change', function() {
+         const inpId = document.getElementById('inpId');
+         if(this.value !== "") {
+            inpId.disabled = false;
+            inpId.focus();
+         } else {
+            inpId.disabled = true;
+            inpId.value = "";
+         }
       });
 
-      // Controle de Exibição Dinâmica (Aeroportos)
+      // Validação Condicional do Nome Correto RG
+      document.getElementById('inpConfirmaNome').addEventListener('change', function() {
+         const divCorreto = document.getElementById('divNomeCorreto');
+         const inpCorreto = document.getElementById('inpNomeCorreto');
+         if (this.value === 'Não') {
+            divCorreto.classList.remove('hidden');
+            inpCorreto.required = true;
+         } else {
+            divCorreto.classList.add('hidden');
+            inpCorreto.required = false;
+            inpCorreto.value = "";
+         }
+      });
+
+      // Lactantes
+      document.getElementById('inpLactante').addEventListener('change', function() {
+        const div = document.getElementById('divAcompanhantes');
+        const isLactante = this.value === 'Sim';
+        if (isLactante) {
+          div.classList.remove('hidden');
+        } else {
+          div.classList.add('hidden');
+        }
+        ['inpNomeAcomp', 'inpCpfAcomp', 'inpRgAcomp', 'inpNascAcomp', 'inpNomeBebe', 'inpNascBebe'].forEach(id => {
+            document.getElementById(id).required = isLactante;
+            if (!isLactante) document.getElementById(id).value = "";
+        });
+      });
+
+      // Transporte Aeroportos
       document.getElementById('inpTransporte').addEventListener('change', function() {
         const divAero = document.getElementById('divAeroportos');
         const inpAero1 = document.getElementById('inpAero1');
-        const inpAero2 = document.getElementById('inpAero2');
-        
         if (this.value === 'Aéreo') {
           divAero.classList.remove('hidden');
           inpAero1.required = true;
         } else {
           divAero.classList.add('hidden');
           inpAero1.required = false;
-          inpAero1.value = ""; 
-          inpAero2.value = "";
+          inpAero1.value = "";
+          document.getElementById('inpAero2').value = "";
         }
       });
 
-      // Inicialização e Trava de Acesso
+      // Sessão Google
       document.addEventListener("DOMContentLoaded", function() {
         mostrarAlerta("info", "Autenticando sessão do Google...");
         google.script.run.withSuccessHandler(function(res) {
@@ -306,19 +338,45 @@
         }).obterInfoSessao(); 
       });
 
+      // Busca dupla (Com Origem e Trava de Serialização)
       document.getElementById('inpId').addEventListener('change', function() {
         var cracha = this.value.trim();
-        if(!cracha) return;
+        var origem = document.getElementById('inpOrigem').value;
+        if(!cracha || !origem) return;
         
-        mostrarAlerta("info", "Buscando dados na base corporativa...");
+        mostrarAlerta("info", "Buscando dados corporativos de forma segura...");
         document.getElementById('areaDadosCompletos').classList.add('hidden');
         
         google.script.run.withSuccessHandler(function(res) {
+          if (!res) {
+             mostrarAlerta("error", "Erro crítico de comunicação: O servidor falhou ao enviar os dados da base.");
+             return;
+          }
+
           if(res.sucesso) {
              document.getElementById('statusAlert').innerHTML = '';
              document.getElementById('inpNome').value = res.dados.nome;
              
-             document.getElementById('inpRegionalAuto').value = res.dados.regional;
+             // Reseta o input condicional do RG sempre que buscar uma nova matrícula
+             document.getElementById('inpConfirmaNome').value = 'Sim';
+             document.getElementById('divNomeCorreto').classList.add('hidden');
+             document.getElementById('inpNomeCorreto').required = false;
+             document.getElementById('inpNomeCorreto').value = "";
+
+             const regField = document.getElementById('inpRegionalAuto');
+             regField.value = res.dados.regional;
+             
+             if(origem === 'ESCRITORIO') {
+                 regField.readOnly = false;
+                 regField.classList.remove('readonly-field');
+                 regField.classList.add('highlight-input');
+                 mostrarAlerta("info", "Você selecionou ESCRITÓRIO. Por favor, <b>confirme ou edite manualmente</b> sua Regional abaixo.");
+             } else {
+                 regField.readOnly = true;
+                 regField.classList.add('readonly-field');
+                 regField.classList.remove('highlight-input');
+             }
+
              document.getElementById('inpFilialAuto').value = res.dados.filial;
              document.getElementById('inpRgAuto').value = res.dados.rg || "";
              document.getElementById('inpOrgaoAuto').value = res.dados.orgao || "";
@@ -330,22 +388,27 @@
           } else {
              mostrarAlerta("warning", res.msg); 
           }
-        }).validarEBuscarID(cracha); 
+        }).validarEBuscarID(cracha, origem); 
       });
 
       function validarEEnviar() {
         const form = document.getElementById('formColeta');
-        
         if (!form.checkValidity()) {
           form.reportValidity();
-          mostrarAlerta("error", "Por favor, preencha todos os campos sinalizados com (*).");
+          mostrarAlerta("error", "Por favor, preencha todos os campos obrigatórios (*).");
           return;
         }
         
+        // Regra de Negócio: Se o nome for corrigido, envia o corrigido, senão envia o da base.
+        const nomeFinal = document.getElementById('inpConfirmaNome').value === 'Não' 
+                        ? document.getElementById('inpNomeCorreto').value 
+                        : document.getElementById('inpNome').value;
+
         const payload = {
            id: document.getElementById('inpId').value,
-           nomeCompleto: document.getElementById('inpNome').value,
-           regional: document.getElementById('inpRegionalAuto').value,
+           origemBase: document.getElementById('inpOrigem').value,
+           nomeCompleto: nomeFinal, // Nome formatado de acordo com a segurança do RG
+           regional: document.getElementById('inpRegionalAuto').value, 
            filial: document.getElementById('inpFilialAuto').value,
            rg: document.getElementById('inpRgAuto').value,
            orgao: document.getElementById('inpOrgaoAuto').value,
@@ -353,18 +416,9 @@
            nascimento: document.getElementById('inpNascimentoAuto').value,
            cargo: document.getElementById('inpCargoAuto').value,
            sexo: document.getElementById('inpSexo').value,
-           
-           // Novos campos Lactante
-           isLactante: document.getElementById('inpLactante').value,
-           nomeAcompanhante: document.getElementById('inpNomeAcompanhante').value,
-           nascAcompanhante: document.getElementById('inpNascAcompanhante').value,
-           rgAcompanhante: document.getElementById('inpRgAcompanhante').value,
-           cpfAcompanhante: document.getElementById('inpCpfAcompanhante').value,
-           nomeBebe: document.getElementById('inpNomeBebe').value,
-           nascBebe: document.getElementById('inpNascBebe').value,
-
            ddd: document.getElementById('inpDdd').value,
            celular: document.getElementById('inpCelular').value,
+           contatoEmergencia: document.getElementById('inpEmergencia').value, // NOVO CAMPO
            restricaoAlimentar: document.getElementById('inpRestricao').value,
            emailMagalu: document.getElementById('inpEmailMagalu').value,
            emailPessoal: document.getElementById('inpEmailPessoal').value,
@@ -374,14 +428,28 @@
            aeroporto2: document.getElementById('inpAero2').value,
            cidadeEmbarque: document.getElementById('inpCidadeEmbarque').value,
            mobilidadeReduzida: document.getElementById('inpMobilidade').value,
-           observacoesGerais: document.getElementById('inpObsGerais').value
+           observacoesGerais: document.getElementById('inpObsGerais').value,
+           
+           isLactante: document.getElementById('inpLactante').value === 'Sim',
+           nomeAcomp: document.getElementById('inpNomeAcomp') ? document.getElementById('inpNomeAcomp').value : "",
+           cpfAcomp: document.getElementById('inpCpfAcomp') ? document.getElementById('inpCpfAcomp').value : "",
+           rgAcomp: document.getElementById('inpRgAcomp') ? document.getElementById('inpRgAcomp').value : "",
+           nascAcomp: document.getElementById('inpNascAcomp') ? document.getElementById('inpNascAcomp').value : "",
+           nomeBebe: document.getElementById('inpNomeBebe') ? document.getElementById('inpNomeBebe').value : "",
+           nascBebe: document.getElementById('inpNascBebe') ? document.getElementById('inpNascBebe').value : ""
         };
         
         document.getElementById('btnEnviar').disabled = true;
         document.getElementById('btnEnviar').innerText = "Salvando...";
-        mostrarAlerta("info", "Gravando dados, aguarde...");
+        mostrarAlerta("info", "Gravando dados logísticos e informações de acompanhantes, aguarde...");
         
         google.script.run.withSuccessHandler(function(res) {
+           if (!res) {
+              mostrarAlerta("error", "Erro ao salvar: Servidor não respondeu adequadamente.");
+              document.getElementById('btnEnviar').disabled = false;
+              document.getElementById('btnEnviar').innerText = "Confirmar Inscrição";
+              return;
+           }
            if(res.sucesso) {
              document.getElementById('formColeta').classList.add('hidden');
              mostrarAlerta("success", "✅ " + res.msg + "<br><br>Você pode fechar esta página.");
