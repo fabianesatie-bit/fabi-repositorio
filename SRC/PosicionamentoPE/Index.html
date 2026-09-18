@@ -85,9 +85,9 @@
   <body>
     
     <div class="card-container">
-      <!-- CABEÇALHO COM IMAGEM -->
+      <!-- CABEÇALHO COM IMAGEM (NOVO MÉTODO ANTI-CORS PARA IFRAMES DO APPS SCRIPT) -->
       <div style="text-align: center; margin-bottom: 25px;">
-         <img src="https://drive.google.com/uc?export=view&id=1dD9Z-1KK2iPVAsLorbljK9H6lg3GIHc3" alt="Banner Posicionamento" style="max-width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+         <img src="https://lh3.googleusercontent.com/d/11hXfYVWii84PNbAr86xQFA0dR6oGNHGj" alt="Banner Posicionamento Estratégico" style="max-width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
       </div>
 
       <h2>Inscrição Posicionamento Estratégico 2026</h2>
@@ -205,13 +205,14 @@
             </div>
           </div>
 
+          <!-- TIPO DE TRANSPORTE COM MENSAGEM CULTURAL -->
           <div class="form-group">
             <label>Tipo de Transporte Principal <span class="req">*</span></label>
             <select id="inpTransporte" class="highlight-input" required>
               <option value="">Selecione...</option>
               <option value="Aéreo">Aéreo</option>
               <option value="Rodoviário">Rodoviário (Ônibus)</option>
-              <option value="Próprio">Carro Próprio</option>
+              <option value="Próprio">Carro Próprio (Use sempre que possível carona amiga, Atitude de Dono sempre &#128512;)</option>
               <option value="Rota">Rota da Empresa</option>
             </select>
           </div>
@@ -239,7 +240,7 @@
             </div>
             <div class="form-group">
               <label>Cidade Base de Embarque <span class="req">*</span></label>
-              <input type="text" id="inpCidadeEmbarque" class="highlight-input" required placeholder="De onde você sai?">
+              <input type="text" id="inpCidadeEmbarque" class="highlight-input" required placeholder="De onde sai?">
             </div>
             <div class="form-group">
               <label>Possui Mobilidade Reduzida? <span class="req">*</span></label>
@@ -315,7 +316,9 @@
       document.getElementById('inpTransporte').addEventListener('change', function() {
         const divAero = document.getElementById('divAeroportos');
         const inpAero1 = document.getElementById('inpAero1');
-        if (this.value === 'Aéreo') {
+        
+        // Verifica se a opção selecionada inclui a palavra "Aéreo"
+        if (this.value.indexOf('Aéreo') !== -1) {
           divAero.classList.remove('hidden');
           inpAero1.required = true;
         } else {
@@ -344,7 +347,7 @@
         var origem = document.getElementById('inpOrigem').value;
         if(!cracha || !origem) return;
         
-        mostrarAlerta("info", "Buscando dados corporativos de forma segura...");
+        mostrarAlerta("info", "A procurar dados corporativos de forma segura...");
         document.getElementById('areaDadosCompletos').classList.add('hidden');
         
         google.script.run.withSuccessHandler(function(res) {
@@ -357,7 +360,6 @@
              document.getElementById('statusAlert').innerHTML = '';
              document.getElementById('inpNome').value = res.dados.nome;
              
-             // Reseta o input condicional do RG sempre que buscar uma nova matrícula
              document.getElementById('inpConfirmaNome').value = 'Sim';
              document.getElementById('divNomeCorreto').classList.add('hidden');
              document.getElementById('inpNomeCorreto').required = false;
@@ -370,7 +372,7 @@
                  regField.readOnly = false;
                  regField.classList.remove('readonly-field');
                  regField.classList.add('highlight-input');
-                 mostrarAlerta("info", "Você selecionou ESCRITÓRIO. Por favor, <b>confirme ou edite manualmente</b> sua Regional abaixo.");
+                 mostrarAlerta("info", "Selecionou ESCRITÓRIO. Por favor, <b>confirme ou edite manualmente</b> a sua Regional abaixo.");
              } else {
                  regField.readOnly = true;
                  regField.classList.add('readonly-field');
@@ -399,15 +401,20 @@
           return;
         }
         
-        // Regra de Negócio: Se o nome for corrigido, envia o corrigido, senão envia o da base.
         const nomeFinal = document.getElementById('inpConfirmaNome').value === 'Não' 
                         ? document.getElementById('inpNomeCorreto').value 
                         : document.getElementById('inpNome').value;
 
+        // Extrai apenas a palavra principal caso o utilizador tenha selecionado a opção de carro com a mensagem longa
+        var transporteSelecionado = document.getElementById('inpTransporte').value;
+        if(transporteSelecionado.indexOf('Próprio') !== -1) {
+             transporteSelecionado = 'Próprio';
+        }
+
         const payload = {
            id: document.getElementById('inpId').value,
            origemBase: document.getElementById('inpOrigem').value,
-           nomeCompleto: nomeFinal, // Nome formatado de acordo com a segurança do RG
+           nomeCompleto: nomeFinal,
            regional: document.getElementById('inpRegionalAuto').value, 
            filial: document.getElementById('inpFilialAuto').value,
            rg: document.getElementById('inpRgAuto').value,
@@ -418,11 +425,11 @@
            sexo: document.getElementById('inpSexo').value,
            ddd: document.getElementById('inpDdd').value,
            celular: document.getElementById('inpCelular').value,
-           contatoEmergencia: document.getElementById('inpEmergencia').value, // NOVO CAMPO
+           contatoEmergencia: document.getElementById('inpEmergencia').value,
            restricaoAlimentar: document.getElementById('inpRestricao').value,
            emailMagalu: document.getElementById('inpEmailMagalu').value,
            emailPessoal: document.getElementById('inpEmailPessoal').value,
-           tipoTransporte: document.getElementById('inpTransporte').value,
+           tipoTransporte: transporteSelecionado, // Grava apenas "Próprio" na base de dados
            observacaoRotas: document.getElementById('inpObsRotas').value,
            aeroporto1: document.getElementById('inpAero1').value,
            aeroporto2: document.getElementById('inpAero2').value,
@@ -440,26 +447,26 @@
         };
         
         document.getElementById('btnEnviar').disabled = true;
-        document.getElementById('btnEnviar').innerText = "Salvando...";
-        mostrarAlerta("info", "Gravando dados logísticos e informações de acompanhantes, aguarde...");
+        document.getElementById('btnEnviar').innerText = "A gravar...";
+        mostrarAlerta("info", "A gravar os dados logísticos, aguarde...");
         
         google.script.run.withSuccessHandler(function(res) {
            if (!res) {
-              mostrarAlerta("error", "Erro ao salvar: Servidor não respondeu adequadamente.");
+              mostrarAlerta("error", "Erro ao guardar: O servidor não respondeu adequadamente.");
               document.getElementById('btnEnviar').disabled = false;
               document.getElementById('btnEnviar').innerText = "Confirmar Inscrição";
               return;
            }
            if(res.sucesso) {
              document.getElementById('formColeta').classList.add('hidden');
-             mostrarAlerta("success", "✅ " + res.msg + "<br><br>Você pode fechar esta página.");
+             mostrarAlerta("success", "&#9989; " + res.msg + "<br><br>Pode fechar esta página.");
            } else {
-             mostrarAlerta("warning", "⚠️ " + res.msg);
+             mostrarAlerta("warning", "&#9888;&#65039; " + res.msg);
              document.getElementById('btnEnviar').disabled = false;
              document.getElementById('btnEnviar').innerText = "Confirmar Inscrição";
            }
         }).withFailureHandler(function(err) {
-             mostrarAlerta("error", "Erro de conexão. Tente novamente.");
+             mostrarAlerta("error", "Erro de ligação. Tente novamente.");
              document.getElementById('btnEnviar').disabled = false;
              document.getElementById('btnEnviar').innerText = "Confirmar Inscrição";
         }).salvarDados(payload);
