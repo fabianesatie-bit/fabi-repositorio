@@ -85,9 +85,9 @@
   <body>
     
     <div class="card-container">
-      <!-- CABEÇALHO COM IMAGEM (NOVO MÉTODO ANTI-CORS PARA IFRAMES DO APPS SCRIPT) -->
+      <!-- CABEÇALHO COM IMAGEM (NOVA CAPA OFICIAL CDN 1L94K) -->
       <div style="text-align: center; margin-bottom: 25px;">
-         <img src="https://lh3.googleusercontent.com/d/11hXfYVWii84PNbAr86xQFA0dR6oGNHGj" alt="Banner Posicionamento Estratégico" style="max-width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+         <img src="https://lh3.googleusercontent.com/d/1L94K-BSpdWvydV748QnC4w8Gj3FeR1_o" alt="Banner Posicionamento Estratégico Outubro 2026" style="max-width: 100%; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
       </div>
 
       <h2>Inscrição Posicionamento Estratégico 2026</h2>
@@ -151,7 +151,7 @@
             <input type="text" id="inpNomeCorreto" class="highlight-input" placeholder="Maria da Silva Santos">
           </div>
 
-          <!-- LACTANTES COM NOVO TEXTO -->
+          <!-- LACTANTES COM TEXTO ATUALIZADO -->
           <div class="form-group">
              <label>Você é mãe lactante e precisará levar acompanhante e o bebê? (Lactantes com bebês de até 1 ano e 11 meses) <span class="req">*</span></label>
              <select id="inpLactante" class="highlight-input" required>
@@ -196,8 +196,8 @@
           
           <div class="grid-2">
             <div class="form-group">
-              <label>E-mail Corporativo (Magalu) <span class="req">*</span></label>
-              <input type="email" id="inpEmailMagalu" class="highlight-input" required placeholder="nome@magazineluiza.com.br">
+              <label>E-mail Corporativo (Magalu / Consórcio) <span class="req">*</span></label>
+              <input type="email" id="inpEmailMagalu" class="highlight-input" required placeholder="nome@magazineluiza.com.br ou @consorciomagalu.com.br">
             </div>
             <div class="form-group">
               <label>E-mail Pessoal Secundário <span class="req">*</span></label>
@@ -257,7 +257,7 @@
             <textarea id="inpObsGerais" class="highlight-input" rows="3" placeholder="Qualquer outra informação relevante para a logística..."></textarea>
           </div>
           
-          <!-- CAMPOS OCULTOS -->
+          <!-- CAMPOS OCULTOS DE SUPORTE -->
           <input type="hidden" id="inpFilialAuto">
           <input type="hidden" id="inpRgAuto">
           <input type="hidden" id="inpOrgaoAuto">
@@ -317,7 +317,6 @@
         const divAero = document.getElementById('divAeroportos');
         const inpAero1 = document.getElementById('inpAero1');
         
-        // Verifica se a opção selecionada inclui a palavra "Aéreo"
         if (this.value.indexOf('Aéreo') !== -1) {
           divAero.classList.remove('hidden');
           inpAero1.required = true;
@@ -405,7 +404,6 @@
                         ? document.getElementById('inpNomeCorreto').value 
                         : document.getElementById('inpNome').value;
 
-        // Extrai apenas a palavra principal caso o utilizador tenha selecionado a opção de carro com a mensagem longa
         var transporteSelecionado = document.getElementById('inpTransporte').value;
         if(transporteSelecionado.indexOf('Próprio') !== -1) {
              transporteSelecionado = 'Próprio';
@@ -429,7 +427,7 @@
            restricaoAlimentar: document.getElementById('inpRestricao').value,
            emailMagalu: document.getElementById('inpEmailMagalu').value,
            emailPessoal: document.getElementById('inpEmailPessoal').value,
-           tipoTransporte: transporteSelecionado, // Grava apenas "Próprio" na base de dados
+           tipoTransporte: transporteSelecionado,
            observacaoRotas: document.getElementById('inpObsRotas').value,
            aeroporto1: document.getElementById('inpAero1').value,
            aeroporto2: document.getElementById('inpAero2').value,
@@ -466,10 +464,10 @@
              document.getElementById('btnEnviar').innerText = "Confirmar Inscrição";
            }
         }).withFailureHandler(function(err) {
-             mostrarAlerta("error", "Erro de ligação. Tente novamente.");
+             mostrarAlerta("error", "Erro de ligação. Tente novamente: " + err.message);
              document.getElementById('btnEnviar').disabled = false;
              document.getElementById('btnEnviar').innerText = "Confirmar Inscrição";
-        }).salvarDados(payload);
+        }).gravarInscricaoEmLote(payload);
       }
       
       function mostrarAlerta(tipo, mensagem) {
