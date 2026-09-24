@@ -8,7 +8,7 @@
  */
 
 /**
- * Roteador WebApp de entrada HTTP GET com rotas para Index, Painel e FAQ.
+ * Roteador WebApp de entrada HTTP GET.
  */
 function doGet(e) {
   var pagina = (e && e.parameter && e.parameter.page) ? e.parameter.page.toLowerCase().trim() : "index";
@@ -48,11 +48,114 @@ function doGet(e) {
 }
 
 /**
- * Salva uma imagem Base64 enviada pelo navegador no Google Drive e retorna o link direto público.
- * @param {string} base64Data
- * @param {string} nomeArquivo
- * @param {string} protocolo
+ * GERENCIADOR DE FAQ (CADASTRA E EDITA PERGUNTAS FREQUENTES VIA DASHBOARD)
+ * @param {Object} itemFaq
+ * @param {string} chaveAcesso
  * @return {Object}
+ */
+function salvarItemFaq(itemFaq, chaveAcesso) {
+  var permissao = validarAcessoCoordenador(chaveAcesso);
+  if (!permissao.autorizado) {
+    return { sucesso: false, mensagem: "Acesso não autorizado." };
+  }
+
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch (e) { return { sucesso: false, mensagem: "Servidor ocupado." }; }
+
+  try {
+    var ssChamados = getSpreadsheetChamados();
+    var abaFaq = obterAbaFlexivel(ssChamados, CONFIG.ABA_FAQ);
+
+    if (!abaFaq) {
+      lock.releaseLock();
+      return { sucesso: false, mensagem: "Aba CONFIG_FAQ não encontrada na planilha." };
+    }
+
+    var dados = abaFaq.getDataRange().getValues();
+    var linhaEncontrada = -1;
+
+    if (itemFaq.id) {
+      for (var i = 1; i < dados.length; i++) {
+        if (String(dados[i][0] || "").trim() === String(itemFaq.id).trim()) {
+          linhaEncontrada = i + 1;
+          break;
+        }
+      }
+    }
+
+    if (linhaEncontrada !== -1) {
+      // Edição
+      abaFaq.getRange(linhaEncontrada, 2).setValue(itemFaq.categoria || "Geral");
+      abaFaq.getRange(linhaEncontrada, 3).setValue(itemFaq.pergunta);
+      abaFaq.getRange(linhaEncontrada, 4).setValue(itemFaq.resposta);
+      abaFaq.getRange(linhaEncontrada, 5).setValue(parseInt(itemFaq.ordem || 1, 10));
+      abaFaq.getRange(linhaEncontrada, 6).setValue(itemFaq.status || "Ativo");
+    } else {
+      // Novo registro
+      var novoId = "FAQ-" + ("000" + (dados.length)).slice(-3);
+      abaFaq.appendRow([
+        novoId,
+        itemFaq.categoria || "Geral",
+        itemFaq.pergunta,
+        itemFaq.resposta,
+        parseInt(itemFaq.ordem || dados.length, 10),
+        itemFaq.status || "Ativo"
+      ]);
+    }
+
+    lock.releaseLock();
+    return { sucesso: true, mensagem: "Dúvida/FAQ salva com sucesso!" };
+  } catch (e) {
+    lock.releaseLock();
+    return { sucesso: false, mensagem: "Erro ao salvar FAQ: " + e.toString() };
+  }
+}
+
+/**
+ * GERENCIADOR DE RECADOS E LINHA DO TEMPO (DOS SISTEMAS) VIA DASHBOARD
+ * @param {Object} itemTimeline
+ * @param {string} chaveAcesso
+ * @return {Object}
+ */
+function salvarItemTimeline(itemTimeline, chaveAcesso) {
+  var permissao = validarAcessoCoordenador(chaveAcesso);
+  if (!permissao.autorizado) {
+    return { sucesso: false, mensagem: "Acesso não autorizado." };
+  }
+
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(10000); } catch (e) { return { sucesso: false, mensagem: "Servidor ocupado." }; }
+
+  try {
+    var ssChamados = getSpreadsheetChamados();
+    var abaTimeline = obterAbaFlexivel(ssChamados, CONFIG.ABA_TIMELINE);
+
+    if (!abaTimeline) {
+      lock.releaseLock();
+      return { sucesso: false, mensagem: "Aba CONFIG_TIMELINE não encontrada na planilha." };
+    }
+
+    var dataAtual = new Date();
+
+    abaTimeline.appendRow([
+      dataAtual,
+      itemTimeline.sistemaModulo || "Senior / HCM",
+      itemTimeline.tituloAviso,
+      itemTimeline.mensagem,
+      itemTimeline.statusSistema || "✅ Estável / Normalizado",
+      itemTimeline.exibir || "Sim"
+    ]);
+
+    lock.releaseLock();
+    return { sucesso: true, mensagem: "Recado de sistema salvo com sucesso!" };
+  } catch (e) {
+    lock.releaseLock();
+    return { sucesso: false, mensagem: "Erro ao salvar aviso de sistema: " + e.toString() };
+  }
+}
+
+/**
+ * Salva uma imagem Base64 enviada pelo navegador no Google Drive.
  */
 function salvarImagemDrive(base64Data, nomeArquivo, protocolo) {
   try {
@@ -78,12 +181,7 @@ function salvarImagemDrive(base64Data, nomeArquivo, protocolo) {
 }
 
 /**
- * RESERVA E CONTROLE DE CONCORRÊNCIA EM TEMPO REAL:
- * Permite que apenas UM coordenador assuma um chamado por vez.
- *
- * @param {string} protocolo
- * @param {string} chaveAcesso
- * @return {Object}
+ * RESERVA E CONTROLE DE CONCORRÊNCIA EM TEMPO REAL.
  */
 function assumirChamado(protocolo, chaveAcesso) {
   var permissao = validarAcessoCoordenador(chaveAcesso);
@@ -92,11 +190,7 @@ function assumirChamado(protocolo, chaveAcesso) {
   }
 
   var lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(10000);
-  } catch (e) {
-    return { sucesso: false, mensagem: "Servidor ocupado. Tente novamente." };
-  }
+  try { lock.waitLock(10000); } catch (e) { return { sucesso: false, mensagem: "Servidor ocupado." }; }
 
   try {
     var ssChamados = getSpreadsheetChamados();
@@ -152,16 +246,10 @@ function assumirChamado(protocolo, chaveAcesso) {
 
 /**
  * Registra um novo chamado na planilha DEDICADA DE CHAMADOS.
- * @param {Object} dadosChamado
- * @return {Object}
  */
 function registrarNovoChamado(dadosChamado) {
   var lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(15000);
-  } catch (e) {
-    return { sucesso: false, mensagem: "Sistema ocupado. Tente novamente em alguns instantes." };
-  }
+  try { lock.waitLock(15000); } catch (e) { return { sucesso: false, mensagem: "Sistema ocupado." }; }
 
   try {
     var ssChamados = getSpreadsheetChamados();
@@ -170,7 +258,7 @@ function registrarNovoChamado(dadosChamado) {
 
     if (!abaBase) {
       lock.releaseLock();
-      return { sucesso: false, mensagem: "Aba CHAMADOS_BASE não localizada na planilha dedicada." };
+      return { sucesso: false, mensagem: "Aba CHAMADOS_BASE não localizada." };
     }
 
     var protocolo = gerarProximoProtocolo(abaBase);
@@ -221,26 +309,19 @@ function registrarNovoChamado(dadosChamado) {
         descricao: descricaoCompleta
       });
     } catch (errEmail) {
-      Logger.log("Aviso: Chamado gravado com sucesso, mas o e-mail não pôde ser enviado: " + errEmail.toString());
+      Logger.log("Aviso: E-mail não enviado: " + errEmail.toString());
     }
 
     lock.releaseLock();
     return { sucesso: true, protocolo: protocolo, solicitanteId: dadosChamado.solicitanteId };
   } catch (err) {
     lock.releaseLock();
-    Logger.log("Erro em registrarNovoChamado: " + err.toString());
     return { sucesso: false, mensagem: "Erro ao registrar chamado: " + err.toString() };
   }
 }
 
 /**
- * Registra a resposta de um Coordenador na planilha dedicada.
- * @param {string} protocolo
- * @param {string} textoResposta
- * @param {boolean} marcarConcluido
- * @param {string} [chaveAcesso]
- * @param {string} [imagemBase64]
- * @return {Object}
+ * Registra a resposta de um Coordenador.
  */
 function responderChamado(protocolo, textoResposta, marcarConcluido, chaveAcesso, imagemBase64) {
   var permissao = validarAcessoCoordenador(chaveAcesso);
@@ -306,9 +387,7 @@ function responderChamado(protocolo, textoResposta, marcarConcluido, chaveAcesso
 }
 
 /**
- * Resolve o nome exibível do responsável.
- * @param {string} emailPermissao
- * @return {string}
+ * Resolve nome do responsável.
  */
 function obterNomeOuEmailResponsavel(emailPermissao) {
   var emailSessao = "";
@@ -338,8 +417,7 @@ function obterNomeOuEmailResponsavel(emailPermissao) {
 }
 
 /**
- * Dispara 1 único e-mail de alerta com TODOS os gestores em CÓPIA (CC).
- * @param {Object} info
+ * Dispara 1 único e-mail com todos em cópia (CC).
  */
 function dispararNotificacaoNovoChamado(info) {
   if (typeof EMAILS_AUTORIZADOS_COORD === 'undefined' || !EMAILS_AUTORIZADOS_COORD || EMAILS_AUTORIZADOS_COORD.length === 0) {

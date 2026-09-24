@@ -45,6 +45,7 @@
     .btn-primary { background: var(--primary); color: #FFF; }
     .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
     .btn-secondary { background: var(--border-color); color: var(--text-main); }
+    .btn-manage { background: #3B82F6; color: #FFF; }
 
     /* Bento Grid KPIs */
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
@@ -94,35 +95,30 @@
     .badge-concluido { background: var(--green-light); color: var(--green-text); }
     .badge-cargo { background: var(--primary-light); color: var(--primary-text); }
 
-    /* Modal de Atendimento */
+    /* Modais */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4);
       display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px;
     }
     .modal-box {
-      background: #FFF; width: 100%; max-width: 750px; max-height: 90vh; border-radius: 16px;
+      background: #FFF; width: 100%; max-width: 800px; max-height: 90vh; border-radius: 16px;
       display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
     }
     .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
     .modal-body { padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
 
-    /* Chat timeline */
-    .timeline { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
-    .chat-bubble {
-      padding: 16px 18px; border-radius: 12px; background: #F1F5F9; font-size: 13px;
-      line-height: 1.65; white-space: pre-wrap; word-break: break-word;
-    }
+    .chat-bubble { padding: 16px 18px; border-radius: 12px; background: #F1F5F9; font-size: 13px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
     .chat-bubble.coord { background: var(--primary-light); color: #2D0654; }
     .chat-meta { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
 
-    textarea {
-      width: 100%; height: 100px; padding: 12px; border: 1px solid var(--border-color);
-      border-radius: 10px; resize: vertical; font-size: 13px; line-height: 1.5; outline: none;
+    textarea, input[type="text"], select {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border-color);
+      border-radius: 8px; font-size: 13px; line-height: 1.5; outline: none; background: #FAFAFA;
     }
-    textarea:focus { border-color: var(--primary); }
+    textarea:focus, input:focus, select:focus { border-color: var(--primary); background: #FFF; }
 
-    .image-preview-box { display: none; margin-top: 10px; padding: 10px; background: #F1F5F9; border-radius: 10px; }
-    .image-preview-box img { max-width: 100%; max-height: 150px; border-radius: 8px; }
+    .form-group-manage { margin-bottom: 12px; }
+    .form-group-manage label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 4px; }
   </style>
 </head>
 <body>
@@ -134,6 +130,9 @@
       <div class="header-subtitle">Esteira de Chamados das Diretoria MG/CO e SUL</div>
     </div>
     <div style="display: flex; gap: 10px;">
+      <button class="btn btn-manage" onclick="abrirModalGerenciadorFaq()">
+        ⚙️ Gerenciar FAQ e Avisos
+      </button>
       <button class="btn btn-secondary" onclick="carregarDadosPainel()" id="btnAtualizar">
         🔄 Atualizar Fila
       </button>
@@ -164,7 +163,7 @@
   <div class="cat-ranking-card">
     <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">📊 Categorias com Mais Dúvidas</div>
     <div class="cat-bar-container" id="containerRankingCategorias">
-      <div style="color: var(--text-muted); font-size: 13px;">Carregando estatísticas de categorias...</div>
+      <div style="color: var(--text-muted); font-size: 13px;">Carregando estatísticas...</div>
     </div>
   </div>
 
@@ -193,16 +192,12 @@
         </tr>
       </thead>
       <tbody id="tbodyChamados">
-        <tr>
-          <td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">
-            Carregando lista de chamados...
-          </td>
-        </tr>
+        <tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">Carregando chamados...</td></tr>
       </tbody>
     </table>
   </div>
 
-  <!-- MODAL DE ATENDIMENTO -->
+  <!-- MODAL DE ATENDIMENTO DO CHAMADO -->
   <div class="modal-overlay" id="modalAtendimento">
     <div class="modal-box">
       <div class="modal-header">
@@ -240,19 +235,9 @@
         </div>
 
         <div style="margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-          <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">DIGITE SUA ORIENTAÇÃO / RESPOSTA (Copie e cole imagens/prints aqui):</div>
-          <textarea id="txtResposta" placeholder="Escreva a orientação detalhada. Você pode dar Ctrl+V para colar um PrintScreen do teclado..."></textarea>
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">DIGITE SUA ORIENTAÇÃO / RESPOSTA:</div>
+          <textarea id="txtResposta" placeholder="Escreva a orientação detalhada. Você pode dar Ctrl+V para colar um PrintScreen..."></textarea>
           
-          <div style="margin-top: 8px;">
-            <input type="file" id="fileAnexoCoord" accept="image/*" style="font-size: 12px;" onchange="tratarArquivoCoord(this)">
-          </div>
-
-          <div class="image-preview-box" id="previewContainerCoord">
-            <span style="font-size: 11px; font-weight: 700; color: var(--primary);">📷 Imagem Anexada à Resposta:</span>
-            <button type="button" style="float: right; border:none; background:none; cursor:pointer; color:red; font-weight:bold;" onclick="removerImagemCoord()">✕</button>
-            <div style="margin-top: 6px;"><img id="imgPreviewCoord" src=""></div>
-          </div>
-
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
             <label style="font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
               <input type="checkbox" id="chkConcluir" checked> Marcar como Concluído / Respondido
@@ -266,52 +251,114 @@
     </div>
   </div>
 
+  <!-- MODAL ADMINISTRATIVO DE GERENCIAMENTO DE FAQ E LINHA DO TEMPO -->
+  <div class="modal-overlay" id="modalGerenciadorFaq">
+    <div class="modal-box" style="max-width: 850px;">
+      <div class="modal-header">
+        <div style="font-size: 16px; font-weight: 700;">⚙️ Painel de Gestão: FAQ e Avisos dos Sistemas</div>
+        <button class="btn btn-secondary" onclick="fecharModalGerenciador()" style="padding: 6px 12px;">✕ Fechar</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="filter-tabs" style="margin-bottom: 12px;">
+          <button class="tab-btn active" id="tabManageFaq" onclick="alternarAbaGerenciador('faq')">📚 Dúvidas Frequentes (FAQ)</button>
+          <button class="tab-btn" id="tabManageTimeline" onclick="alternarAbaGerenciador('timeline')">⏱️ Linha do Tempo / Recados</button>
+        </div>
+
+        <!-- ABA GERENCIAR FAQ -->
+        <div id="blockManageFaq">
+          <div style="background: #F8FAFC; border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--primary-text); margin-bottom: 10px;">➕ Cadastrar / Editar Dúvida no FAQ</div>
+            <input type="hidden" id="manageFaqId">
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+              <div class="form-group-manage">
+                <label>Categoria</label>
+                <input type="text" id="manageFaqCategoria" placeholder="Ex: HCM / Ponto">
+              </div>
+              <div class="form-group-manage">
+                <label>Pergunta (Título do Card)</label>
+                <input type="text" id="manageFaqPergunta" placeholder="Ex: Como ajustar o espelho de ponto?">
+              </div>
+            </div>
+            <div class="form-group-manage">
+              <label>Resposta Detalhada / Passo a Passo (Cole links de imagens aqui)</label>
+              <textarea id="manageFaqResposta" rows="3" placeholder="Escreva a instrução. Se tiver link de imagem do Drive, cole o link no meio do texto..."></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <div class="form-group-manage" style="width: 120px;">
+                <label>Ordem</label>
+                <input type="number" id="manageFaqOrdem" value="1">
+              </div>
+              <div class="form-group-manage" style="width: 140px;">
+                <label>Status</label>
+                <select id="manageFaqStatus">
+                  <option value="Ativo">Ativo</option>
+                  <option value="Oculto">Oculto</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" style="margin-top: 14px;" onclick="salvarItemFaqAction()">💾 Salvar Card no FAQ</button>
+            </div>
+          </div>
+
+          <div style="font-weight: 700; font-size: 13px; margin-bottom: 8px;">Dúvidas Cadastradas na Base:</div>
+          <div id="listManageFaq" style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- ABA GERENCIAR LINHA DO TEMPO -->
+        <div id="blockManageTimeline" style="display: none;">
+          <div style="background: #F8FAFC; border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--primary-text); margin-bottom: 10px;">➕ Cadastrar Novo Recado na Linha do Tempo</div>
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
+              <div class="form-group-manage">
+                <label>Sistema / Módulo</label>
+                <input type="text" id="manageTimeSistema" placeholder="Ex: Senior / HCM">
+              </div>
+              <div class="form-group-manage">
+                <label>Título do Aviso</label>
+                <input type="text" id="manageTimeTitulo" placeholder="Ex: Virada de Lote de Ponto">
+              </div>
+            </div>
+            <div class="form-group-manage">
+              <label>Mensagem Detalhada para as Lojas</label>
+              <textarea id="manageTimeMensagem" rows="2" placeholder="Ex: Sincronização em andamento. Previsão de normalização às 14:00..."></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+              <div class="form-group-manage" style="width: 200px;">
+                <label>Status do Sistema</label>
+                <select id="manageTimeStatus">
+                  <option value="✅ Estável / Normalizado">✅ Estável / Normalizado</option>
+                  <option value="⏳ Em Ajuste">⏳ Em Ajuste</option>
+                  <option value="🚨 Em Manutenção">🚨 Em Manutenção</option>
+                </select>
+              </div>
+              <div class="form-group-manage" style="width: 120px;">
+                <label>Exibir na Tela</label>
+                <select id="manageTimeExibir">
+                  <option value="Sim">Sim</option>
+                  <option value="Não">Não</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" style="margin-top: 14px;" onclick="salvarItemTimelineAction()">💾 Salvar Recado</button>
+            </div>
+          </div>
+
+          <div style="font-weight: 700; font-size: 13px; margin-bottom: 8px;">Avisos Registrados:</div>
+          <div id="listManageTimeline" style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto;"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <script>
     var listaChamadosGlobal = [];
     var filtroStatusAtual = "Todos";
     var protocoloSelecionado = "";
-    var imagemCoordBase64 = null;
-    var usuarioLogadoAtual = "";
+    var dadosManageGlobal = { faq: [], timeline: [] };
 
     window.onload = function() {
       carregarDadosPainel();
-
-      document.getElementById('txtResposta').addEventListener('paste', function(e) {
-        var items = (e.clipboardData || e.originalEvent.clipboardData).items;
-        for (var i = 0; i < items.length; i++) {
-          if (items[i].type.indexOf("image") === 0) {
-            var blob = items[i].getAsFile();
-            var reader = new FileReader();
-            reader.onload = function(event) {
-              setImagemPreviewCoord(event.target.result);
-            };
-            reader.readAsDataURL(blob);
-            break;
-          }
-        }
-      });
     };
-
-    function tratarArquivoCoord(input) {
-      if (input.files && input.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) { setImagemPreviewCoord(e.target.result); };
-        reader.readAsDataURL(input.files[0]);
-      }
-    }
-
-    function setImagemPreviewCoord(base64) {
-      imagemCoordBase64 = base64;
-      document.getElementById('imgPreviewCoord').src = base64;
-      document.getElementById('previewContainerCoord').style.display = 'block';
-    }
-
-    function removerImagemCoord() {
-      imagemCoordBase64 = null;
-      document.getElementById('imgPreviewCoord').src = '';
-      document.getElementById('previewContainerCoord').style.display = 'none';
-      document.getElementById('fileAnexoCoord').value = '';
-    }
 
     function carregarDadosPainel() {
       var btn = document.getElementById('btnAtualizar');
@@ -324,25 +371,19 @@
           btn.innerHTML = "🔄 Atualizar Fila";
 
           if (!res || !res.sucesso) {
-            alert(res && res.mensagem ? res.mensagem : "Não foi possível carregar os dados.");
+            alert(res && res.mensagem ? res.mensagem : "Erro ao carregar dados.");
             return;
           }
 
-          usuarioLogadoAtual = res.usuarioLogado || "";
           var m = res.metricas || {};
-          document.getElementById('kpiTotal').innerText = (m.total !== undefined) ? m.total : 0;
-          document.getElementById('kpiAbertos').innerText = (m.abertos !== undefined) ? m.abertos : 0;
-          document.getElementById('kpiAnalise').innerText = (m.emAnalise !== undefined) ? m.emAnalise : 0;
-          document.getElementById('kpiConcluidos').innerText = (m.concluidos !== undefined) ? m.concluidos : 0;
+          document.getElementById('kpiTotal').innerText = m.total || 0;
+          document.getElementById('kpiAbertos').innerText = m.abertos || 0;
+          document.getElementById('kpiAnalise').innerText = m.emAnalise || 0;
+          document.getElementById('kpiConcluidos').innerText = m.concluidos || 0;
 
           listaChamadosGlobal = res.chamados || [];
           renderizarRankingCategorias(res.kpiCategorias || []);
           renderizarTabela();
-        })
-        .withFailureHandler(function(err) {
-          btn.disabled = false;
-          btn.innerHTML = "🔄 Atualizar Fila";
-          alert("Erro de conexão com o servidor: " + err);
         })
         .listarChamadosPainel(filtroStatusAtual, "gp");
     }
@@ -353,16 +394,13 @@
         container.innerHTML = "<div style='color: var(--text-muted); font-size: 13px;'>Nenhum chamado registrado.</div>";
         return;
       }
-
       var html = "";
       for (var i = 0; i < Math.min(kpiCat.length, 5); i++) {
         var item = kpiCat[i];
         html += `
           <div class="cat-bar-item">
             <div class="cat-bar-label">${item.categoria}</div>
-            <div class="cat-bar-track">
-              <div class="cat-bar-fill" style="width: ${item.percentual}%;"></div>
-            </div>
+            <div class="cat-bar-track"><div class="cat-bar-fill" style="width: ${item.percentual}%;"></div></div>
             <div class="cat-bar-count">${item.quantidade} (${item.percentual}%)</div>
           </div>
         `;
@@ -373,45 +411,31 @@
     function renderizarTabela() {
       var tbody = document.getElementById('tbodyChamados');
       if (!listaChamadosGlobal || listaChamadosGlobal.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">Nenhum chamado encontrado para este filtro.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">Nenhum chamado encontrado.</td></tr>`;
         return;
       }
-
       var html = "";
       for (var i = 0; i < listaChamadosGlobal.length; i++) {
         var c = listaChamadosGlobal[i];
         var badgeClass = "badge-novo";
         var stLower = (c.status || "").toLowerCase();
-        if (stLower.indexOf("análise") !== -1 || stLower.indexOf("analise") !== -1) badgeClass = "badge-analise";
-        if (stLower.indexOf("respondido") !== -1 || stLower.indexOf("concluído") !== -1) badgeClass = "badge-concluido";
+        if (stLower.indexOf("análise") !== -1) badgeClass = "badge-analise";
+        if (stLower.indexOf("respondido") !== -1) badgeClass = "badge-concluido";
 
-        var infoResp = "";
-        if (c.atribuidoA && c.atribuidoA !== "Não atribuído") {
-          infoResp = `<br><span style="font-size:11px; color:var(--text-muted);">👤 ${c.atribuidoA}</span>`;
-        }
-
-        var btnTexto = "💬 Atender";
-        var btnClass = "btn-primary";
-        if (c.emAtendimento) {
-          btnTexto = "👁️ Em Atendimento";
-          btnClass = "btn-secondary";
-        }
+        var infoResp = c.atribuidoA && c.atribuidoA !== "Não atribuído" ? `<br><span style="font-size:11px; color:var(--text-muted);">👤 ${c.atribuidoA}</span>` : "";
 
         html += `
           <tr>
             <td><strong>${c.protocolo}</strong></td>
             <td style="color: var(--text-muted);">${c.dataAbertura}</td>
-            <td>
-              <div style="font-weight: 600;">${c.solicitanteNome}</div>
-              <span class="badge badge-cargo">${c.solicitanteCargo}</span>
-            </td>
+            <td><div style="font-weight: 600;">${c.solicitanteNome}</div><span class="badge badge-cargo">${c.solicitanteCargo}</span></td>
             <td>Loja ${c.filialId}</td>
             <td>${c.categoria}</td>
             <td>${c.assunto}</td>
             <td><span class="badge ${badgeClass}">${c.status}</span>${infoResp}</td>
             <td>
-              <button class="btn ${btnClass}" style="padding: 6px 12px; font-size: 12px;" onclick="iniciarAtendimentoLock('${c.protocolo}')">
-                ${btnTexto}
+              <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;" onclick="iniciarAtendimentoLock('${c.protocolo}')">
+                💬 Atender
               </button>
             </td>
           </tr>
@@ -422,16 +446,12 @@
 
     function filtrarStatus(status, btnElem) {
       filtroStatusAtual = status;
-      var btns = document.querySelectorAll('.tab-btn');
-      btns.forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       btnElem.classList.add('active');
       carregarDadosPainel();
     }
 
     function iniciarAtendimentoLock(protocolo) {
-      var c = listaChamadosGlobal.find(x => x.protocolo === protocolo);
-      if (!c) return;
-
       google.script.run
         .withSuccessHandler(function(res) {
           if (res && res.sucesso) {
@@ -447,7 +467,6 @@
     function abrirAtendimento(protocolo) {
       var c = listaChamadosGlobal.find(x => x.protocolo === protocolo);
       if (!c) return;
-
       protocoloSelecionado = protocolo;
       document.getElementById('mProtocolo').innerText = c.protocolo;
       document.getElementById('mStatusBadge').innerText = c.status;
@@ -457,75 +476,193 @@
       document.getElementById('mCategoria').innerText = c.categoria + " - " + c.assunto;
       document.getElementById('mDescricao').innerHTML = c.descricao;
       document.getElementById('txtResposta').value = "";
-      removerImagemCoord();
-
       carregarHistoricoModal(protocolo);
       document.getElementById('modalAtendimento').style.display = 'flex';
     }
 
     function carregarHistoricoModal(protocolo) {
       var container = document.getElementById('mTimeline');
-      container.innerHTML = "<div style='color: var(--text-muted); font-size: 12px;'>Carregando histórico...</div>";
-
+      container.innerHTML = "<div style='color: var(--text-muted); font-size: 12px;'>Carregando...</div>";
       google.script.run
         .withSuccessHandler(function(res) {
           if (!res || !res.sucesso || !res.historico || res.historico.length === 0) {
-            container.innerHTML = "<div style='color: var(--text-muted); font-size: 12px;'>Nenhuma resposta registrada ainda.</div>";
+            container.innerHTML = "<div style='color: var(--text-muted); font-size: 12px;'>Nenhuma resposta ainda.</div>";
             return;
           }
-
           var html = "";
           for (var i = 0; i < res.historico.length; i++) {
             var h = res.historico[i];
             var isCoord = h.autorPapel.indexOf("Solicitante") === -1;
-            html += `
-              <div class="chat-bubble ${isCoord ? 'coord' : ''}">
-                <div class="chat-meta">
-                  <span>${h.autorNome} (${h.autorPapel})</span>
-                  <span>${h.dataHora}</span>
-                </div>
-                <div>${h.mensagem}</div>
-              </div>
-            `;
+            html += `<div class="chat-bubble ${isCoord ? 'coord' : ''}"><div class="chat-meta"><span>${h.autorNome} (${h.autorPapel})</span><span>${h.dataHora}</span></div><div>${h.mensagem}</div></div>`;
           }
           container.innerHTML = html;
         })
         .consultarHistoricoChamado(protocolo, "gp");
     }
 
-    function fecharModal() {
-      document.getElementById('modalAtendimento').style.display = 'none';
-    }
+    function fecharModal() { document.getElementById('modalAtendimento').style.display = 'none'; }
 
     function enviarResposta() {
       var txt = document.getElementById('txtResposta').value.trim();
       var concluir = document.getElementById('chkConcluir').checked;
       var btn = document.getElementById('btnEnviarResposta');
-
-      if (!txt && !imagemCoordBase64) {
-        alert("Digite uma resposta ou anexe uma imagem antes de enviar.");
-        return;
-      }
-
-      btn.disabled = true;
-      btn.innerText = "⏳ Enviando...";
-
+      if (!txt) { alert("Digite uma resposta."); return; }
+      btn.disabled = true; btn.innerText = "⏳ Enviando...";
       google.script.run
         .withSuccessHandler(function(res) {
-          btn.disabled = false;
-          btn.innerText = "💬 Enviar Resposta";
-
+          btn.disabled = false; btn.innerText = "💬 Enviar Resposta";
           if (res && res.sucesso) {
             document.getElementById('txtResposta').value = "";
-            removerImagemCoord();
             carregarHistoricoModal(protocoloSelecionado);
             carregarDadosPainel();
             alert("Resposta enviada com sucesso!");
-          } else {
-            alert("Erro ao enviar: " + (res ? res.mensagem : "Erro desconhecido"));
-          }
+          } else { alert("Erro ao enviar."); }
         })
-        .responderChamado(protocoloSelecionado, txt, concluir, "gp", imagemCoordBase64);
+        .responderChamado(protocoloSelecionado, txt, concluir, "gp");
+    }
+
+    /* LÓGICA DO GERENCIADOR DE FAQ E LINHA DO TEMPO */
+    function abrirModalGerenciadorFaq() {
+      document.getElementById('modalGerenciadorFaq').style.display = 'flex';
+      carregarItensGerenciador();
+    }
+
+    function fecharModalGerenciador() {
+      document.getElementById('modalGerenciadorFaq').style.display = 'none';
+    }
+
+    function alternarAbaGerenciador(aba) {
+      if (aba === 'faq') {
+        document.getElementById('blockManageFaq').style.display = 'block';
+        document.getElementById('blockManageTimeline').style.display = 'none';
+        document.getElementById('tabManageFaq').classList.add('active');
+        document.getElementById('tabManageTimeline').classList.remove('active');
+      } else {
+        document.getElementById('blockManageFaq').style.display = 'none';
+        document.getElementById('blockManageTimeline').style.display = 'block';
+        document.getElementById('tabManageFaq').classList.remove('active');
+        document.getElementById('tabManageTimeline').classList.add('active');
+      }
+    }
+
+    function carregarItensGerenciador() {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (!res || !res.sucesso) return;
+          dadosManageGlobal = res;
+          renderizarListaManageFaq(res.faq || []);
+          renderizarListaManageTimeline(res.timeline || []);
+        })
+        .obterDadosFaqETimelineCompleto("gp");
+    }
+
+    function renderizarListaManageFaq(lista) {
+      var container = document.getElementById('listManageFaq');
+      if (!lista || lista.length === 0) {
+        container.innerHTML = "<div style='color:var(--text-muted); font-size:12px;'>Nenhum card cadastrado.</div>";
+        return;
+      }
+      var html = "";
+      for (var i = 0; i < lista.length; i++) {
+        var f = lista[i];
+        html += `
+          <div style="background:#FFF; border:1px solid var(--border-color); padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong style="font-size:12px;">${f.id} • ${f.pergunta}</strong>
+              <div style="font-size:11px; color:var(--text-muted);">${f.categoria} • Status: ${f.status}</div>
+            </div>
+            <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="preencherEdicaoFaq('${f.id}')">✏️ Editar</button>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    function preencherEdicaoFaq(id) {
+      var item = dadosManageGlobal.faq.find(x => x.id === id);
+      if (!item) return;
+      document.getElementById('manageFaqId').value = item.id;
+      document.getElementById('manageFaqCategoria').value = item.categoria;
+      document.getElementById('manageFaqPergunta').value = item.pergunta;
+      document.getElementById('manageFaqResposta').value = item.resposta;
+      document.getElementById('manageFaqOrdem').value = item.ordem;
+      document.getElementById('manageFaqStatus').value = item.status;
+    }
+
+    function salvarItemFaqAction() {
+      var payload = {
+        id: document.getElementById('manageFaqId').value,
+        categoria: document.getElementById('manageFaqCategoria').value,
+        pergunta: document.getElementById('manageFaqPergunta').value,
+        resposta: document.getElementById('manageFaqResposta').value,
+        ordem: document.getElementById('manageFaqOrdem').value,
+        status: document.getElementById('manageFaqStatus').value
+      };
+
+      if (!payload.pergunta || !payload.resposta) {
+        alert("Preencha a pergunta e a resposta.");
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res && res.sucesso) {
+            alert("Card do FAQ salvo!");
+            document.getElementById('manageFaqId').value = "";
+            document.getElementById('manageFaqPergunta').value = "";
+            document.getElementById('manageFaqResposta').value = "";
+            carregarItensGerenciador();
+          } else { alert("Erro ao salvar."); }
+        })
+        .salvarItemFaq(payload, "gp");
+    }
+
+    function renderizarListaManageTimeline(lista) {
+      var container = document.getElementById('listManageTimeline');
+      if (!lista || lista.length === 0) {
+        container.innerHTML = "<div style='color:var(--text-muted); font-size:12px;'>Nenhum recado cadastrado.</div>";
+        return;
+      }
+      var html = "";
+      for (var i = 0; i < lista.length; i++) {
+        var t = lista[i];
+        html += `
+          <div style="background:#FFF; border:1px solid var(--border-color); padding:10px; border-radius:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:bold;">
+              <span>${t.dataAviso} • ${t.sistemaModulo}</span>
+              <span>${t.statusSistema} (Exibir: ${t.exibir})</span>
+            </div>
+            <div style="font-size:12px; margin-top:4px;"><strong>${t.tituloAviso}</strong>: ${t.mensagem}</div>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    function salvarItemTimelineAction() {
+      var payload = {
+        sistemaModulo: document.getElementById('manageTimeSistema').value,
+        tituloAviso: document.getElementById('manageTimeTitulo').value,
+        mensagem: document.getElementById('manageTimeMensagem').value,
+        statusSistema: document.getElementById('manageTimeStatus').value,
+        exibir: document.getElementById('manageTimeExibir').value
+      };
+
+      if (!payload.tituloAviso || !payload.mensagem) {
+        alert("Preencha o título e a mensagem.");
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res && res.sucesso) {
+            alert("Recado de sistema salvo!");
+            document.getElementById('manageTimeTitulo').value = "";
+            document.getElementById('manageTimeMensagem').value = "";
+            carregarItensGerenciador();
+          } else { alert("Erro ao salvar."); }
+        })
+        .salvarItemTimeline(payload, "gp");
     }
   </script>
 </body>

@@ -73,7 +73,7 @@
     .faq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 32px; }
     .faq-card {
       background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px;
-      padding: 22px; cursor: pointer; transition: all 0.25 ease; box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03);
+      padding: 22px; cursor: pointer; transition: all 0.25s ease; box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03);
       display: flex; flex-direction: column; justify-content: space-between;
     }
     .faq-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(124,58,237,0.08); }
@@ -98,8 +98,6 @@
       background: linear-gradient(135deg, var(--primary-light), #FFFFFF); border: 1px solid #DDD6FE;
       border-radius: 18px; padding: 28px; text-align: center; margin-top: 20px;
     }
-
-    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -153,16 +151,10 @@
     function carregarDadosAjuda() {
       google.script.run
         .withSuccessHandler(function(res) {
-          if (!res || !res.sucesso) {
-            console.error("Erro ao carregar dados de FAQ:", res);
-            return;
-          }
+          if (!res || !res.sucesso) return;
           renderizarTimeline(res.timeline || []);
           listaFaqGlobal = res.faq || [];
           renderizarFaqGrid(listaFaqGlobal);
-        })
-        .withFailureHandler(function(err) {
-          console.error("Erro na comunicação:", err);
         })
         .obterDadosFaqETimeline();
     }

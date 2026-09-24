@@ -8,7 +8,8 @@
  */
 
 /**
- * Leitura dinâmica dos Cards de FAQ e Avisos da Linha do Tempo para exibição na Central de Ajuda.
+ * Leitura de FAQ e Linha do Tempo para a visão pública do Colaborador (Faq.html).
+ * Retorna apenas os registros com status Ativo / Exibir = Sim.
  * @return {Object}
  */
 function obterDadosFaqETimeline() {
@@ -20,7 +21,6 @@ function obterDadosFaqETimeline() {
     var listaFaq = [];
     var listaTimeline = [];
 
-    // 1. Processa Cards de FAQ
     if (abaFaq) {
       var dadosFaq = abaFaq.getDataRange().getValues();
       for (var f = 1; f < dadosFaq.length; f++) {
@@ -31,14 +31,14 @@ function obterDadosFaqETimeline() {
             categoria: String(dadosFaq[f][1] || "Geral").trim(),
             pergunta: String(dadosFaq[f][2] || "").trim(),
             resposta: converterLinksParaHtml(dadosFaq[f][3]),
-            ordem: parseInt(dadosFaq[f][4] || 99, 10)
+            ordem: parseInt(dadosFaq[f][4] || 99, 10),
+            status: "Ativo"
           });
         }
       }
       listaFaq.sort(function(a, b) { return a.ordem - b.ordem; });
     }
 
-    // 2. Processa Linha do Tempo
     if (abaTimeline) {
       var dadosTime = abaTimeline.getDataRange().getValues();
       for (var t = 1; t < dadosTime.length; t++) {
@@ -49,21 +49,79 @@ function obterDadosFaqETimeline() {
             sistemaModulo: String(dadosTime[t][1] || "Sistema GP").trim(),
             tituloAviso: String(dadosTime[t][2] || "").trim(),
             mensagem: converterLinksParaHtml(dadosTime[t][3]),
-            statusSistema: String(dadosTime[t][4] || "✅ Estável / Normalizado").trim()
+            statusSistema: String(dadosTime[t][4] || "✅ Estável / Normalizado").trim(),
+            exibir: "Sim"
           });
         }
       }
       listaTimeline.reverse();
     }
 
-    return {
-      sucesso: true,
-      faq: listaFaq,
-      timeline: listaTimeline
-    };
+    return { sucesso: true, faq: listaFaq, timeline: listaTimeline };
   } catch (e) {
     Logger.log("Erro em obterDadosFaqETimeline: " + e.toString());
     return { sucesso: false, faq: [], timeline: [] };
+  }
+}
+
+/**
+ * Leitura COMPLETA de FAQ e Linha do Tempo para o Modal Administrativo do Painel do Coordenador.
+ * Inclui os registros ocultos para permitir a reativação com 1 clique.
+ *
+ * @param {string} [chaveAcesso]
+ * @return {Object}
+ */
+function obterDadosFaqETimelineCompleto(chaveAcesso) {
+  var permissao = validarAcessoCoordenador(chaveAcesso);
+  if (!permissao.autorizado) {
+    return { sucesso: false, mensagem: "Acesso não autorizado." };
+  }
+
+  try {
+    var ssChamados = getSpreadsheetChamados();
+    var abaFaq = obterAbaFlexivel(ssChamados, CONFIG.ABA_FAQ);
+    var abaTimeline = obterAbaFlexivel(ssChamados, CONFIG.ABA_TIMELINE);
+
+    var listaFaq = [];
+    var listaTimeline = [];
+
+    if (abaFaq) {
+      var dadosFaq = abaFaq.getDataRange().getValues();
+      for (var f = 1; f < dadosFaq.length; f++) {
+        if (dadosFaq[f][0] || dadosFaq[f][2]) {
+          listaFaq.push({
+            id: String(dadosFaq[f][0] || ("FAQ-" + f)),
+            categoria: String(dadosFaq[f][1] || "Geral").trim(),
+            pergunta: String(dadosFaq[f][2] || "").trim(),
+            resposta: String(dadosFaq[f][3] || "").trim(),
+            ordem: parseInt(dadosFaq[f][4] || f, 10),
+            status: String(dadosFaq[f][5] || "Ativo").trim()
+          });
+        }
+      }
+    }
+
+    if (abaTimeline) {
+      var dadosTime = abaTimeline.getDataRange().getValues();
+      for (var t = 1; t < dadosTime.length; t++) {
+        if (dadosTime[t][1] || dadosTime[t][2]) {
+          listaTimeline.push({
+            id: "TIME-" + t,
+            dataAviso: dadosTime[t][0] ? Utilities.formatDate(new Date(dadosTime[t][0]), "GMT-03:00", "dd/MM/yyyy HH:mm") : "",
+            sistemaModulo: String(dadosTime[t][1] || "Geral").trim(),
+            tituloAviso: String(dadosTime[t][2] || "").trim(),
+            mensagem: String(dadosTime[t][3] || "").trim(),
+            statusSistema: String(dadosTime[t][4] || "✅ Estável / Normalizado").trim(),
+            exibir: String(dadosTime[t][5] || "Sim").trim()
+          });
+        }
+      }
+    }
+
+    return { sucesso: true, faq: listaFaq, timeline: listaTimeline };
+  } catch (e) {
+    Logger.log("Erro em obterDadosFaqETimelineCompleto: " + e.toString());
+    return { sucesso: false, mensagem: e.toString() };
   }
 }
 
@@ -109,10 +167,7 @@ function buscarColaboradorPorId(idInput) {
       }
     }
 
-    return {
-      sucesso: false,
-      mensagem: "Matrícula/ID não localizado na base DADOS_ATIVOS."
-    };
+    return { sucesso: false, mensagem: "Matrícula/ID não localizado na base DADOS_ATIVOS." };
   } catch (e) {
     Logger.log("Erro em buscarColaboradorPorId: " + e.toString());
     return { sucesso: false, mensagem: "Erro ao consultar base de ativos: " + e.toString() };
@@ -129,11 +184,7 @@ function buscarInfoFilial(filialInput) {
   if (!filialNorm) {
     return { sucesso: false, filialId: "", filialNome: "" };
   }
-  return {
-    sucesso: true,
-    filialId: filialNorm,
-    filialNome: "Loja " + filialNorm
-  };
+  return { sucesso: true, filialId: filialNorm, filialNome: "Loja " + filialNorm };
 }
 
 /**
@@ -164,10 +215,8 @@ function obterListaCategorias() {
 
 /**
  * Lista chamados para o painel de atendimento dos Coordenadores.
- * Inclui validação de status de atendimento (Em Análise Por) para controle de concorrência.
- *
- * @param {string} [filtroStatus] Opcional
- * @param {string} [chaveAcesso] Opcional
+ * @param {string} [filtroStatus]
+ * @param {string} [chaveAcesso]
  * @return {Object}
  */
 function listarChamadosPainel(filtroStatus, chaveAcesso) {
@@ -314,7 +363,7 @@ function listarChamadosPainel(filtroStatus, chaveAcesso) {
 }
 
 /**
- * Consulta a lista de dúvidas enviadas por um colaborador na planilha dedicada.
+ * Consulta a lista de dúvidas enviadas por um colaborador.
  * @param {string|number} idInput
  * @return {Object}
  */
@@ -387,7 +436,7 @@ function listarChamadosPorColaboradorId(idInput) {
 }
 
 /**
- * Consulta histórico de interações por protocolo.
+ * Consulta histórico por protocolo.
  * @param {string} protocolo
  * @param {string} [chaveAcesso]
  * @return {Object}
@@ -427,7 +476,7 @@ function consultarHistoricoChamado(protocolo, chaveAcesso) {
 }
 
 /**
- * Registra réplica do colaborador em um chamado existente.
+ * Registra réplica do colaborador.
  * @param {string} protocolo
  * @param {string} matricula
  * @param {string} texto
@@ -491,7 +540,7 @@ function enviarReplicaColaborador(protocolo, matricula, texto) {
 }
 
 /**
- * Gera um mapa chave-valor { id: cargo } a partir de DADOS_ATIVOS na Planilha Master.
+ * Gera mapa de cargos ativos.
  * @return {Object}
  */
 function obterMapaCargosAtivos() {

@@ -9,8 +9,11 @@
 
 /**
  * REGRA GLOBAL DE NORMALIZAÇÃO DE FILIAIS (MIDDLEWARE > 3000)
- * @param {string|number} val
- * @return {string}
+ * Converte qualquer ID de filial para número limpo.
+ * Se o valor for estritamente superior a 3000 (ex: 4164), subtrai 3000 em memória (virando 1164).
+ *
+ * @param {string|number} val ID ou código bruto da filial
+ * @return {string} ID da filial normalizado em formato string
  */
 function normalizarFilialId(val) {
   if (!val && val !== 0) return "";
