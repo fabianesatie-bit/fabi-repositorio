@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Central de Ajuda & Status dos Sistemas - GP360</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #7C3AED;
+      --primary-light: #F3E8FF;
+      --primary-dark: #6B21A8;
+
+      --blue-soft: #2563EB;
+      --blue-badge: #EFF6FF;
+      --blue-text: #1E40AF;
+
+      --menta-soft: #10B981;
+      --menta-badge: #ECFDF5;
+      --menta-text: #065F46;
+
+      --pessego-soft: #F59E0B;
+      --pessego-badge: #FFFBEB;
+      --pessego-text: #92400E;
+
+      --coral-soft: #F43F5E;
+      --coral-badge: #FFF1F2;
+      --coral-text: #9F1239;
+
+      --bg-main: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --border-color: #E2E8F0;
+      --text-main: #1E293B;
+      --text-muted: #64748B;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+
+    .top-accent-bar { height: 5px; background: linear-gradient(90deg, var(--primary), var(--blue-soft), var(--menta-soft), var(--pessego-soft)); }
+
+    header {
+      background-color: #FFFFFF; border-bottom: 1px solid var(--border-color); padding: 16px 28px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;
+    }
+
+    .brand-title { font-size: 1.25rem; font-weight: 800; color: var(--primary-dark); display: flex; align-items: center; gap: 10px; }
+    .brand-badge { background-color: var(--primary-light); color: var(--primary-dark); font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+
+    .btn-cta {
+      background-color: var(--primary); color: #FFFFFF; padding: 10px 20px; border-radius: 10px;
+      font-weight: 700; font-size: 0.88rem; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;
+    }
+    .btn-cta:hover { opacity: 0.92; transform: translateY(-1px); }
+
+    .main-container { max-width: 920px; width: 100%; margin: 28px auto; padding: 0 20px; flex: 1; }
+
+    .section-title { font-size: 1.2rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+
+    /* Bento Grid da Linha do Tempo */
+    .timeline-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+    .timeline-card {
+      background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px;
+      padding: 18px 22px; border-left: 5px solid var(--primary); box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03);
+    }
+    .timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px; }
+    .timeline-system { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+
+    /* Cards Bento Grid de Dúvidas */
+    .faq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .faq-card {
+      background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px;
+      padding: 22px; cursor: pointer; transition: all 0.25 ease; box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03);
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .faq-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(124,58,237,0.08); }
+    .faq-card-cat { font-size: 0.75rem; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 8px; }
+    .faq-card-question { font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 10px; line-height: 1.4; }
+    .faq-card-answer { font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border-color); white-space: pre-wrap; }
+    .faq-card.aberto .faq-card-answer { display: block; }
+
+    /* Badges */
+    .badge { padding: 4px 10px; border-radius: 8px; font-size: 0.76rem; font-weight: 700; display: inline-block; }
+    .badge-estavel { background-color: var(--menta-badge); color: var(--menta-text); }
+    .badge-ajuste { background-color: var(--pessego-badge); color: var(--pessego-text); }
+    .badge-manutencao { background-color: var(--coral-badge); color: var(--coral-text); }
+
+    .search-box {
+      width: 100%; padding: 14px 18px; border: 1px solid var(--border-color); border-radius: 12px;
+      font-size: 0.95rem; margin-bottom: 24px; outline: none; background: #FFF; transition: border 0.2s;
+    }
+    .search-box:focus { border-color: var(--primary); }
+
+    .cta-banner {
+      background: linear-gradient(135deg, var(--primary-light), #FFFFFF); border: 1px solid #DDD6FE;
+      border-radius: 18px; padding: 28px; text-align: center; margin-top: 20px;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div class="top-accent-bar"></div>
+
+  <header>
+    <div class="brand-title">
+      <span>🤝 Central de Ajuda & FAQ GP360</span>
+      <span class="brand-badge">Magazine Luiza</span>
+    </div>
+    <a href="?page=index" class="btn-cta">
+      🚀 Abrir uma Dúvida com o GP
+    </a>
+  </header>
+
+  <div class="main-container">
+    
+    <!-- SESSÃO 1: LINHA DO TEMPO / STATUS DOS SISTEMAS -->
+    <div class="section-title">⏱️ Status dos Sistemas & Atualizações em Tempo Real</div>
+    <div class="timeline-container" id="containerTimeline">
+      <div style="color: var(--text-muted); font-size: 0.88rem;">Carregando avisos e atualizações...</div>
+    </div>
+
+    <!-- SESSÃO 2: CARDS BENTO GRID DE DÚVIDAS -->
+    <div class="section-title" style="margin-top: 36px;">📚 Dúvidas Frequentes (FAQ)</div>
+    <input type="text" class="search-box" id="txtBuscaFaq" placeholder="🔍 Digite uma palavra-chave para filtrar as dúvidas (ex: ponto, HCM, afastamento)..." oninput="filtrarCardsFaq()">
+
+    <div class="faq-grid" id="containerFaqGrid">
+      <div style="color: var(--text-muted); font-size: 0.88rem;">Carregando cards de dúvidas...</div>
+    </div>
+
+    <!-- SESSÃO 3: BANNER CTA PARA ABRIR CHAMADO -->
+    <div class="cta-banner">
+      <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 6px;">Não encontrou a resposta para o seu problema?</h3>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 18px;">Nossa equipe de Gestão de Pessoas está pronta para orientar você e sua loja.</p>
+      <a href="?page=index" class="btn-cta" style="padding: 12px 24px; font-size: 0.95rem;">
+        📝 Clique Aqui para Enviar sua Dúvida
+      </a>
+    </div>
+
+  </div>
+
+  <script>
+    var listaFaqGlobal = [];
+
+    window.onload = function() {
+      carregarDadosAjuda();
+    };
+
+    function carregarDadosAjuda() {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (!res || !res.sucesso) {
+            console.error("Erro ao carregar dados de FAQ:", res);
+            return;
+          }
+          renderizarTimeline(res.timeline || []);
+          listaFaqGlobal = res.faq || [];
+          renderizarFaqGrid(listaFaqGlobal);
+        })
+        .withFailureHandler(function(err) {
+          console.error("Erro na comunicação:", err);
+        })
+        .obterDadosFaqETimeline();
+    }
+
+    function renderizarTimeline(listaTimeline) {
+      var container = document.getElementById('containerTimeline');
+      if (!listaTimeline || listaTimeline.length === 0) {
+        container.innerHTML = "<div style='color: var(--text-muted); font-size: 0.88rem;'>Todos os sistemas do GP estão operando normalmente.</div>";
+        return;
+      }
+
+      var html = "";
+      for (var i = 0; i < listaTimeline.length; i++) {
+        var t = listaTimeline[i];
+        var badgeClass = "badge-estavel";
+        var stLower = (t.statusSistema || "").toLowerCase();
+        if (stLower.indexOf("manutenção") !== -1 || stLower.indexOf("manutencao") !== -1) badgeClass = "badge-manutencao";
+        if (stLower.indexOf("ajuste") !== -1) badgeClass = "badge-ajuste";
+
+        html += `
+          <div class="timeline-card">
+            <div class="timeline-header">
+              <span class="timeline-system">${t.dataAviso} • ${t.sistemaModulo}</span>
+              <span class="badge ${badgeClass}">${t.statusSistema}</span>
+            </div>
+            <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">${t.tituloAviso}</div>
+            <div style="font-size: 0.86rem; color: var(--text-muted); line-height: 1.5;">${t.mensagem}</div>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    function renderizarFaqGrid(listaFaq) {
+      var container = document.getElementById('containerFaqGrid');
+      if (!listaFaq || listaFaq.length === 0) {
+        container.innerHTML = "<div style='color: var(--text-muted); font-size: 0.88rem;'>Nenhuma dúvida encontrada.</div>";
+        return;
+      }
+
+      var html = "";
+      for (var i = 0; i < listaFaq.length; i++) {
+        var f = listaFaq[i];
+        html += `
+          <div class="faq-card" onclick="toggleCardFaq(this)">
+            <div>
+              <div class="faq-card-cat">${f.categoria}</div>
+              <div class="faq-card-question">${f.pergunta}</div>
+            </div>
+            <div style="font-size: 0.78rem; font-weight: 700; color: var(--primary); text-align: right;">Clique para ver a resposta ▾</div>
+            <div class="faq-card-answer">${f.resposta}</div>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    function toggleCardFaq(cardElem) {
+      cardElem.classList.toggle('aberto');
+    }
+
+    function filtrarCardsFaq() {
+      var termo = document.getElementById('txtBuscaFaq').value.toLowerCase().trim();
+      if (!termo) {
+        renderizarFaqGrid(listaFaqGlobal);
+        return;
+      }
+
+      var filtrados = listaFaqGlobal.filter(function(item) {
+        return item.pergunta.toLowerCase().indexOf(termo) !== -1 ||
+               item.categoria.toLowerCase().indexOf(termo) !== -1 ||
+               item.resposta.toLowerCase().indexOf(termo) !== -1;
+      });
+
+      renderizarFaqGrid(filtrados);
+    }
+  </script>
+</body>
+</html>

@@ -37,253 +37,56 @@
       --text-muted: #64748B;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
 
-    body {
-      background-color: var(--bg-main);
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .top-accent-bar {
-      height: 5px;
-      background: linear-gradient(90deg, var(--primary), var(--blue-soft), var(--menta-soft), var(--pessego-soft));
-    }
+    .top-accent-bar { height: 5px; background: linear-gradient(90deg, var(--primary), var(--blue-soft), var(--menta-soft), var(--pessego-soft)); }
 
     header {
-      background-color: #FFFFFF;
-      border-bottom: 1px solid var(--border-color);
-      padding: 16px 28px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 15px;
+      background-color: #FFFFFF; border-bottom: 1px solid var(--border-color); padding: 16px 28px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;
     }
 
-    .brand-title {
-      font-size: 1.25rem;
-      font-weight: 800;
-      color: var(--primary-dark);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    .brand-title { font-size: 1.25rem; font-weight: 800; color: var(--primary-dark); display: flex; align-items: center; gap: 10px; }
+    .brand-badge { background-color: var(--primary-light); color: var(--primary-dark); font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
 
-    .brand-badge {
-      background-color: var(--primary-light);
-      color: var(--primary-dark);
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 20px;
-    }
+    .nav-tabs { display: flex; gap: 8px; background-color: #F1F5F9; padding: 4px; border-radius: 12px; }
+    .tab-btn { border: none; background: transparent; padding: 8px 18px; font-weight: 700; font-size: 0.88rem; color: var(--text-muted); border-radius: 8px; cursor: pointer; transition: all 0.2s ease; }
+    .tab-btn.active { background-color: #FFFFFF; color: var(--primary-dark); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
 
-    .nav-tabs {
-      display: flex;
-      gap: 8px;
-      background-color: #F1F5F9;
-      padding: 4px;
-      border-radius: 12px;
-    }
+    .main-container { max-width: 860px; width: 100%; margin: 28px auto; padding: 0 20px; flex: 1; }
+    .bento-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 30px; box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03); }
 
-    .tab-btn {
-      border: none;
-      background: transparent;
-      padding: 8px 18px;
-      font-weight: 700;
-      font-size: 0.88rem;
-      color: var(--text-muted);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 700; color: var(--text-main); margin-bottom: 6px; }
+    .form-control { width: 100%; padding: 11px 14px; border: 1px solid var(--border-color); border-radius: 10px; font-size: 0.92rem; color: var(--text-main); outline: none; transition: border 0.2s ease; background-color: #FAFAFA; }
+    .form-control:focus { border-color: var(--primary); background-color: #FFFFFF; }
 
-    .tab-btn.active {
-      background-color: #FFFFFF;
-      color: var(--primary-dark);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .input-hint { font-size: 0.76rem; color: var(--text-muted); margin-top: 4px; }
 
-    .main-container {
-      max-width: 860px;
-      width: 100%;
-      margin: 28px auto;
-      padding: 0 20px;
-      flex: 1;
-    }
-
-    .bento-card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 30px;
-      box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03);
-    }
-
-    .form-group {
-      margin-bottom: 18px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--text-main);
-      margin-bottom: 6px;
-    }
-
-    .form-control {
-      width: 100%;
-      padding: 11px 14px;
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      font-size: 0.92rem;
-      color: var(--text-main);
-      outline: none;
-      transition: border 0.2s ease;
-      background-color: #FAFAFA;
-    }
-
-    .form-control:focus {
-      border-color: var(--primary);
-      background-color: #FFFFFF;
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .input-hint {
-      font-size: 0.76rem;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
-
-    .btn {
-      border: none;
-      padding: 12px 22px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 0.92rem;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all 0.2s ease;
-      width: 100%;
-    }
-
+    .btn { border: none; padding: 12px 22px; border-radius: 10px; font-weight: 700; font-size: 0.92rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s ease; width: 100%; }
     .btn-primary { background-color: var(--primary); color: #FFFFFF; }
     .btn-secondary { background-color: #F1F5F9; color: var(--text-main); }
-    .btn-success { background-color: var(--menta-soft); color: #FFFFFF; }
 
-    .btn:hover { opacity: 0.93; transform: translateY(-1px); }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-
-    .badge {
-      padding: 4px 10px;
-      border-radius: 8px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      display: inline-block;
-    }
-
+    .badge { padding: 4px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 700; display: inline-block; }
     .badge-novo { background-color: var(--coral-badge); color: var(--coral-text); }
     .badge-analise { background-color: var(--pessego-badge); color: var(--pessego-text); }
     .badge-respondido { background-color: var(--menta-badge); color: var(--menta-text); }
 
-    .card-item-duvida {
-      background-color: #FFFFFF;
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
+    .card-item-duvida { background-color: #FFFFFF; border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s ease; }
+    .card-item-duvida:hover { border-color: var(--primary); box-shadow: 0 4px 12px rgba(124,58,237,0.08); transform: translateY(-2px); }
+    .card-item-duvida.selecionado { border-color: var(--primary); background-color: #FAF5FF; }
 
-    .card-item-duvida:hover {
-      border-color: var(--primary);
-      box-shadow: 0 4px 12px rgba(124,58,237,0.08);
-      transform: translateY(-2px);
-    }
+    .chat-bubble { padding: 14px 16px; border-radius: 12px; margin-bottom: 12px; max-width: 90%; line-height: 1.5; }
+    .bubble-user { background-color: var(--blue-badge); border: 1px solid #BFDBFE; margin-right: auto; }
+    .bubble-coord { background-color: var(--primary-light); border: 1px solid #DDD6FE; margin-left: auto; }
+    .bubble-header { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; margin-bottom: 5px; }
 
-    .card-item-duvida.selecionado {
-      border-color: var(--primary);
-      background-color: #FAF5FF;
-    }
-
-    .chat-bubble {
-      padding: 14px 16px;
-      border-radius: 12px;
-      margin-bottom: 12px;
-      max-width: 90%;
-      line-height: 1.5;
-    }
-
-    .bubble-user {
-      background-color: var(--blue-badge);
-      border: 1px solid #BFDBFE;
-      margin-right: auto;
-    }
-
-    .bubble-coord {
-      background-color: var(--primary-light);
-      border: 1px solid #DDD6FE;
-      margin-left: auto;
-    }
-
-    .bubble-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      font-weight: 700;
-      margin-bottom: 5px;
-    }
-
-    .success-box {
-      background-color: var(--menta-badge);
-      border: 1px solid #A7F3D0;
-      padding: 24px;
-      border-radius: 14px;
-      text-align: center;
-      margin-top: 20px;
-    }
-
-    .toast-box {
-      padding: 12px 16px;
-      border-radius: 10px;
-      margin-bottom: 18px;
-      font-size: 0.88rem;
-      font-weight: 600;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .toast-error { background-color: var(--coral-badge); color: var(--coral-text); border: 1px solid #FECDD3; }
-    .toast-success { background-color: var(--menta-badge); color: var(--menta-text); border: 1px solid #A7F3D0; }
+    .image-preview-box { display: none; margin-top: 10px; padding: 10px; background: #F1F5F9; border-radius: 10px; position: relative; }
+    .image-preview-box img { max-width: 100%; max-height: 180px; border-radius: 8px; }
 
     .hidden { display: none !important; }
-
-    @media (max-width: 640px) {
-      .grid-2 { grid-template-columns: 1fr; }
-      .bento-card { padding: 20px; }
-      header { flex-direction: column; align-items: flex-start; }
-      .nav-tabs { width: 100%; justify-content: space-between; }
-      .tab-btn { flex: 1; text-align: center; padding: 8px 10px; font-size: 0.8rem; }
-    }
   </style>
 </head>
 <body>
@@ -353,8 +156,17 @@
           </div>
 
           <div class="form-group">
-            <label>Descreva sua Dúvida com Detalhes *</label>
-            <textarea id="descricao" class="form-control" rows="5" placeholder="Explique com clareza o que aconteceu para que a equipe de GP possa te orientar com agilidade..." required></textarea>
+            <label>Descreva sua Dúvida com Detalhes * (Copie e cole imagens/prints diretamente aqui)</label>
+            <textarea id="descricao" class="form-control" rows="5" placeholder="Explique com clareza a dúvida. Você também pode dar Ctrl+V para colar um PrintScreen..." required></textarea>
+            
+            <div class="input-hint">Você pode anexar um arquivo ou colar uma imagem do seu teclado (Ctrl+V).</div>
+            <input type="file" id="fileAnexo" accept="image/*" style="margin-top: 8px; font-size: 12px;" onchange="tratarArquivoUpload(this)">
+
+            <div class="image-preview-box" id="previewContainer">
+              <span style="font-size: 11px; font-weight: 700; color: var(--primary);">📷 Imagem Anexada:</span>
+              <button type="button" style="float: right; border:none; background:none; cursor:pointer; color:red; font-weight:bold;" onclick="removerImagemAnexo()">✕</button>
+              <div style="margin-top: 6px;"><img id="imgPreview" src=""></div>
+            </div>
           </div>
 
           <button type="submit" id="btnEnviar" class="btn btn-primary">
@@ -369,12 +181,8 @@
         <p style="color: #334155; font-size: 0.9rem; margin-top: 6px;">
           Sua dúvida foi encaminhada para a equipe de Gestão de Pessoas.
         </p>
-        
-        <p style="color: var(--text-muted); font-size: 0.88rem; max-width: 520px; margin: 14px auto 22px auto;">
-          Você não precisa se preocupar em anotar número de protocolo! Para ver a resposta, basta digitar a sua <strong>matrícula</strong> na aba <strong>"Consultar Minhas Dúvidas"</strong>.
-        </p>
 
-        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
           <button class="btn btn-primary" style="max-width: 300px;" onclick="irParaMinhasDuvidasDireto()">
             🔍 Ver Minhas Dúvidas Agora
           </button>
@@ -452,6 +260,7 @@
     var LISTA_CHAMADOS_CACHE = [];
     var CHAMADO_SELECIONADO_ATUAL = null;
     var timerBuscaColab = null;
+    var imagemAnexaBase64 = null;
 
     window.onload = function() {
       google.script.run
@@ -467,22 +276,46 @@
             });
           }
         })
-        .withFailureHandler(function(err) {
-          mostrarToast('Erro ao carregar categorias: ' + err.message, 'error');
-        })
         .obterListaCategorias();
+
+      // Suporte a Ctrl+V no Textarea de Descrição
+      document.getElementById('descricao').addEventListener('paste', function(e) {
+        var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf("image") === 0) {
+            var blob = items[i].getAsFile();
+            var reader = new FileReader();
+            reader.onload = function(event) {
+              setImagemPreview(event.target.result);
+            };
+            reader.readAsDataURL(blob);
+            break;
+          }
+        }
+      });
     };
 
-    function mostrarToast(msg, tipo) {
-      var container = document.getElementById('toastContainer');
-      container.innerHTML = 
-        '<div class="toast-box ' + (tipo === 'error' ? 'toast-error' : 'toast-success') + '">' +
-          '<span>' + msg + '</span>' +
-          '<button style="background:none; border:none; cursor:pointer; font-weight:bold;" onclick="this.parentElement.remove()">✕</button>' +
-        '</div>';
-      setTimeout(function() {
-        if (container.firstElementChild) container.firstElementChild.remove();
-      }, 7000);
+    function tratarArquivoUpload(input) {
+      if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          setImagemPreview(e.target.result);
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function setImagemPreview(base64) {
+      imagemAnexaBase64 = base64;
+      document.getElementById('imgPreview').src = base64;
+      document.getElementById('previewContainer').style.display = 'block';
+    }
+
+    function removerImagemAnexo() {
+      imagemAnexaBase64 = null;
+      document.getElementById('imgPreview').src = '';
+      document.getElementById('previewContainer').style.display = 'none';
+      document.getElementById('fileAnexo').value = '';
     }
 
     function trocarAbaPublica(abaId) {
@@ -526,31 +359,10 @@
             } else {
               hint.textContent = '⚠️ Não localizado na base DADOS_ATIVOS.';
               hint.style.color = 'var(--pessego-soft)';
-              document.getElementById('solicitanteNome').value = '';
-              document.getElementById('filialId').value = '';
-              document.getElementById('filialNome').value = '';
             }
-          })
-          .withFailureHandler(function(err) {
-            hint.textContent = 'Erro na busca: ' + err.message;
-            hint.style.color = 'var(--coral-text)';
           })
           .buscarColaboradorPorId(idVal);
       }, 300);
-    }
-
-    function consultarFilial() {
-      var filialVal = document.getElementById('filialId').value.trim();
-      if (!filialVal) return;
-
-      google.script.run
-        .withSuccessHandler(function(res) {
-          if (res && res.sucesso) {
-            document.getElementById('filialId').value = res.filialId;
-            document.getElementById('filialNome').value = res.filialNome;
-          }
-        })
-        .buscarInfoFilial(filialVal);
     }
 
     function submeterChamado(e) {
@@ -559,7 +371,7 @@
       var nomeVal = document.getElementById('solicitanteNome').value.trim();
 
       if (!nomeVal) {
-        mostrarToast('Por favor, informe uma matrícula válida para carregar o seu nome.', 'error');
+        alert('Por favor, informe uma matrícula válida para carregar o seu nome.');
         return;
       }
 
@@ -574,7 +386,8 @@
         filialNome: document.getElementById('filialNome').value,
         categoria: document.getElementById('categoria').value,
         assunto: document.getElementById('assunto').value,
-        descricao: document.getElementById('descricao').value
+        descricao: document.getElementById('descricao').value,
+        imagemBase64: imagemAnexaBase64
       };
 
       google.script.run
@@ -584,24 +397,19 @@
 
           if (res && res.sucesso) {
             MATRICULA_SALVA_RECENTE = idVal;
+            removerImagemAnexo();
             document.getElementById('cardFormulario').classList.add('hidden');
             document.getElementById('cardSucesso').classList.remove('hidden');
           } else {
-            mostrarToast('Erro ao registrar dúvida: ' + (res ? res.mensagem : 'Erro desconhecido'), 'error');
+            alert('Erro ao registrar dúvida: ' + (res ? res.mensagem : 'Erro desconhecido'));
           }
-        })
-        .withFailureHandler(function(err) {
-          btn.disabled = false;
-          btn.textContent = '🚀 Enviar Dúvida para o GP';
-          mostrarToast('Erro de conexão ao registrar dúvida: ' + err.message, 'error');
         })
         .registrarNovoChamado(payload);
     }
 
     function abrirNovoFormulario() {
       document.getElementById('formChamado').reset();
-      document.getElementById('hintId').textContent = 'Digite sua matrícula para buscar seus dados.';
-      document.getElementById('hintId').style.color = 'var(--text-muted)';
+      removerImagemAnexo();
       document.getElementById('cardSucesso').classList.add('hidden');
       document.getElementById('cardFormulario').classList.remove('hidden');
     }
@@ -615,7 +423,7 @@
     function consultarMinhasDuvidas() {
       var matricula = document.getElementById('consultaMatricula').value.replace(/\D/g, '').trim();
       if (!matricula) {
-        mostrarToast('Por favor, digite sua matrícula/ID.', 'error');
+        alert('Por favor, digite sua matrícula/ID.');
         return;
       }
 
@@ -629,7 +437,7 @@
           btn.textContent = '🔍 Consultar Dúvidas';
 
           if (!res || !res.sucesso || !res.chamados || res.chamados.length === 0) {
-            mostrarToast('Nenhuma dúvida encontrada para esta matrícula.', 'error');
+            alert('Nenhuma dúvida encontrada para esta matrícula.');
             document.getElementById('boxListaDuvidas').classList.add('hidden');
             document.getElementById('boxDetalheDuvida').classList.add('hidden');
             return;
@@ -637,11 +445,6 @@
 
           LISTA_CHAMADOS_CACHE = res.chamados;
           renderizarListaDuvidas(res.chamados);
-        })
-        .withFailureHandler(function(err) {
-          btn.disabled = false;
-          btn.textContent = '🔍 Consultar Dúvidas';
-          mostrarToast('Erro ao consultar: ' + err.message, 'error');
         })
         .listarChamadosPorColaboradorId(matricula);
     }
@@ -659,7 +462,7 @@
         var badgeClass = 'badge-novo';
         var stLower = (c.status || '').toLowerCase();
         if (stLower.indexOf('análise') !== -1 || stLower.indexOf('analise') !== -1) badgeClass = 'badge-analise';
-        if (stLower.indexOf('respondido') !== -1 || stLower.indexOf('concluído') !== -1 || stLower.indexOf('concluido') !== -1) badgeClass = 'badge-respondido';
+        if (stLower.indexOf('respondido') !== -1 || stLower.indexOf('concluído') !== -1) badgeClass = 'badge-respondido';
 
         card.className = 'card-item-duvida' + (index === 0 ? ' selecionado' : '');
         card.id = 'cardDuvida_' + c.protocolo;
@@ -712,7 +515,6 @@
       var chat = document.getElementById('chatMensagens');
       chat.innerHTML = '';
 
-      // Renderiza a pergunta inicial do colaborador
       var divOrig = document.createElement('div');
       divOrig.className = 'chat-bubble bubble-user';
       divOrig.innerHTML = 
@@ -723,7 +525,6 @@
         '<div style="font-size:0.9rem;">' + achado.descricao + '</div>';
       chat.appendChild(divOrig);
 
-      // Renderiza as orientações do GP e réplicas do histórico
       if (achado.historico && achado.historico.length > 0) {
         achado.historico.forEach(function(m) {
           var div = document.createElement('div');
@@ -745,13 +546,13 @@
 
     function enviarMensagemComplementar() {
       if (!CHAMADO_SELECIONADO_ATUAL) {
-        mostrarToast('Selecione uma dúvida antes de enviar.', 'error');
+        alert('Selecione uma dúvida antes de enviar.');
         return;
       }
 
       var texto = document.getElementById('textoReplica').value.trim();
       if (!texto) {
-        mostrarToast('Digite sua mensagem antes de enviar.', 'error');
+        alert('Digite sua mensagem antes de enviar.');
         return;
       }
 
@@ -766,17 +567,12 @@
           btn.disabled = false;
           btn.textContent = '💬 Enviar Mensagem Adicional';
           if (res && res.sucesso) {
-            mostrarToast("Mensagem enviada com sucesso!", 'success');
+            alert("Mensagem enviada com sucesso!");
             document.getElementById('textoReplica').value = '';
             consultarMinhasDuvidas();
           } else {
-            mostrarToast('Erro ao enviar: ' + (res ? res.mensagem : 'Erro desconhecido'), 'error');
+            alert('Erro ao enviar: ' + (res ? res.mensagem : 'Erro desconhecido'));
           }
-        })
-        .withFailureHandler(function(err) {
-          btn.disabled = false;
-          btn.textContent = '💬 Enviar Mensagem Adicional';
-          mostrarToast('Erro ao enviar: ' + err.message, 'error');
         })
         .enviarReplicaColaborador(CHAMADO_SELECIONADO_ATUAL.protocolo, matricula, texto);
     }

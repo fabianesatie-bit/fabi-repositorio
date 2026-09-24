@@ -8,7 +8,67 @@
  */
 
 /**
- * Busca dados do colaborador pelo ID/Matrícula na aba DADOS_ATIVOS da Planilha Master Central (1Nk0F5...).
+ * Leitura dinâmica dos Cards de FAQ e Avisos da Linha do Tempo para exibição na Central de Ajuda.
+ * @return {Object}
+ */
+function obterDadosFaqETimeline() {
+  try {
+    var ssChamados = getSpreadsheetChamados();
+    var abaFaq = obterAbaFlexivel(ssChamados, CONFIG.ABA_FAQ);
+    var abaTimeline = obterAbaFlexivel(ssChamados, CONFIG.ABA_TIMELINE);
+
+    var listaFaq = [];
+    var listaTimeline = [];
+
+    // 1. Processa Cards de FAQ
+    if (abaFaq) {
+      var dadosFaq = abaFaq.getDataRange().getValues();
+      for (var f = 1; f < dadosFaq.length; f++) {
+        var status = String(dadosFaq[f][5] || "Ativo").trim().toLowerCase();
+        if (status === "ativo") {
+          listaFaq.push({
+            id: String(dadosFaq[f][0] || ""),
+            categoria: String(dadosFaq[f][1] || "Geral").trim(),
+            pergunta: String(dadosFaq[f][2] || "").trim(),
+            resposta: converterLinksParaHtml(dadosFaq[f][3]),
+            ordem: parseInt(dadosFaq[f][4] || 99, 10)
+          });
+        }
+      }
+      listaFaq.sort(function(a, b) { return a.ordem - b.ordem; });
+    }
+
+    // 2. Processa Linha do Tempo
+    if (abaTimeline) {
+      var dadosTime = abaTimeline.getDataRange().getValues();
+      for (var t = 1; t < dadosTime.length; t++) {
+        var exibir = String(dadosTime[t][5] || "Sim").trim().toLowerCase();
+        if (exibir === "sim" || exibir === "s") {
+          listaTimeline.push({
+            dataAviso: dadosTime[t][0] ? Utilities.formatDate(new Date(dadosTime[t][0]), "GMT-03:00", "dd/MM/yyyy HH:mm") : "",
+            sistemaModulo: String(dadosTime[t][1] || "Sistema GP").trim(),
+            tituloAviso: String(dadosTime[t][2] || "").trim(),
+            mensagem: converterLinksParaHtml(dadosTime[t][3]),
+            statusSistema: String(dadosTime[t][4] || "✅ Estável / Normalizado").trim()
+          });
+        }
+      }
+      listaTimeline.reverse();
+    }
+
+    return {
+      sucesso: true,
+      faq: listaFaq,
+      timeline: listaTimeline
+    };
+  } catch (e) {
+    Logger.log("Erro em obterDadosFaqETimeline: " + e.toString());
+    return { sucesso: false, faq: [], timeline: [] };
+  }
+}
+
+/**
+ * Busca dados do colaborador pelo ID/Matrícula na aba DADOS_ATIVOS.
  * @param {string|number} idInput
  * @return {Object}
  */
@@ -77,7 +137,7 @@ function buscarInfoFilial(filialInput) {
 }
 
 /**
- * Lista as categorias de chamados ativas da planilha dedicada de chamados.
+ * Lista as categorias de chamados ativas.
  * @return {Array<string>}
  */
 function obterListaCategorias() {
@@ -104,11 +164,7 @@ function obterListaCategorias() {
 
 /**
  * Lista chamados para o painel de atendimento dos Coordenadores.
- * Mapeamento da planilha DEDICADA DE CHAMADOS (19QKV7...):
- * Coluna A (0): Protocolo | Coluna B (1): Data_Abertura | Coluna C (2): Solicitante_ID
- * Coluna D (3): Solicitante_Nome | Coluna E (4): Filial_Id | Coluna F (5): Filial_Nome
- * Coluna G (6): Categoria | Coluna H (7): Assunto | Coluna I (8): Descricao_Inicial
- * Coluna J (9): Status | Coluna K (10): Ultima_Interacao | Coluna L (11): Responsavel_Atendimento
+ * Inclui validação de status de atendimento (Em Análise Por) para controle de concorrência.
  *
  * @param {string} [filtroStatus] Opcional
  * @param {string} [chaveAcesso] Opcional
@@ -159,12 +215,24 @@ function listarChamadosPainel(filtroStatus, chaveAcesso) {
       };
     }
 
+    var dataAtual = new Date();
+
     for (var i = 1; i < dados.length; i++) {
       var prot = String(dados[i][0] || "").trim();
       if (!prot) continue;
 
       var st = String(dados[i][9] || "Novo / Aberto").trim();
       var cat = String(dados[i][6] || "Outros").trim();
+      var resp = String(dados[i][11] || "Não atribuído").trim();
+      var ultInteracao = dados[i][10] ? new Date(dados[i][10]) : null;
+
+      var emAtendimentoPorOutro = false;
+      if (st.indexOf("Análise") !== -1 && resp !== "Não atribuído" && ultInteracao) {
+        var diffMinutos = Math.floor((dataAtual - ultInteracao) / (1000 * 60));
+        if (diffMinutos < 15) {
+          emAtendimentoPorOutro = true;
+        }
+      }
 
       var stLower = st.toLowerCase();
 
@@ -201,9 +269,10 @@ function listarChamadosPainel(filtroStatus, chaveAcesso) {
           filialNome: String(dados[i][5] || ("Loja " + filialNorm)).trim(),
           categoria: cat,
           assunto: String(dados[i][7] || "").trim(),
-          descricao: String(dados[i][8] || "").trim(),
+          descricao: converterLinksParaHtml(dados[i][8]),
           status: st,
-          atribuidoA: String(dados[i][11] || "Não atribuído").trim(),
+          atribuidoA: resp,
+          emAtendimento: emAtendimentoPorOutro,
           ultimaAtualizacao: dados[i][10] ? Utilities.formatDate(new Date(dados[i][10]), "GMT-03:00", "dd/MM/yyyy HH:mm") : ""
         });
       }
@@ -223,6 +292,7 @@ function listarChamadosPainel(filtroStatus, chaveAcesso) {
     return {
       sucesso: true,
       chamados: chamados,
+      usuarioLogado: permissao.email,
       metricas: {
         total: totalGeralChamados,
         abertos: totalAbertos,
@@ -281,7 +351,7 @@ function listarChamadosPorColaboradorId(idInput) {
               dataHora: dadosHist[h][1] ? Utilities.formatDate(new Date(dadosHist[h][1]), "GMT-03:00", "dd/MM/yyyy HH:mm:ss") : "",
               autorNome: dadosHist[h][2],
               autorPapel: dadosHist[h][3],
-              mensagem: dadosHist[h][4]
+              mensagem: converterLinksParaHtml(dadosHist[h][4])
             });
           }
         }
@@ -296,7 +366,7 @@ function listarChamadosPorColaboradorId(idInput) {
           filialNome: dadosBase[i][5] || ("Loja " + filialNorm),
           categoria: dadosBase[i][6],
           assunto: dadosBase[i][7],
-          descricao: dadosBase[i][8],
+          descricao: converterLinksParaHtml(dadosBase[i][8]),
           status: dadosBase[i][9],
           historico: historicoMensagens
         });
@@ -344,7 +414,7 @@ function consultarHistoricoChamado(protocolo, chaveAcesso) {
             dataHora: dados[i][1] ? Utilities.formatDate(new Date(dados[i][1]), "GMT-03:00", "dd/MM/yyyy HH:mm:ss") : "",
             autorNome: dados[i][2],
             autorPapel: dados[i][3],
-            mensagem: dados[i][4]
+            mensagem: converterLinksParaHtml(dados[i][4])
           });
         }
       }

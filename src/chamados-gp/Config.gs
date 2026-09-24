@@ -14,14 +14,19 @@ var CONFIG = {
   // 2. Planilha Master Central (Consulta de DADOS_ATIVOS e DADOS_USUARIOS)
   PLANILHA_MASTER_ID: "1Nk0F5_tzevdbfmOTnpmhePdum6N22Ctf7g1N_ojuSjA",
   
-  // Nomes das Abas de Banco de Dados
+  // Pasta Exclusiva do Google Drive para Anexos e Prints
+  PASTA_ANEXOS_NOME: "GP360 - Anexos e Imagens de Chamados",
+  
+  // Nomes das Abas do Banco de Dados
   ABA_CHAMADOS_BASE: "CHAMADOS_BASE",
   ABA_CHAMADOS_HISTORICO: "CHAMADOS_HISTORICO",
   ABA_CATEGORIAS: "CONFIG_CATEGORIAS",
   ABA_USUARIOS: "DADOS_USUARIOS",
   ABA_ATIVOS: "DADOS_ATIVOS",
+  ABA_FAQ: "CONFIG_FAQ",
+  ABA_TIMELINE: "CONFIG_TIMELINE",
   
-  // Desenvolvedora Sênior / Responsável
+  // Desenvolvedora Sênior / Responsável Técnico
   EMAIL_DEV: "fabiane.satie@magazineluiza.com.br",
   
   // Categorias Padrão de Inicialização
@@ -50,7 +55,7 @@ function getSpreadsheetChamados() {
 }
 
 /**
- * Obtém o objeto da planilha MASTER CENTRAL (para consultar DADOS_ATIVOS e Usuários).
+ * Obtém o objeto da planilha MASTER CENTRAL.
  * @return {Spreadsheet}
  */
 function getSpreadsheetMaster() {
@@ -63,14 +68,13 @@ function getSpreadsheetMaster() {
 }
 
 /**
- * Procura uma aba na planilha por nome exato, por nome insensível a maiúsculas/minúsculas ou pega a primeira aba por fallback.
+ * Procura uma aba na planilha por nome exato ou por fallback.
  * @param {Spreadsheet} ss
  * @param {string} nomeAbaAlvo
  * @return {Sheet}
  */
 function obterAbaFlexivel(ss, nomeAbaAlvo) {
   if (!ss) return null;
-  
   var aba = ss.getSheetByName(nomeAbaAlvo);
   if (aba) return aba;
 
@@ -85,9 +89,27 @@ function obterAbaFlexivel(ss, nomeAbaAlvo) {
   }
 
   if (abas.length > 0) {
-    Logger.log("Aba " + nomeAbaAlvo + " não encontrada diretamente. Utilizando fallback: " + abas[0].getName());
     return abas[0];
   }
-
   return null;
+}
+
+/**
+ * Localiza ou cria a pasta exclusiva no Google Drive para armazenar imagens dos chamados.
+ * @return {Folder}
+ */
+function obterOuCriarPastaAnexosDrive() {
+  try {
+    var pastas = DriveApp.getFoldersByName(CONFIG.PASTA_ANEXOS_NOME);
+    if (pastas.hasNext()) {
+      return pastas.next();
+    } else {
+      var novaPasta = DriveApp.createFolder(CONFIG.PASTA_ANEXOS_NOME);
+      novaPasta.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      return novaPasta;
+    }
+  } catch (e) {
+    Logger.log("Erro ao acessar/criar pasta do Drive: " + e.toString());
+    return DriveApp.getRootFolder();
+  }
 }

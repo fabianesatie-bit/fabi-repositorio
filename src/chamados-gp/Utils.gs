@@ -9,8 +9,8 @@
 
 /**
  * REGRA GLOBAL DE NORMALIZAÇÃO DE FILIAIS (MIDDLEWARE > 3000)
- * @param {string|number} val ID ou código bruto da filial
- * @return {string} ID da filial normalizado em formato string
+ * @param {string|number} val
+ * @return {string}
  */
 function normalizarFilialId(val) {
   if (!val && val !== 0) return "";
@@ -23,7 +23,7 @@ function normalizarFilialId(val) {
 }
 
 /**
- * Sanitiza e limpa matrículas ou IDs de colaboradores, mantendo apenas dígitos.
+ * Sanitiza matrículas mantendo apenas números.
  * @param {string|number} input
  * @return {string}
  */
@@ -33,28 +33,22 @@ function sanitizarMatriculaId(input) {
 }
 
 /**
- * Formata um objeto Date para a string padrão corporativa dd/MM/yyyy HH:mm:ss no fuso GMT-03:00.
- * @param {Date|string} dataObj
- * @param {boolean} [incluirSegundos=false]
+ * Converte automaticamente qualquer URL presente em um texto em link HTML clicável (target="_blank").
+ * @param {string} texto
  * @return {string}
  */
-function formatarDataHoraBr(dataObj, incluirSegundos) {
-  if (!dataObj) return "";
-  try {
-    var d = (dataObj instanceof Date) ? dataObj : new Date(dataObj);
-    if (isNaN(d.getTime())) return String(dataObj);
-    var mascara = incluirSegundos ? "dd/MM/yyyy HH:mm:ss" : "dd/MM/yyyy HH:mm";
-    return Utilities.formatDate(d, "GMT-03:00", mascara);
-  } catch (e) {
-    Logger.log("Erro ao formatar data: " + e.toString());
-    return String(dataObj);
-  }
+function converterLinksParaHtml(texto) {
+  if (!texto) return "";
+  var regexUrl = /(https?:\/\/[^\s<]+)/g;
+  return String(texto).replace(regexUrl, function(url) {
+    return '<a href="' + url + '" target="_blank" style="color: #2563EB; font-weight: 600; text-decoration: underline;">' + url + '</a>';
+  });
 }
 
 /**
  * Gera o próximo número de protocolo sequencial para o ano vigente.
  * Estrutura: GP-[ANO]-[NÚMERO COM 5 DÍGITOS] (Ex: GP-2026-00001)
- * @param {Sheet} abaBase Objeto da aba CHAMADOS_BASE
+ * @param {Sheet} abaBase
  * @return {string}
  */
 function gerarProximoProtocolo(abaBase) {

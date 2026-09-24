@@ -8,7 +8,7 @@
  */
 
 /**
- * Roteador WebApp de entrada HTTP GET.
+ * Roteador WebApp de entrada HTTP GET com rotas para Index, Painel e FAQ.
  */
 function doGet(e) {
   var pagina = (e && e.parameter && e.parameter.page) ? e.parameter.page.toLowerCase().trim() : "index";
@@ -32,6 +32,14 @@ function doGet(e) {
     }
   }
 
+  if (pagina === "faq" || pagina === "ajuda") {
+    return HtmlService.createTemplateFromFile('Faq')
+      .evaluate()
+      .setTitle('Central de Ajuda & Status dos Sistemas - GP360')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
     .setTitle('Abertura de Chamados - GP360')
@@ -40,41 +48,110 @@ function doGet(e) {
 }
 
 /**
- * Gera o próximo número de protocolo sequencial para o ano vigente.
- * Estrutura: GP-[ANO]-[NÚMERO COM 5 DÍGITOS] (Ex: GP-2026-00001)
- *
- * @param {Sheet} abaBase Objeto da aba CHAMADOS_BASE
- * @return {string}
+ * Salva uma imagem Base64 enviada pelo navegador no Google Drive e retorna o link direto público.
+ * @param {string} base64Data
+ * @param {string} nomeArquivo
+ * @param {string} protocolo
+ * @return {Object}
  */
-function gerarProximoProtocolo(abaBase) {
-  var anoAtual = new Date().getFullYear();
-  var prefixo = "GP-" + anoAtual + "-";
-  var ultimoNum = 0;
-
-  if (abaBase) {
-    try {
-      var dados = abaBase.getDataRange().getValues();
-      for (var i = 1; i < dados.length; i++) {
-        var prot = String(dados[i][0] || "").trim();
-        if (prot.indexOf(prefixo) === 0) {
-          var numPart = parseInt(prot.replace(prefixo, ""), 10);
-          if (!isNaN(numPart) && numPart > ultimoNum) {
-            ultimoNum = numPart;
-          }
-        }
-      }
-    } catch (e) {
-      Logger.log("Erro ao calcular próximo protocolo: " + e.toString());
-    }
+function salvarImagemDrive(base64Data, nomeArquivo, protocolo) {
+  try {
+    if (!base64Data) return { sucesso: false, url: "" };
+    
+    var partes = base64Data.split(",");
+    var contentType = partes[0].split(";")[0].replace("data:", "");
+    var decoded = Utilities.base64Decode(partes[1]);
+    
+    var nomeFinal = (protocolo || "GP") + "_" + (nomeArquivo || "anexo.png");
+    var blob = Utilities.newBlob(decoded, contentType, nomeFinal);
+    
+    var pasta = obterOuCriarPastaAnexosDrive();
+    var arquivo = pasta.createFile(blob);
+    arquivo.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    var urlPublica = "https://lh3.googleusercontent.com/d/" + arquivo.getId();
+    return { sucesso: true, url: urlPublica, fileId: arquivo.getId() };
+  } catch (e) {
+    Logger.log("Erro em salvarImagemDrive: " + e.toString());
+    return { sucesso: false, mensagem: "Erro ao salvar imagem no Drive: " + e.toString() };
   }
-
-  var proximoNum = ultimoNum + 1;
-  var strNum = ("00000" + proximoNum).slice(-5);
-  return prefixo + strNum;
 }
 
 /**
- * Registra um novo chamado na planilha DEDICADA DE CHAMADOS (19QKV7...).
+ * RESERVA E CONTROLE DE CONCORRÊNCIA EM TEMPO REAL:
+ * Permite que apenas UM coordenador assuma um chamado por vez.
+ *
+ * @param {string} protocolo
+ * @param {string} chaveAcesso
+ * @return {Object}
+ */
+function assumirChamado(protocolo, chaveAcesso) {
+  var permissao = validarAcessoCoordenador(chaveAcesso);
+  if (!permissao.autorizado) {
+    return { sucesso: false, mensagem: "Acesso negado." };
+  }
+
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+  } catch (e) {
+    return { sucesso: false, mensagem: "Servidor ocupado. Tente novamente." };
+  }
+
+  try {
+    var ssChamados = getSpreadsheetChamados();
+    var abaBase = obterAbaFlexivel(ssChamados, CONFIG.ABA_CHAMADOS_BASE);
+
+    var dados = abaBase.getDataRange().getValues();
+    var linhaEncontrada = -1;
+    var statusAtual = "";
+    var respAtual = "";
+    var ultInteracao = null;
+
+    for (var i = 1; i < dados.length; i++) {
+      if (String(dados[i][0] || "").trim() === String(protocolo).trim()) {
+        linhaEncontrada = i + 1;
+        statusAtual = String(dados[i][9] || "Novo / Aberto").trim();
+        respAtual = String(dados[i][11] || "Não atribuído").trim();
+        ultInteracao = dados[i][10] ? new Date(dados[i][10]) : null;
+        break;
+      }
+    }
+
+    if (linhaEncontrada === -1) {
+      lock.releaseLock();
+      return { sucesso: false, mensagem: "Protocolo não localizado." };
+    }
+
+    var dataAtual = new Date();
+    var responsavelNome = obterNomeOuEmailResponsavel(permissao.email);
+
+    if (statusAtual.indexOf("Análise") !== -1 && respAtual !== "Não atribuído" && respAtual !== responsavelNome && ultInteracao) {
+      var diffMinutos = Math.floor((dataAtual - ultInteracao) / (1000 * 60));
+      if (diffMinutos < 15) {
+        lock.releaseLock();
+        return {
+          sucesso: false,
+          bloqueado: true,
+          mensagem: "O coordenador (" + respAtual + ") já está atendendo este chamado no momento."
+        };
+      }
+    }
+
+    abaBase.getRange(linhaEncontrada, 10).setValue("Em Análise");
+    abaBase.getRange(linhaEncontrada, 11).setValue(dataAtual);
+    abaBase.getRange(linhaEncontrada, 12).setValue(responsavelNome);
+
+    lock.releaseLock();
+    return { sucesso: true, responsavel: responsavelNome };
+  } catch (err) {
+    lock.releaseLock();
+    return { sucesso: false, mensagem: "Erro ao assumir chamado: " + err.toString() };
+  }
+}
+
+/**
+ * Registra um novo chamado na planilha DEDICADA DE CHAMADOS.
  * @param {Object} dadosChamado
  * @return {Object}
  */
@@ -100,10 +177,14 @@ function registrarNovoChamado(dadosChamado) {
     var dataAtual = new Date();
     var filialNorm = normalizarFilialId(dadosChamado.filialId);
 
-    // Mapeamento idêntico às colunas da planilha dedicada:
-    // A: Protocolo | B: Data_Abertura | C: Solicitante_ID | D: Solicitante_Nome
-    // E: Filial_Id | F: Filial_Nome | G: Categoria | H: Assunto
-    // I: Descricao_Inicial | J: Status | K: Ultima_Interacao | L: Responsavel_Atendimento
+    var descricaoCompleta = dadosChamado.descricao || "";
+    if (dadosChamado.imagemBase64) {
+      var resImg = salvarImagemDrive(dadosChamado.imagemBase64, "print_abertura.png", protocolo);
+      if (resImg.sucesso) {
+        descricaoCompleta += "\n\n📷 Anexo de Imagem: " + resImg.url;
+      }
+    }
+
     abaBase.appendRow([
       protocolo,
       dataAtual,
@@ -113,7 +194,7 @@ function registrarNovoChamado(dadosChamado) {
       dadosChamado.filialNome || ("Loja " + filialNorm),
       dadosChamado.categoria,
       dadosChamado.assunto,
-      dadosChamado.descricao,
+      descricaoCompleta,
       "Novo / Aberto",
       dataAtual,
       "Não atribuído"
@@ -125,11 +206,10 @@ function registrarNovoChamado(dadosChamado) {
         dataAtual,
         dadosChamado.solicitanteNome,
         "Solicitante (Loja " + filialNorm + ")",
-        dadosChamado.descricao
+        descricaoCompleta
       ]);
     }
 
-    // Disparo seguro de e-mail único com toda a equipe em cópia (CC)
     try {
       dispararNotificacaoNovoChamado({
         protocolo: protocolo,
@@ -138,10 +218,10 @@ function registrarNovoChamado(dadosChamado) {
         filialId: filialNorm,
         categoria: dadosChamado.categoria,
         assunto: dadosChamado.assunto,
-        descricao: dadosChamado.descricao
+        descricao: descricaoCompleta
       });
     } catch (errEmail) {
-      Logger.log("Aviso: Chamado gravado com sucesso, mas o e-mail em cópia não pôde ser enviado: " + errEmail.toString());
+      Logger.log("Aviso: Chamado gravado com sucesso, mas o e-mail não pôde ser enviado: " + errEmail.toString());
     }
 
     lock.releaseLock();
@@ -154,15 +234,15 @@ function registrarNovoChamado(dadosChamado) {
 }
 
 /**
- * Registra a resposta de um Coordenador na planilha dedicada e atribui o nome/e-mail do responsável na Coluna L.
- *
+ * Registra a resposta de um Coordenador na planilha dedicada.
  * @param {string} protocolo
  * @param {string} textoResposta
  * @param {boolean} marcarConcluido
  * @param {string} [chaveAcesso]
+ * @param {string} [imagemBase64]
  * @return {Object}
  */
-function responderChamado(protocolo, textoResposta, marcarConcluido, chaveAcesso) {
+function responderChamado(protocolo, textoResposta, marcarConcluido, chaveAcesso, imagemBase64) {
   var permissao = validarAcessoCoordenador(chaveAcesso);
   if (!permissao.autorizado) {
     return { sucesso: false, mensagem: "Permissão negada." };
@@ -193,11 +273,16 @@ function responderChamado(protocolo, textoResposta, marcarConcluido, chaveAcesso
 
     var dataAtual = new Date();
     var novoStatus = marcarConcluido ? "Respondido / Concluído" : "Em Análise";
-
-    // Captura o nome ou e-mail da pessoa logada
     var responsavelAtendimento = obterNomeOuEmailResponsavel(permissao.email);
 
-    // Atualiza Coluna J (Status = Coluna 10), Coluna K (Ultima_Interacao = Coluna 11), Coluna L (Responsavel = Coluna 12)
+    var textoFinal = textoResposta || "";
+    if (imagemBase64) {
+      var resImg = salvarImagemDrive(imagemBase64, "print_resposta.png", protocolo);
+      if (resImg.sucesso) {
+        textoFinal += "\n\n📷 Imagem Anexada pelo GP: " + resImg.url;
+      }
+    }
+
     abaBase.getRange(linhaEncontrada, 10).setValue(novoStatus);
     abaBase.getRange(linhaEncontrada, 11).setValue(dataAtual);
     abaBase.getRange(linhaEncontrada, 12).setValue(responsavelAtendimento);
@@ -208,7 +293,7 @@ function responderChamado(protocolo, textoResposta, marcarConcluido, chaveAcesso
         dataAtual,
         responsavelAtendimento,
         "Coordenador/GP",
-        textoResposta
+        textoFinal
       ]);
     }
 
@@ -221,7 +306,7 @@ function responderChamado(protocolo, textoResposta, marcarConcluido, chaveAcesso
 }
 
 /**
- * Função auxiliar para resolver o nome amigável ou o e-mail limpo de quem está respondendo.
+ * Resolve o nome exibível do responsável.
  * @param {string} emailPermissao
  * @return {string}
  */
@@ -241,26 +326,23 @@ function obterNomeOuEmailResponsavel(emailPermissao) {
   if (emailFinal.indexOf("marcia.almeida") !== -1) return "Márcia Almeida";
   if (emailFinal.indexOf("josiane.emilio") !== -1) return "Josiane Emílio";
 
-  // Se houver e-mail válido, formata o primeiro e último nome
   if (emailFinal && emailFinal.indexOf("@") !== -1) {
     var parteLocal = emailFinal.split("@")[0];
     var partesNome = parteLocal.split(".");
-    var nomeFormatado = partesNome.map(function(p) {
+    return partesNome.map(function(p) {
       return p.charAt(0).toUpperCase() + p.slice(1);
     }).join(" ");
-    return nomeFormatado;
   }
 
   return emailFinal || "Fabiane Satie";
 }
 
 /**
- * Dispara 1 único e-mail de alerta com TODOS os gestores/coordenadores em CÓPIA (CC).
+ * Dispara 1 único e-mail de alerta com TODOS os gestores em CÓPIA (CC).
  * @param {Object} info
  */
 function dispararNotificacaoNovoChamado(info) {
   if (typeof EMAILS_AUTORIZADOS_COORD === 'undefined' || !EMAILS_AUTORIZADOS_COORD || EMAILS_AUTORIZADOS_COORD.length === 0) {
-    Logger.log("Aviso: Lista EMAILS_AUTORIZADOS_COORD não localizada para envio de notificação.");
     return;
   }
 

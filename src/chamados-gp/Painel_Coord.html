@@ -88,9 +88,7 @@
     td { padding: 16px 18px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
     tr:hover { background-color: #FAF5FF; }
 
-    .badge {
-      padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block;
-    }
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block; }
     .badge-novo { background: var(--amber-light); color: var(--amber-text); }
     .badge-analise { background: var(--blue-light); color: var(--blue-text); }
     .badge-concluido { background: var(--green-light); color: var(--green-text); }
@@ -122,6 +120,9 @@
       border-radius: 10px; resize: vertical; font-size: 13px; line-height: 1.5; outline: none;
     }
     textarea:focus { border-color: var(--primary); }
+
+    .image-preview-box { display: none; margin-top: 10px; padding: 10px; background: #F1F5F9; border-radius: 10px; }
+    .image-preview-box img { max-width: 100%; max-height: 150px; border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -130,7 +131,7 @@
   <div class="header-bar">
     <div>
       <div class="header-title">🛡️ Painel de Atendimento GP360</div>
-      <div class="header-subtitle">Esteira de Chamados das Diretoria GP LOJAS</div>
+      <div class="header-subtitle">Esteira de Chamados das Diretoria MG/CO e SUL</div>
     </div>
     <div style="display: flex; gap: 10px;">
       <button class="btn btn-secondary" onclick="carregarDadosPainel()" id="btnAtualizar">
@@ -187,7 +188,7 @@
           <th>Filial / Loja</th>
           <th>Categoria</th>
           <th>Assunto</th>
-          <th>Status</th>
+          <th>Status / Responsável</th>
           <th>Ação</th>
         </tr>
       </thead>
@@ -213,7 +214,6 @@
       </div>
 
       <div class="modal-body">
-        <!-- CARD INFO SOLICITANTE -->
         <div style="background: #F8FAFC; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div>
             <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">SOLICITANTE</div>
@@ -227,7 +227,6 @@
           </div>
         </div>
 
-        <!-- PERGUNTA ORIGINAL -->
         <div>
           <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">DÚVIDA DO COLABORADOR:</div>
           <div style="background: #FFF; border: 1px solid var(--border-color); padding: 14px; border-radius: 10px; font-size: 13px; line-height: 1.6; white-space: pre-wrap;" id="mDescricao">
@@ -235,17 +234,25 @@
           </div>
         </div>
 
-        <!-- LINHA DO TEMPO / HISTÓRICO -->
         <div>
           <div style="font-size: 12px; font-weight: 700; color: var(--text-muted);">HISTÓRICO DE RESPOSTAS:</div>
           <div class="timeline" id="mTimeline"></div>
         </div>
 
-        <!-- FORMULÁRIO DE RESPOSTA -->
         <div style="margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 16px;">
-          <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">DIGITE SUA ORIENTAÇÃO / RESPOSTA:</div>
-          <textarea id="txtResposta" placeholder="Escreva a orientação detalhada para o colaborador..."></textarea>
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">DIGITE SUA ORIENTAÇÃO / RESPOSTA (Copie e cole imagens/prints aqui):</div>
+          <textarea id="txtResposta" placeholder="Escreva a orientação detalhada. Você pode dar Ctrl+V para colar um PrintScreen do teclado..."></textarea>
           
+          <div style="margin-top: 8px;">
+            <input type="file" id="fileAnexoCoord" accept="image/*" style="font-size: 12px;" onchange="tratarArquivoCoord(this)">
+          </div>
+
+          <div class="image-preview-box" id="previewContainerCoord">
+            <span style="font-size: 11px; font-weight: 700; color: var(--primary);">📷 Imagem Anexada à Resposta:</span>
+            <button type="button" style="float: right; border:none; background:none; cursor:pointer; color:red; font-weight:bold;" onclick="removerImagemCoord()">✕</button>
+            <div style="margin-top: 6px;"><img id="imgPreviewCoord" src=""></div>
+          </div>
+
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
             <label style="font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
               <input type="checkbox" id="chkConcluir" checked> Marcar como Concluído / Respondido
@@ -263,10 +270,48 @@
     var listaChamadosGlobal = [];
     var filtroStatusAtual = "Todos";
     var protocoloSelecionado = "";
+    var imagemCoordBase64 = null;
+    var usuarioLogadoAtual = "";
 
     window.onload = function() {
       carregarDadosPainel();
+
+      document.getElementById('txtResposta').addEventListener('paste', function(e) {
+        var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].type.indexOf("image") === 0) {
+            var blob = items[i].getAsFile();
+            var reader = new FileReader();
+            reader.onload = function(event) {
+              setImagemPreviewCoord(event.target.result);
+            };
+            reader.readAsDataURL(blob);
+            break;
+          }
+        }
+      });
     };
+
+    function tratarArquivoCoord(input) {
+      if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) { setImagemPreviewCoord(e.target.result); };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function setImagemPreviewCoord(base64) {
+      imagemCoordBase64 = base64;
+      document.getElementById('imgPreviewCoord').src = base64;
+      document.getElementById('previewContainerCoord').style.display = 'block';
+    }
+
+    function removerImagemCoord() {
+      imagemCoordBase64 = null;
+      document.getElementById('imgPreviewCoord').src = '';
+      document.getElementById('previewContainerCoord').style.display = 'none';
+      document.getElementById('fileAnexoCoord').value = '';
+    }
 
     function carregarDadosPainel() {
       var btn = document.getElementById('btnAtualizar');
@@ -278,13 +323,12 @@
           btn.disabled = false;
           btn.innerHTML = "🔄 Atualizar Fila";
 
-          console.log("Retorno do Servidor:", res);
-
           if (!res || !res.sucesso) {
             alert(res && res.mensagem ? res.mensagem : "Não foi possível carregar os dados.");
             return;
           }
 
+          usuarioLogadoAtual = res.usuarioLogado || "";
           var m = res.metricas || {};
           document.getElementById('kpiTotal').innerText = (m.total !== undefined) ? m.total : 0;
           document.getElementById('kpiAbertos').innerText = (m.abertos !== undefined) ? m.abertos : 0;
@@ -339,7 +383,19 @@
         var badgeClass = "badge-novo";
         var stLower = (c.status || "").toLowerCase();
         if (stLower.indexOf("análise") !== -1 || stLower.indexOf("analise") !== -1) badgeClass = "badge-analise";
-        if (stLower.indexOf("respondido") !== -1 || stLower.indexOf("concluído") !== -1 || stLower.indexOf("concluido") !== -1) badgeClass = "badge-concluido";
+        if (stLower.indexOf("respondido") !== -1 || stLower.indexOf("concluído") !== -1) badgeClass = "badge-concluido";
+
+        var infoResp = "";
+        if (c.atribuidoA && c.atribuidoA !== "Não atribuído") {
+          infoResp = `<br><span style="font-size:11px; color:var(--text-muted);">👤 ${c.atribuidoA}</span>`;
+        }
+
+        var btnTexto = "💬 Atender";
+        var btnClass = "btn-primary";
+        if (c.emAtendimento) {
+          btnTexto = "👁️ Em Atendimento";
+          btnClass = "btn-secondary";
+        }
 
         html += `
           <tr>
@@ -352,10 +408,10 @@
             <td>Loja ${c.filialId}</td>
             <td>${c.categoria}</td>
             <td>${c.assunto}</td>
-            <td><span class="badge ${badgeClass}">${c.status}</span></td>
+            <td><span class="badge ${badgeClass}">${c.status}</span>${infoResp}</td>
             <td>
-              <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;" onclick="abrirAtendimento('${c.protocolo}')">
-                💬 Atender
+              <button class="btn ${btnClass}" style="padding: 6px 12px; font-size: 12px;" onclick="iniciarAtendimentoLock('${c.protocolo}')">
+                ${btnTexto}
               </button>
             </td>
           </tr>
@@ -372,6 +428,22 @@
       carregarDadosPainel();
     }
 
+    function iniciarAtendimentoLock(protocolo) {
+      var c = listaChamadosGlobal.find(x => x.protocolo === protocolo);
+      if (!c) return;
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res && res.sucesso) {
+            abrirAtendimento(protocolo);
+          } else {
+            alert(res.mensagem || "Este chamado já está sendo atendido por outro coordenador.");
+            carregarDadosPainel();
+          }
+        })
+        .assumirChamado(protocolo, "gp");
+    }
+
     function abrirAtendimento(protocolo) {
       var c = listaChamadosGlobal.find(x => x.protocolo === protocolo);
       if (!c) return;
@@ -383,8 +455,9 @@
       document.getElementById('mCargo').innerText = c.solicitanteCargo;
       document.getElementById('mFilial').innerText = "Loja " + c.filialId;
       document.getElementById('mCategoria').innerText = c.categoria + " - " + c.assunto;
-      document.getElementById('mDescricao').innerText = c.descricao;
+      document.getElementById('mDescricao').innerHTML = c.descricao;
       document.getElementById('txtResposta').value = "";
+      removerImagemCoord();
 
       carregarHistoricoModal(protocolo);
       document.getElementById('modalAtendimento').style.display = 'flex';
@@ -429,8 +502,8 @@
       var concluir = document.getElementById('chkConcluir').checked;
       var btn = document.getElementById('btnEnviarResposta');
 
-      if (!txt) {
-        alert("Digite uma resposta antes de enviar.");
+      if (!txt && !imagemCoordBase64) {
+        alert("Digite uma resposta ou anexe uma imagem antes de enviar.");
         return;
       }
 
@@ -444,6 +517,7 @@
 
           if (res && res.sucesso) {
             document.getElementById('txtResposta').value = "";
+            removerImagemCoord();
             carregarHistoricoModal(protocoloSelecionado);
             carregarDadosPainel();
             alert("Resposta enviada com sucesso!");
@@ -451,7 +525,7 @@
             alert("Erro ao enviar: " + (res ? res.mensagem : "Erro desconhecido"));
           }
         })
-        .responderChamado(protocoloSelecionado, txt, concluir, "gp");
+        .responderChamado(protocoloSelecionado, txt, concluir, "gp", imagemCoordBase64);
     }
   </script>
 </body>
