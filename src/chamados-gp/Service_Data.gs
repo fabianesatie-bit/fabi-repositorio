@@ -9,7 +9,6 @@
 
 /**
  * Leitura de FAQ e Linha do Tempo para a visão pública do Colaborador (Faq.html).
- * Retorna apenas os registros com status Ativo / Exibir = Sim.
  * @return {Object}
  */
 function obterDadosFaqETimeline() {
@@ -65,9 +64,7 @@ function obterDadosFaqETimeline() {
 }
 
 /**
- * Leitura COMPLETA de FAQ e Linha do Tempo para o Modal Administrativo do Painel do Coordenador.
- * Inclui os registros ocultos para permitir a reativação com 1 clique.
- *
+ * Leitura COMPLETA de FAQ e Linha do Tempo para o Modal Administrativo do Coordenador.
  * @param {string} [chaveAcesso]
  * @return {Object}
  */
@@ -175,7 +172,7 @@ function buscarColaboradorPorId(idInput) {
 }
 
 /**
- * Busca informações resumidas da filial pelo número.
+ * Busca informações da filial pelo número.
  * @param {string|number} filialInput
  * @return {Object}
  */

@@ -7,7 +7,7 @@
  * ============================================================================
  */
 
-// Lista fixa de e-mails autorizados para acesso ao Dashboard e recebimento de alertas
+// Lista oficial de e-mails autorizados para acesso ao Dashboard e alertas
 var EMAILS_AUTORIZADOS_COORD = [
   "lorena.castro@magazineluiza.com.br",
   "fabiane.satie@magazineluiza.com.br",
@@ -35,9 +35,9 @@ var EMAILS_AUTORIZADOS_COORD = [
 ];
 
 /**
- * Valida se o usuário atual possui permissão de Coordenador ou Gerente de GP.
- * @param {string} [chaveAcesso] Parâmetro opcional passado via URL
- * @return {Object} Objeto com status da permissao, email e papel do usuario
+ * Valida se o usuário ativo tem permissão de gestão no GP.
+ * @param {string} [chaveAcesso]
+ * @return {Object}
  */
 function validarAcessoCoordenador(chaveAcesso) {
   var emailAtivo = "";
@@ -47,7 +47,6 @@ function validarAcessoCoordenador(chaveAcesso) {
     emailAtivo = "";
   }
 
-  // 1. Verificação por Chave Global Autorizada
   if (chaveAcesso && (chaveAcesso.toLowerCase() === "gp" || chaveAcesso.toLowerCase() === "mgco" || chaveAcesso.toLowerCase() === "sul")) {
     return {
       autorizado: true,
@@ -57,7 +56,6 @@ function validarAcessoCoordenador(chaveAcesso) {
     };
   }
 
-  // 2. Verificação por E-mail do Usuário na Lista Fixa
   if (emailAtivo !== "") {
     for (var i = 0; i < EMAILS_AUTORIZADOS_COORD.length; i++) {
       if (EMAILS_AUTORIZADOS_COORD[i].toLowerCase() === emailAtivo) {
@@ -71,10 +69,9 @@ function validarAcessoCoordenador(chaveAcesso) {
     }
   }
 
-  // 3. Verificação Dinâmica na Aba DADOS_USUARIOS da Planilha Principal
   try {
-    var ssMaster = SpreadsheetApp.openById(CONFIG.PLANILHA_MASTER_ID);
-    var abaUsuarios = ssMaster.getSheetByName(CONFIG.ABA_USUARIOS);
+    var ssMaster = getSpreadsheetMaster();
+    var abaUsuarios = obterAbaFlexivel(ssMaster, CONFIG.ABA_USUARIOS);
     if (abaUsuarios && emailAtivo !== "") {
       var dados = abaUsuarios.getDataRange().getValues();
       for (var r = 1; r < dados.length; r++) {
@@ -104,24 +101,4 @@ function validarAcessoCoordenador(chaveAcesso) {
     cargo: "Solicitante",
     metodo: "Negado"
   };
-}
-
-/**
- * Valida se o usuário logado é a desenvolvedora do sistema.
- * @return {boolean}
- */
-function validarAcessoDesenvolvedora() {
-  var emailAtivo = "";
-  try {
-    emailAtivo = Session.getActiveUser().getEmail().toLowerCase().trim();
-  } catch (e) {
-    emailAtivo = "";
-  }
-  
-  if (emailAtivo === CONFIG.EMAIL_DEV.toLowerCase()) {
-    return true;
-  }
-  
-  var checagem = validarAcessoCoordenador();
-  return checagem.autorizado;
 }

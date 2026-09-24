@@ -48,10 +48,7 @@ function doGet(e) {
 }
 
 /**
- * GERENCIADOR DE FAQ (CADASTRA E EDITA PERGUNTAS FREQUENTES VIA DASHBOARD)
- * @param {Object} itemFaq
- * @param {string} chaveAcesso
- * @return {Object}
+ * GERENCIADOR DE FAQ VIA DASHBOARD
  */
 function salvarItemFaq(itemFaq, chaveAcesso) {
   var permissao = validarAcessoCoordenador(chaveAcesso);
@@ -84,14 +81,12 @@ function salvarItemFaq(itemFaq, chaveAcesso) {
     }
 
     if (linhaEncontrada !== -1) {
-      // Edição
       abaFaq.getRange(linhaEncontrada, 2).setValue(itemFaq.categoria || "Geral");
       abaFaq.getRange(linhaEncontrada, 3).setValue(itemFaq.pergunta);
       abaFaq.getRange(linhaEncontrada, 4).setValue(itemFaq.resposta);
       abaFaq.getRange(linhaEncontrada, 5).setValue(parseInt(itemFaq.ordem || 1, 10));
       abaFaq.getRange(linhaEncontrada, 6).setValue(itemFaq.status || "Ativo");
     } else {
-      // Novo registro
       var novoId = "FAQ-" + ("000" + (dados.length)).slice(-3);
       abaFaq.appendRow([
         novoId,
@@ -112,10 +107,7 @@ function salvarItemFaq(itemFaq, chaveAcesso) {
 }
 
 /**
- * GERENCIADOR DE RECADOS E LINHA DO TEMPO (DOS SISTEMAS) VIA DASHBOARD
- * @param {Object} itemTimeline
- * @param {string} chaveAcesso
- * @return {Object}
+ * GERENCIADOR DE LINHA DO TEMPO DOS SISTEMAS VIA DASHBOARD
  */
 function salvarItemTimeline(itemTimeline, chaveAcesso) {
   var permissao = validarAcessoCoordenador(chaveAcesso);
@@ -155,7 +147,7 @@ function salvarItemTimeline(itemTimeline, chaveAcesso) {
 }
 
 /**
- * Salva uma imagem Base64 enviada pelo navegador no Google Drive.
+ * Salva imagem Base64 no Drive.
  */
 function salvarImagemDrive(base64Data, nomeArquivo, protocolo) {
   try {
@@ -245,7 +237,7 @@ function assumirChamado(protocolo, chaveAcesso) {
 }
 
 /**
- * Registra um novo chamado na planilha DEDICADA DE CHAMADOS.
+ * Registra um novo chamado.
  */
 function registrarNovoChamado(dadosChamado) {
   var lock = LockService.getScriptLock();
@@ -387,7 +379,7 @@ function responderChamado(protocolo, textoResposta, marcarConcluido, chaveAcesso
 }
 
 /**
- * Resolve nome do responsável.
+ * Resolve o nome exibível do responsável.
  */
 function obterNomeOuEmailResponsavel(emailPermissao) {
   var emailSessao = "";

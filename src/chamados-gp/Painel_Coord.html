@@ -56,7 +56,6 @@
     .kpi-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
     .kpi-value { font-size: 28px; font-weight: 700; color: var(--text-main); margin-top: 6px; }
 
-    /* Card de Categorias mais Frequentes */
     .cat-ranking-card {
       background: var(--card-bg); padding: 20px; border-radius: 14px;
       border: 1px solid var(--border-color); margin-bottom: 24px;
@@ -68,7 +67,6 @@
     .cat-bar-fill { height: 100%; background: var(--primary); border-radius: 4px; }
     .cat-bar-count { font-weight: 600; width: 60px; text-align: right; color: var(--text-muted); }
 
-    /* Filtros e Tabela */
     .table-container {
       background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color);
       box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03); overflow: hidden;
@@ -95,7 +93,6 @@
     .badge-concluido { background: var(--green-light); color: var(--green-text); }
     .badge-cargo { background: var(--primary-light); color: var(--primary-text); }
 
-    /* Modais */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4);
       display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px;
@@ -123,7 +120,6 @@
 </head>
 <body>
 
-  <!-- CABEÇALHO DA PÁGINA -->
   <div class="header-bar">
     <div>
       <div class="header-title">🛡️ Painel de Atendimento GP360</div>
@@ -139,7 +135,6 @@
     </div>
   </div>
 
-  <!-- BENTO GRID KPIS -->
   <div class="kpi-grid">
     <div class="kpi-card">
       <div class="kpi-label">Total de Chamados</div>
@@ -159,7 +154,6 @@
     </div>
   </div>
 
-  <!-- CARD CATEGORIAS MAIS FREQUENTES -->
   <div class="cat-ranking-card">
     <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">📊 Categorias com Mais Dúvidas</div>
     <div class="cat-bar-container" id="containerRankingCategorias">
@@ -167,7 +161,6 @@
     </div>
   </div>
 
-  <!-- TABELA DE CHAMADOS -->
   <div class="table-container">
     <div class="table-header">
       <div class="filter-tabs">

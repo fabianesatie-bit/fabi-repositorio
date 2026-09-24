@@ -102,6 +102,7 @@
     <div class="nav-tabs">
       <button class="tab-btn active" id="tabBtnNova" onclick="trocarAbaPublica('abaNova')">📝 Nova Dúvida</button>
       <button class="tab-btn" id="tabBtnConsulta" onclick="trocarAbaPublica('abaConsulta')">🔍 Consultar Minhas Dúvidas</button>
+      <a href="?page=faq" target="_blank" style="text-decoration: none; font-size: 13px; font-weight: 700; color: var(--primary); padding: 8px 12px;">📚 Central de Ajuda</a>
     </div>
   </header>
 
@@ -159,7 +160,7 @@
             <label>Descreva sua Dúvida com Detalhes * (Copie e cole imagens/prints diretamente aqui)</label>
             <textarea id="descricao" class="form-control" rows="5" placeholder="Explique com clareza a dúvida. Você também pode dar Ctrl+V para colar um PrintScreen..." required></textarea>
             
-            <div class="input-hint">Você pode anexar um arquivo ou colar uma imagem do seu teclado (Ctrl+V).</div>
+            <div class="input-hint">Anexe uma imagem do computador ou dê Ctrl+V para colar um print do seu teclado.</div>
             <input type="file" id="fileAnexo" accept="image/*" style="margin-top: 8px; font-size: 12px;" onchange="tratarArquivoUpload(this)">
 
             <div class="image-preview-box" id="previewContainer">
@@ -278,7 +279,6 @@
         })
         .obterListaCategorias();
 
-      // Suporte a Ctrl+V no Textarea de Descrição
       document.getElementById('descricao').addEventListener('paste', function(e) {
         var items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (var i = 0; i < items.length; i++) {
@@ -298,9 +298,7 @@
     function tratarArquivoUpload(input) {
       if (input.files && input.files[0]) {
         var reader = new FileReader();
-        reader.onload = function(e) {
-          setImagemPreview(e.target.result);
-        };
+        reader.onload = function(e) { setImagemPreview(e.target.result); };
         reader.readAsDataURL(input.files[0]);
       }
     }
@@ -363,6 +361,20 @@
           })
           .buscarColaboradorPorId(idVal);
       }, 300);
+    }
+
+    function consultarFilial() {
+      var filialVal = document.getElementById('filialId').value.trim();
+      if (!filialVal) return;
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res && res.sucesso) {
+            document.getElementById('filialId').value = res.filialId;
+            document.getElementById('filialNome').value = res.filialNome;
+          }
+        })
+        .buscarInfoFilial(filialVal);
     }
 
     function submeterChamado(e) {
