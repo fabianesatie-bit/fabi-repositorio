@@ -137,18 +137,24 @@
 
   <script>
     var listaFaqGlobal = [];
+    
+    // URL de produção corporativa oficial do WebApp
+    var URL_OFICIAL_WEBAPP = "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbwscX_uUQ97OOcqPKBOa-Pc_7BD3e9VyvZ3irTIfEpS0DfWvlG9WmFw6A-AnOsxMyMu/exec";
 
     window.onload = function() {
       carregarDadosAjuda();
     };
 
     /**
-     * NAVEGAÇÃO SEGURA SEM PÁGINA EM BRANCO:
-     * Extrai a URL exata do WebApp e adiciona o parâmetro ?page=index
+     * REDIRECIONAMENTO DIRETO E INFALÍVEL:
+     * Direciona o colaborador para o formulário de abertura sem risco de tela em branco.
      */
     function irParaAberturaChamado() {
-      var urlAtual = window.location.href.split('?')[0];
-      window.location.href = urlAtual + "?page=index";
+      var urlBase = window.location.href ? window.location.href.split('?')[0] : URL_OFICIAL_WEBAPP;
+      if (!urlBase || urlBase.indexOf("exec") === -1) {
+        urlBase = URL_OFICIAL_WEBAPP;
+      }
+      window.location.href = urlBase + "?page=index";
     }
 
     function carregarDadosAjuda() {
