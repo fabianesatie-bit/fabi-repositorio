@@ -336,7 +336,8 @@
             document.getElementById('statusAlert').innerHTML = '';
             document.getElementById('formColeta').classList.remove('hidden');
         }).withFailureHandler(function(err) {
-            mostrarAlerta("error", "Erro ao carregar permissões.");
+            var msgErro = (err && err.message) ? err.message : "Erro ao carregar permissões.";
+            mostrarAlerta("error", msgErro);
         }).obterInfoSessao(); 
       });
 
@@ -389,6 +390,9 @@
           } else {
              mostrarAlerta("warning", res.msg); 
           }
+        }).withFailureHandler(function(err) {
+             var msgErro = (err && err.message) ? err.message : (typeof err === 'string' ? err : 'Falha na comunicação com a base de dados.');
+             mostrarAlerta("error", "Erro ao buscar ID: " + msgErro);
         }).validarEBuscarID(cracha, origem); 
       });
 
@@ -464,7 +468,8 @@
              document.getElementById('btnEnviar').innerText = "Confirmar Inscrição";
            }
         }).withFailureHandler(function(err) {
-             mostrarAlerta("error", "Erro de ligação. Tente novamente: " + err.message);
+             var msgErro = (err && err.message) ? err.message : (typeof err === 'string' ? err : 'Falha na comunicação com o servidor Apps Script.');
+             mostrarAlerta("error", "Erro de ligação: " + msgErro);
              document.getElementById('btnEnviar').disabled = false;
              document.getElementById('btnEnviar').innerText = "Confirmar Inscrição";
         }).gravarInscricaoEmLote(payload);

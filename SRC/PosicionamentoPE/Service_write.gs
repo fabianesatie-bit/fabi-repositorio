@@ -123,7 +123,7 @@ function gravarInscricaoEmLote(payload) {
       payload.nascBebe || ""                      // Coluna AI (Index 34)- DATA NASC. BEBÊ
     ];
 
-    // 4. ESCRITA ATÔMICA
+    // 4. ESCRITA ATÔMICA NA PLANILHA
     sheetDestino.appendRow(linhaExata);
 
     return { sucesso: true, msg: "Inscrição realizada e gravada com sucesso!" };
