@@ -8,7 +8,7 @@
  */
 
 /**
- * Roteador WebApp de entrada HTTP GET.
+ * Roteador WebApp de entrada HTTP GET com navegação segura entre telas.
  */
 function doGet(e) {
   var pagina = (e && e.parameter && e.parameter.page) ? e.parameter.page.toLowerCase().trim() : "index";
@@ -40,6 +40,7 @@ function doGet(e) {
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
 
+  // Padrão / Rota "index"
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
     .setTitle('Abertura de Chamados - GP360')

@@ -52,7 +52,7 @@
 
     .btn-cta {
       background-color: var(--primary); color: #FFFFFF; padding: 10px 20px; border-radius: 10px;
-      font-weight: 700; font-size: 0.88rem; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;
+      font-weight: 700; font-size: 0.88rem; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;
     }
     .btn-cta:hover { opacity: 0.92; transform: translateY(-1px); }
 
@@ -106,9 +106,9 @@
       <span>🤝 Central de Ajuda & FAQ GP360</span>
       <span class="brand-badge">Magazine Luiza</span>
     </div>
-    <a href="?page=index" class="btn-cta">
+    <button onclick="irParaAberturaChamado()" class="btn-cta">
       🚀 Abrir uma Dúvida com o GP
-    </a>
+    </button>
   </header>
 
   <div class="main-container">
@@ -128,9 +128,9 @@
     <div class="cta-banner">
       <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 6px;">Não encontrou a resposta para o seu problema?</h3>
       <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 18px;">Nossa equipe de Gestão de Pessoas está pronta para orientar você e sua loja.</p>
-      <a href="?page=index" class="btn-cta" style="padding: 12px 24px; font-size: 0.95rem;">
+      <button onclick="irParaAberturaChamado()" class="btn-cta" style="padding: 12px 24px; font-size: 0.95rem;">
         📝 Clique Aqui para Enviar sua Dúvida
-      </a>
+      </button>
     </div>
 
   </div>
@@ -141,6 +141,15 @@
     window.onload = function() {
       carregarDadosAjuda();
     };
+
+    /**
+     * NAVEGAÇÃO SEGURA SEM PÁGINA EM BRANCO:
+     * Extrai a URL exata do WebApp e adiciona o parâmetro ?page=index
+     */
+    function irParaAberturaChamado() {
+      var urlAtual = window.location.href.split('?')[0];
+      window.location.href = urlAtual + "?page=index";
+    }
 
     function carregarDadosAjuda() {
       google.script.run

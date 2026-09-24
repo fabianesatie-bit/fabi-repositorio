@@ -265,7 +265,7 @@ function listarChamadosPainel(filtroStatus, chaveAcesso) {
 
     for (var i = 1; i < dados.length; i++) {
       var prot = String(dados[i][0] || "").trim();
-      if (!prot) continue;
+      if (!prot || prot.indexOf("GP-") !== 0) continue; // Filtra e ignora linhas invalidadas
 
       var st = String(dados[i][9] || "Novo / Aberto").trim();
       var cat = String(dados[i][6] || "Outros").trim();
