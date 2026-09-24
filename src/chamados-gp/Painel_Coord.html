@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard & Atendimento GP360</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-page: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --border-color: #E2E8F0;
+      --text-main: #1E293B;
+      --text-muted: #64748B;
+      --primary: #7C3AED;
+      --primary-light: #F3E8FF;
+      --primary-text: #6B21A8;
+      --blue: #2563EB;
+      --blue-light: #EFF6FF;
+      --blue-text: #1E40AF;
+      --green: #10B981;
+      --green-light: #ECFDF5;
+      --green-text: #065F46;
+      --amber: #F59E0B;
+      --amber-light: #FFFBEB;
+      --amber-text: #92400E;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background-color: var(--bg-page); color: var(--text-main); padding: 24px; }
+    
+    .header-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--card-bg); padding: 20px 24px; border-radius: 16px;
+      border: 1px solid var(--border-color); margin-bottom: 24px;
+      box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03);
+    }
+    .header-title { font-size: 20px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+    .header-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    .btn {
+      padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary { background: var(--primary); color: #FFF; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-secondary { background: var(--border-color); color: var(--text-main); }
+
+    /* Bento Grid KPIs */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .kpi-card {
+      background: var(--card-bg); padding: 20px; border-radius: 14px;
+      border: 1px solid var(--border-color); box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03);
+    }
+    .kpi-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+    .kpi-value { font-size: 28px; font-weight: 700; color: var(--text-main); margin-top: 6px; }
+
+    /* Card de Categorias mais Frequentes */
+    .cat-ranking-card {
+      background: var(--card-bg); padding: 20px; border-radius: 14px;
+      border: 1px solid var(--border-color); margin-bottom: 24px;
+    }
+    .cat-bar-container { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .cat-bar-item { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+    .cat-bar-label { width: 180px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cat-bar-track { flex: 1; height: 8px; background: #F1F5F9; border-radius: 4px; overflow: hidden; }
+    .cat-bar-fill { height: 100%; background: var(--primary); border-radius: 4px; }
+    .cat-bar-count { font-weight: 600; width: 60px; text-align: right; color: var(--text-muted); }
+
+    /* Filtros e Tabela */
+    .table-container {
+      background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color);
+      box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03); overflow: hidden;
+    }
+    .table-header {
+      padding: 18px 24px; border-bottom: 1px solid var(--border-color);
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    }
+    .filter-tabs { display: flex; gap: 8px; }
+    .tab-btn {
+      padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border-color); background: #FFF; color: var(--text-muted);
+    }
+    .tab-btn.active { background: var(--primary-light); color: var(--primary-text); border-color: var(--primary); }
+
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    th { background: #F8FAFC; padding: 14px 18px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); }
+    td { padding: 16px 18px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+    tr:hover { background-color: #FAF5FF; }
+
+    .badge {
+      padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; display: inline-block;
+    }
+    .badge-novo { background: var(--amber-light); color: var(--amber-text); }
+    .badge-analise { background: var(--blue-light); color: var(--blue-text); }
+    .badge-concluido { background: var(--green-light); color: var(--green-text); }
+    .badge-cargo { background: var(--primary-light); color: var(--primary-text); }
+
+    /* Modal de Atendimento */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4);
+      display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px;
+    }
+    .modal-box {
+      background: #FFF; width: 100%; max-width: 750px; max-height: 90vh; border-radius: 16px;
+      display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+
+    /* Chat timeline */
+    .timeline { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+    .chat-bubble {
+      padding: 16px 18px; border-radius: 12px; background: #F1F5F9; font-size: 13px;
+      line-height: 1.65; white-space: pre-wrap; word-break: break-word;
+    }
+    .chat-bubble.coord { background: var(--primary-light); color: #2D0654; }
+    .chat-meta { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+
+    textarea {
+      width: 100%; height: 100px; padding: 12px; border: 1px solid var(--border-color);
+      border-radius: 10px; resize: vertical; font-size: 13px; line-height: 1.5; outline: none;
+    }
+    textarea:focus { border-color: var(--primary); }
+  </style>
+</head>
+<body>
+
+  <!-- CABEÇALHO DA PÁGINA -->
+  <div class="header-bar">
+    <div>
+      <div class="header-title">🛡️ Painel de Atendimento GP360</div>
+      <div class="header-subtitle">Esteira de Chamados das Diretoria GP LOJAS</div>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn btn-secondary" onclick="carregarDadosPainel()" id="btnAtualizar">
+        🔄 Atualizar Fila
+      </button>
+    </div>
+  </div>
+
+  <!-- BENTO GRID KPIS -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total de Chamados</div>
+      <div class="kpi-value" id="kpiTotal">0</div>
+    </div>
+    <div class="kpi-card" style="border-left: 4px solid var(--amber);">
+      <div class="kpi-label">🚨 Novos / Abertos</div>
+      <div class="kpi-value" id="kpiAbertos" style="color: var(--amber-text);">0</div>
+    </div>
+    <div class="kpi-card" style="border-left: 4px solid var(--blue);">
+      <div class="kpi-label">⏳ Em Análise</div>
+      <div class="kpi-value" id="kpiAnalise" style="color: var(--blue-text);">0</div>
+    </div>
+    <div class="kpi-card" style="border-left: 4px solid var(--green);">
+      <div class="kpi-label">✅ Concluídos</div>
+      <div class="kpi-value" id="kpiConcluidos" style="color: var(--green-text);">0</div>
+    </div>
+  </div>
+
+  <!-- CARD CATEGORIAS MAIS FREQUENTES -->
+  <div class="cat-ranking-card">
+    <div style="font-size: 14px; font-weight: 700; color: var(--text-main);">📊 Categorias com Mais Dúvidas</div>
+    <div class="cat-bar-container" id="containerRankingCategorias">
+      <div style="color: var(--text-muted); font-size: 13px;">Carregando estatísticas de categorias...</div>
+    </div>
+  </div>
+
+  <!-- TABELA DE CHAMADOS -->
+  <div class="table-container">
+    <div class="table-header">
+      <div class="filter-tabs">
+        <button class="tab-btn active" onclick="filtrarStatus('Todos', this)">Todos</button>
+        <button class="tab-btn" onclick="filtrarStatus('Novo / Aberto', this)">🚨 Novos</button>
+        <button class="tab-btn" onclick="filtrarStatus('Em Análise', this)">⏳ Em Análise</button>
+        <button class="tab-btn" onclick="filtrarStatus('Respondido / Concluído', this)">✅ Concluídos</button>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Protocolo</th>
+          <th>Data</th>
+          <th>Solicitante / Cargo</th>
+          <th>Filial / Loja</th>
+          <th>Categoria</th>
+          <th>Assunto</th>
+          <th>Status</th>
+          <th>Ação</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyChamados">
+        <tr>
+          <td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">
+            Carregando lista de chamados...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MODAL DE ATENDIMENTO -->
+  <div class="modal-overlay" id="modalAtendimento">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <span style="font-size: 16px; font-weight: 700;" id="mProtocolo">GP-2026-00000</span>
+          <span class="badge badge-novo" id="mStatusBadge">Aberto</span>
+        </div>
+        <button class="btn btn-secondary" onclick="fecharModal()" style="padding: 6px 12px;">✕ Fechar</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- CARD INFO SOLICITANTE -->
+        <div style="background: #F8FAFC; padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">SOLICITANTE</div>
+            <div style="font-weight: 700; margin-top: 2px;" id="mNome">Nome do Colaborador</div>
+            <div style="margin-top: 4px;"><span class="badge badge-cargo" id="mCargo">Cargo</span></div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">FILIAL / CATEGORIA</div>
+            <div style="font-weight: 600; margin-top: 2px;" id="mFilial">Filial</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;" id="mCategoria">Categoria</div>
+          </div>
+        </div>
+
+        <!-- PERGUNTA ORIGINAL -->
+        <div>
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">DÚVIDA DO COLABORADOR:</div>
+          <div style="background: #FFF; border: 1px solid var(--border-color); padding: 14px; border-radius: 10px; font-size: 13px; line-height: 1.6; white-space: pre-wrap;" id="mDescricao">
+            Descrição da dúvida...
+          </div>
+        </div>
+
+        <!-- LINHA DO TEMPO / HISTÓRICO -->
+        <div>
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-muted);">HISTÓRICO DE RESPOSTAS:</div>
+          <div class="timeline" id="mTimeline"></div>
+        </div>
+
+        <!-- FORMULÁRIO DE RESPOSTA -->
+        <div style="margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+          <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">DIGITE SUA ORIENTAÇÃO / RESPOSTA:</div>
+          <textarea id="txtResposta" placeholder="Escreva a orientação detalhada para o colaborador..."></textarea>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+            <label style="font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+              <input type="checkbox" id="chkConcluir" checked> Marcar como Concluído / Respondido
+            </label>
+            <button class="btn btn-primary" id="btnEnviarResposta" onclick="enviarResposta()">
+              💬 Enviar Resposta
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var listaChamadosGlobal = [];
+    var filtroStatusAtual = "Todos";
+    var protocoloSelecionado = "";
+
+    window.onload = function() {
+      carregarDadosPainel();
+    };
+
+    function carregarDadosPainel() {
+      var btn = document.getElementById('btnAtualizar');
+      btn.disabled = true;
+      btn.innerHTML = "⏳ Atualizando...";
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerHTML = "🔄 Atualizar Fila";
+
+          console.log("Retorno do Servidor:", res);
+
+          if (!res || !res.sucesso) {
+            alert(res && res.mensagem ? res.mensagem : "Não foi possível carregar os dados.");
+            return;
+          }
+
+          var m = res.metricas || {};
+          document.getElementById('kpiTotal').innerText = (m.total !== undefined) ? m.total : 0;
+          document.getElementById('kpiAbertos').innerText = (m.abertos !== undefined) ? m.abertos : 0;
+          document.getElementById('kpiAnalise').innerText = (m.emAnalise !== undefined) ? m.emAnalise : 0;
+          document.getElementById('kpiConcluidos').innerText = (m.concluidos !== undefined) ? m.concluidos : 0;
+
+          listaChamadosGlobal = res.chamados || [];
+          renderizarRankingCategorias(res.kpiCategorias || []);
+          renderizarTabela();
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerHTML = "🔄 Atualizar Fila";
+          alert("Erro de conexão com o servidor: " + err);
+        })
+        .listarChamadosPainel(filtroStatusAtual, "gp");
+    }
+
+    function renderizarRankingCategorias(kpiCat) {
+      var container = document.getElementById('containerRankingCategorias');
+      if (!kpiCat || kpiCat.length === 0) {
+        container.innerHTML = "<div style='color: var(--text-muted); font-size: 13px;'>Nenhum chamado registrado.</div>";
+        return;
+      }
+
+      var html = "";
+      for (var i = 0; i < Math.min(kpiCat.length, 5); i++) {
+        var item = kpiCat[i];
+        html += `
+          <div class="cat-bar-item">
+            <div class="cat-bar-label">${item.categoria}</div>
+            <div class="cat-bar-track">
+              <div class="cat-bar-fill" style="width: ${item.percentual}%;"></div>
+            </div>
+            <div class="cat-bar-count">${item.quantidade} (${item.percentual}%)</div>
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    function renderizarTabela() {
+      var tbody = document.getElementById('tbodyChamados');
+      if (!listaChamadosGlobal || listaChamadosGlobal.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">Nenhum chamado encontrado para este filtro.</td></tr>`;
+        return;
+      }
+
+      var html = "";
+      for (var i = 0; i < listaChamadosGlobal.length; i++) {
+        var c = listaChamadosGlobal[i];
+        var badgeClass = "badge-novo";
+        var stLower = (c.status || "").toLowerCase();
+        if (stLower.indexOf("análise") !== -1 || stLower.indexOf("analise") !== -1) badgeClass = "badge-analise";
+        if (stLower.indexOf("respondido") !== -1 || stLower.indexOf("concluído") !== -1 || stLower.indexOf("concluido") !== -1) badgeClass = "badge-concluido";
+
+        html += `
+          <tr>
+            <td><strong>${c.protocolo}</strong></td>
+            <td style="color: var(--text-muted);">${c.dataAbertura}</td>
+            <td>
+              <div style="font-weight: 600;">${c.solicitanteNome}</div>
+              <span class="badge badge-cargo">${c.solicitanteCargo}</span>
+            </td>
+            <td>Loja ${c.filialId}</td>
+            <td>${c.categoria}</td>
+            <td>${c.assunto}</td>
+            <td><span class="badge ${badgeClass}">${c.status}</span></td>
+            <td>
+              <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px;" onclick="abrirAtendimento('${c.protocolo}')">
+                💬 Atender
+              </button>
+            </td>
+          </tr>
+        `;
+      }
+      tbody.innerHTML = html;
+    }
+
+    function filtrarStatus(status, btnElem) {
+      filtroStatusAtual = status;
+      var btns = document.querySelectorAll('.tab-btn');
+      btns.forEach(b => b.classList.remove('active'));
+      btnElem.classList.add('active');
+      carregarDadosPainel();
+    }
+
+    function abrirAtendimento(protocolo) {
+      var c = listaChamadosGlobal.find(x => x.protocolo === protocolo);
+      if (!c) return;
+
+      protocoloSelecionado = protocolo;
+      document.getElementById('mProtocolo').innerText = c.protocolo;
+      document.getElementById('mStatusBadge').innerText = c.status;
+      document.getElementById('mNome').innerText = c.solicitanteNome + " (ID: " + c.solicitanteId + ")";
+      document.getElementById('mCargo').innerText = c.solicitanteCargo;
+      document.getElementById('mFilial').innerText = "Loja " + c.filialId;
+      document.getElementById('mCategoria').innerText = c.categoria + " - " + c.assunto;
+      document.getElementById('mDescricao').innerText = c.descricao;
+      document.getElementById('txtResposta').value = "";
+
+      carregarHistoricoModal(protocolo);
+      document.getElementById('modalAtendimento').style.display = 'flex';
+    }
+
+    function carregarHistoricoModal(protocolo) {
+      var container = document.getElementById('mTimeline');
+      container.innerHTML = "<div style='color: var(--text-muted); font-size: 12px;'>Carregando histórico...</div>";
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (!res || !res.sucesso || !res.historico || res.historico.length === 0) {
+            container.innerHTML = "<div style='color: var(--text-muted); font-size: 12px;'>Nenhuma resposta registrada ainda.</div>";
+            return;
+          }
+
+          var html = "";
+          for (var i = 0; i < res.historico.length; i++) {
+            var h = res.historico[i];
+            var isCoord = h.autorPapel.indexOf("Solicitante") === -1;
+            html += `
+              <div class="chat-bubble ${isCoord ? 'coord' : ''}">
+                <div class="chat-meta">
+                  <span>${h.autorNome} (${h.autorPapel})</span>
+                  <span>${h.dataHora}</span>
+                </div>
+                <div>${h.mensagem}</div>
+              </div>
+            `;
+          }
+          container.innerHTML = html;
+        })
+        .consultarHistoricoChamado(protocolo, "gp");
+    }
+
+    function fecharModal() {
+      document.getElementById('modalAtendimento').style.display = 'none';
+    }
+
+    function enviarResposta() {
+      var txt = document.getElementById('txtResposta').value.trim();
+      var concluir = document.getElementById('chkConcluir').checked;
+      var btn = document.getElementById('btnEnviarResposta');
+
+      if (!txt) {
+        alert("Digite uma resposta antes de enviar.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = "⏳ Enviando...";
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.innerText = "💬 Enviar Resposta";
+
+          if (res && res.sucesso) {
+            document.getElementById('txtResposta').value = "";
+            carregarHistoricoModal(protocoloSelecionado);
+            carregarDadosPainel();
+            alert("Resposta enviada com sucesso!");
+          } else {
+            alert("Erro ao enviar: " + (res ? res.mensagem : "Erro desconhecido"));
+          }
+        })
+        .responderChamado(protocoloSelecionado, txt, concluir, "gp");
+    }
+  </script>
+</body>
+</html>

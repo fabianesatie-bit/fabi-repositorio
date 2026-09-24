@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Central de Dúvidas GP360</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #7C3AED;
+      --primary-light: #F3E8FF;
+      --primary-dark: #6B21A8;
+
+      --blue-soft: #2563EB;
+      --blue-badge: #EFF6FF;
+      --blue-text: #1E40AF;
+
+      --menta-soft: #10B981;
+      --menta-badge: #ECFDF5;
+      --menta-text: #065F46;
+
+      --pessego-soft: #F59E0B;
+      --pessego-badge: #FFFBEB;
+      --pessego-text: #92400E;
+
+      --coral-soft: #F43F5E;
+      --coral-badge: #FFF1F2;
+      --coral-text: #9F1239;
+
+      --bg-main: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --border-color: #E2E8F0;
+      --text-main: #1E293B;
+      --text-muted: #64748B;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top-accent-bar {
+      height: 5px;
+      background: linear-gradient(90deg, var(--primary), var(--blue-soft), var(--menta-soft), var(--pessego-soft));
+    }
+
+    header {
+      background-color: #FFFFFF;
+      border-bottom: 1px solid var(--border-color);
+      padding: 16px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      background-color: var(--primary-light);
+      color: var(--primary-dark);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      background-color: #F1F5F9;
+      padding: 4px;
+      border-radius: 12px;
+    }
+
+    .tab-btn {
+      border: none;
+      background: transparent;
+      padding: 8px 18px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background-color: #FFFFFF;
+      color: var(--primary-dark);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .main-container {
+      max-width: 860px;
+      width: 100%;
+      margin: 28px auto;
+      padding: 0 20px;
+      flex: 1;
+    }
+
+    .bento-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 4px 15px -2px rgba(0,0,0,0.03);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      font-size: 0.92rem;
+      color: var(--text-main);
+      outline: none;
+      transition: border 0.2s ease;
+      background-color: #FAFAFA;
+    }
+
+    .form-control:focus {
+      border-color: var(--primary);
+      background-color: #FFFFFF;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .input-hint {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .btn {
+      border: none;
+      padding: 12px 22px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+
+    .btn-primary { background-color: var(--primary); color: #FFFFFF; }
+    .btn-secondary { background-color: #F1F5F9; color: var(--text-main); }
+    .btn-success { background-color: var(--menta-soft); color: #FFFFFF; }
+
+    .btn:hover { opacity: 0.93; transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: inline-block;
+    }
+
+    .badge-novo { background-color: var(--coral-badge); color: var(--coral-text); }
+    .badge-analise { background-color: var(--pessego-badge); color: var(--pessego-text); }
+    .badge-respondido { background-color: var(--menta-badge); color: var(--menta-text); }
+
+    .card-item-duvida {
+      background-color: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .card-item-duvida:hover {
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(124,58,237,0.08);
+      transform: translateY(-2px);
+    }
+
+    .card-item-duvida.selecionado {
+      border-color: var(--primary);
+      background-color: #FAF5FF;
+    }
+
+    .chat-bubble {
+      padding: 14px 16px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      max-width: 90%;
+      line-height: 1.5;
+    }
+
+    .bubble-user {
+      background-color: var(--blue-badge);
+      border: 1px solid #BFDBFE;
+      margin-right: auto;
+    }
+
+    .bubble-coord {
+      background-color: var(--primary-light);
+      border: 1px solid #DDD6FE;
+      margin-left: auto;
+    }
+
+    .bubble-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .success-box {
+      background-color: var(--menta-badge);
+      border: 1px solid #A7F3D0;
+      padding: 24px;
+      border-radius: 14px;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .toast-box {
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 18px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .toast-error { background-color: var(--coral-badge); color: var(--coral-text); border: 1px solid #FECDD3; }
+    .toast-success { background-color: var(--menta-badge); color: var(--menta-text); border: 1px solid #A7F3D0; }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 640px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .bento-card { padding: 20px; }
+      header { flex-direction: column; align-items: flex-start; }
+      .nav-tabs { width: 100%; justify-content: space-between; }
+      .tab-btn { flex: 1; text-align: center; padding: 8px 10px; font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-accent-bar"></div>
+
+  <header>
+    <div class="brand-title">
+      <span>🤝 Central de Dúvidas GP360</span>
+      <span class="brand-badge">Magazine Luiza</span>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="tab-btn active" id="tabBtnNova" onclick="trocarAbaPublica('abaNova')">📝 Nova Dúvida</button>
+      <button class="tab-btn" id="tabBtnConsulta" onclick="trocarAbaPublica('abaConsulta')">🔍 Consultar Minhas Dúvidas</button>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <div id="toastContainer"></div>
+
+    <div id="abaNova">
+      <div class="bento-card" id="cardFormulario">
+        <h2 style="font-size: 1.3rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 6px;">
+          Como a equipe de GP pode te orientar hoje?
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 24px;">
+          Digite sua matrícula para carregar seus dados e envie sua dúvida diretamente para os coordenadores e gerência de GP.
+        </p>
+
+        <form id="formChamado" onsubmit="submeterChamado(event)">
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Sua Matrícula / ID *</label>
+              <input type="text" id="solicitanteId" class="form-control" placeholder="Ex: 100684" oninput="consultarColaborador()" onblur="consultarColaborador()" required>
+              <div class="input-hint" id="hintId">Digite sua matrícula para buscar seus dados.</div>
+            </div>
+            <div class="form-group">
+              <label>Nome do Colaborador *</label>
+              <input type="text" id="solicitanteNome" class="form-control" placeholder="Aguardando matrícula..." required style="background-color: #F8FAFC;">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Número da Filial / Loja *</label>
+              <input type="text" id="filialId" class="form-control" placeholder="Ex: 1164 ou 4164" onblur="consultarFilial()" required style="background-color: #F8FAFC;">
+              <div class="input-hint">Aplica regra > 3000 automaticamente.</div>
+            </div>
+            <div class="form-group">
+              <label>Nome da Loja</label>
+              <input type="text" id="filialNome" class="form-control" placeholder="Identificando filial..." readonly style="background-color: #F1F5F9;">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Categoria do Assunto *</label>
+              <select id="categoria" class="form-control" required>
+                <option value="">Carregando categorias...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Título Resumido da Dúvida *</label>
+              <input type="text" id="assunto" class="form-control" placeholder="Ex: Dúvida sobre fechamento de ponto no sistema" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Descreva sua Dúvida com Detalhes *</label>
+            <textarea id="descricao" class="form-control" rows="5" placeholder="Explique com clareza o que aconteceu para que a equipe de GP possa te orientar com agilidade..." required></textarea>
+          </div>
+
+          <button type="submit" id="btnEnviar" class="btn btn-primary">
+            🚀 Enviar Dúvida para o GP
+          </button>
+        </form>
+      </div>
+
+      <div class="bento-card success-box hidden" id="cardSucesso">
+        <div style="font-size: 2.2rem; margin-bottom: 8px;">🎉</div>
+        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--menta-text);">Dúvida Enviada com Sucesso!</h3>
+        <p style="color: #334155; font-size: 0.9rem; margin-top: 6px;">
+          Sua dúvida foi encaminhada para a equipe de Gestão de Pessoas.
+        </p>
+        
+        <p style="color: var(--text-muted); font-size: 0.88rem; max-width: 520px; margin: 14px auto 22px auto;">
+          Você não precisa se preocupar em anotar número de protocolo! Para ver a resposta, basta digitar a sua <strong>matrícula</strong> na aba <strong>"Consultar Minhas Dúvidas"</strong>.
+        </p>
+
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          <button class="btn btn-primary" style="max-width: 300px;" onclick="irParaMinhasDuvidasDireto()">
+            🔍 Ver Minhas Dúvidas Agora
+          </button>
+          <button class="btn btn-secondary" style="max-width: 220px;" onclick="abrirNovoFormulario()">
+            📝 Enviar Outra Dúvida
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="abaConsulta" class="hidden">
+      <div class="bento-card">
+        <h2 style="font-size: 1.3rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 6px;">
+          Acompanhar Orientações de GP
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 20px;">
+          Informe apenas a sua matrícula para carregar todas as suas dúvidas enviadas e as respostas do GP.
+        </p>
+
+        <div style="display: flex; gap: 12px; margin-bottom: 22px; flex-wrap: wrap;">
+          <input type="text" id="consultaMatricula" class="form-control" style="flex: 1; min-width: 200px;" placeholder="Digite sua matrícula (Ex: 100684)" onkeydown="if(event.key==='Enter') consultarMinhasDuvidas()">
+          <button class="btn btn-primary" id="btnConsultarMatricula" style="max-width: 240px;" onclick="consultarMinhasDuvidas()">
+            🔍 Consultar Dúvidas
+          </button>
+        </div>
+
+        <div id="boxListaDuvidas" class="hidden">
+          <h4 id="lblTituloLista" style="font-size: 0.9rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px;">
+            Suas Dúvidas Registradas:
+          </h4>
+          <div id="containerCardsDuvidas" style="margin-bottom: 24px;"></div>
+        </div>
+
+        <div id="boxDetalheDuvida" class="hidden" style="border-top: 1px solid var(--border-color); padding-top: 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+            <div>
+              <span id="detalheProtocolo" style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;"></span>
+              <h3 id="detalheAssunto" style="font-size: 1.15rem; font-weight: 800; color: var(--primary-dark); margin-top: 2px;"></h3>
+            </div>
+            <span id="detalheBadgeStatus" class="badge"></span>
+          </div>
+
+          <div style="background-color: #F8FAFC; border-radius: 12px; padding: 12px 16px; margin-bottom: 18px; border: 1px solid var(--border-color); font-size: 0.84rem;">
+            <div style="display: flex; justify-content: space-between; color: var(--text-muted); margin-bottom: 4px;">
+              <span id="detalheFilial"></span>
+              <span id="detalheDataAbertura"></span>
+            </div>
+            <span id="detalheCategoria" style="color: var(--primary); font-weight: 700;"></span>
+          </div>
+
+          <h4 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;">
+            Orientações e Conversa com GP:
+          </h4>
+          <div id="chatMensagens" style="max-height: 380px; overflow-y: auto; margin-bottom: 20px;"></div>
+
+          <div id="boxEnviarReplica" style="border-top: 1px dashed var(--border-color); padding-top: 16px;">
+            <label style="font-size: 0.85rem; font-weight: 700; display: block; margin-bottom: 6px;">
+              Ficou alguma dúvida sobre a orientação recebida? Envie uma mensagem adicional:
+            </label>
+            <textarea id="textoReplica" class="form-control" rows="3" placeholder="Digite sua dúvida complementar para a equipe de GP..."></textarea>
+            <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+              <button class="btn btn-primary" id="btnEnviarReplica" style="max-width: 260px;" onclick="enviarMensagemComplementar()">
+                💬 Enviar Mensagem Adicional
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    var MATRICULA_SALVA_RECENTE = '';
+    var LISTA_CHAMADOS_CACHE = [];
+    var CHAMADO_SELECIONADO_ATUAL = null;
+    var timerBuscaColab = null;
+
+    window.onload = function() {
+      google.script.run
+        .withSuccessHandler(function(cats) {
+          var sel = document.getElementById('categoria');
+          sel.innerHTML = '<option value="">Selecione uma categoria...</option>';
+          if (cats && cats.length > 0) {
+            cats.forEach(function(cat) {
+              var opt = document.createElement('option');
+              opt.value = cat;
+              opt.textContent = cat;
+              sel.appendChild(opt);
+            });
+          }
+        })
+        .withFailureHandler(function(err) {
+          mostrarToast('Erro ao carregar categorias: ' + err.message, 'error');
+        })
+        .obterListaCategorias();
+    };
+
+    function mostrarToast(msg, tipo) {
+      var container = document.getElementById('toastContainer');
+      container.innerHTML = 
+        '<div class="toast-box ' + (tipo === 'error' ? 'toast-error' : 'toast-success') + '">' +
+          '<span>' + msg + '</span>' +
+          '<button style="background:none; border:none; cursor:pointer; font-weight:bold;" onclick="this.parentElement.remove()">✕</button>' +
+        '</div>';
+      setTimeout(function() {
+        if (container.firstElementChild) container.firstElementChild.remove();
+      }, 7000);
+    }
+
+    function trocarAbaPublica(abaId) {
+      document.getElementById('abaNova').classList.add('hidden');
+      document.getElementById('abaConsulta').classList.add('hidden');
+      document.getElementById('tabBtnNova').classList.remove('active');
+      document.getElementById('tabBtnConsulta').classList.remove('active');
+
+      document.getElementById(abaId).classList.remove('hidden');
+
+      if (abaId === 'abaNova') document.getElementById('tabBtnNova').classList.add('active');
+      if (abaId === 'abaConsulta') document.getElementById('tabBtnConsulta').classList.add('active');
+    }
+
+    function consultarColaborador() {
+      clearTimeout(timerBuscaColab);
+      var idVal = document.getElementById('solicitanteId').value.replace(/\D/g, '').trim();
+      var hint = document.getElementById('hintId');
+
+      if (!idVal || idVal.length < 3) {
+        document.getElementById('solicitanteNome').value = '';
+        document.getElementById('filialId').value = '';
+        document.getElementById('filialNome').value = '';
+        hint.textContent = 'Digite sua matrícula para buscar seus dados.';
+        hint.style.color = 'var(--text-muted)';
+        return;
+      }
+
+      hint.textContent = '🔍 Buscando em DADOS_ATIVOS...';
+      hint.style.color = 'var(--primary)';
+
+      timerBuscaColab = setTimeout(function() {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            if (res && res.sucesso && res.colaborador) {
+              document.getElementById('solicitanteNome').value = res.colaborador.nome + ' (' + res.colaborador.cargo + ')';
+              document.getElementById('filialId').value = res.colaborador.filialId;
+              document.getElementById('filialNome').value = res.colaborador.filialNome;
+              hint.textContent = '✅ Colaborador localizado com sucesso!';
+              hint.style.color = 'var(--menta-text)';
+            } else {
+              hint.textContent = '⚠️ Não localizado na base DADOS_ATIVOS.';
+              hint.style.color = 'var(--pessego-soft)';
+              document.getElementById('solicitanteNome').value = '';
+              document.getElementById('filialId').value = '';
+              document.getElementById('filialNome').value = '';
+            }
+          })
+          .withFailureHandler(function(err) {
+            hint.textContent = 'Erro na busca: ' + err.message;
+            hint.style.color = 'var(--coral-text)';
+          })
+          .buscarColaboradorPorId(idVal);
+      }, 300);
+    }
+
+    function consultarFilial() {
+      var filialVal = document.getElementById('filialId').value.trim();
+      if (!filialVal) return;
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res && res.sucesso) {
+            document.getElementById('filialId').value = res.filialId;
+            document.getElementById('filialNome').value = res.filialNome;
+          }
+        })
+        .buscarInfoFilial(filialVal);
+    }
+
+    function submeterChamado(e) {
+      e.preventDefault();
+      var idVal = document.getElementById('solicitanteId').value.trim();
+      var nomeVal = document.getElementById('solicitanteNome').value.trim();
+
+      if (!nomeVal) {
+        mostrarToast('Por favor, informe uma matrícula válida para carregar o seu nome.', 'error');
+        return;
+      }
+
+      var btn = document.getElementById('btnEnviar');
+      btn.disabled = true;
+      btn.textContent = 'Enviando dúvida...';
+
+      var payload = {
+        solicitanteId: idVal,
+        solicitanteNome: nomeVal,
+        filialId: document.getElementById('filialId').value,
+        filialNome: document.getElementById('filialNome').value,
+        categoria: document.getElementById('categoria').value,
+        assunto: document.getElementById('assunto').value,
+        descricao: document.getElementById('descricao').value
+      };
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.textContent = '🚀 Enviar Dúvida para o GP';
+
+          if (res && res.sucesso) {
+            MATRICULA_SALVA_RECENTE = idVal;
+            document.getElementById('cardFormulario').classList.add('hidden');
+            document.getElementById('cardSucesso').classList.remove('hidden');
+          } else {
+            mostrarToast('Erro ao registrar dúvida: ' + (res ? res.mensagem : 'Erro desconhecido'), 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.textContent = '🚀 Enviar Dúvida para o GP';
+          mostrarToast('Erro de conexão ao registrar dúvida: ' + err.message, 'error');
+        })
+        .registrarNovoChamado(payload);
+    }
+
+    function abrirNovoFormulario() {
+      document.getElementById('formChamado').reset();
+      document.getElementById('hintId').textContent = 'Digite sua matrícula para buscar seus dados.';
+      document.getElementById('hintId').style.color = 'var(--text-muted)';
+      document.getElementById('cardSucesso').classList.add('hidden');
+      document.getElementById('cardFormulario').classList.remove('hidden');
+    }
+
+    function irParaMinhasDuvidasDireto() {
+      document.getElementById('consultaMatricula').value = MATRICULA_SALVA_RECENTE;
+      trocarAbaPublica('abaConsulta');
+      consultarMinhasDuvidas();
+    }
+
+    function consultarMinhasDuvidas() {
+      var matricula = document.getElementById('consultaMatricula').value.replace(/\D/g, '').trim();
+      if (!matricula) {
+        mostrarToast('Por favor, digite sua matrícula/ID.', 'error');
+        return;
+      }
+
+      var btn = document.getElementById('btnConsultarMatricula');
+      btn.disabled = true;
+      btn.textContent = '🔍 Buscando...';
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.textContent = '🔍 Consultar Dúvidas';
+
+          if (!res || !res.sucesso || !res.chamados || res.chamados.length === 0) {
+            mostrarToast('Nenhuma dúvida encontrada para esta matrícula.', 'error');
+            document.getElementById('boxListaDuvidas').classList.add('hidden');
+            document.getElementById('boxDetalheDuvida').classList.add('hidden');
+            return;
+          }
+
+          LISTA_CHAMADOS_CACHE = res.chamados;
+          renderizarListaDuvidas(res.chamados);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.textContent = '🔍 Consultar Dúvidas';
+          mostrarToast('Erro ao consultar: ' + err.message, 'error');
+        })
+        .listarChamadosPorColaboradorId(matricula);
+    }
+
+    function renderizarListaDuvidas(chamados) {
+      var container = document.getElementById('containerCardsDuvidas');
+      container.innerHTML = '';
+
+      var primeiroNome = (chamados[0] && chamados[0].solicitanteNome) ? chamados[0].solicitanteNome : 'você';
+      document.getElementById('lblTituloLista').textContent = 'Dúvidas de ' + primeiroNome + ' (' + chamados.length + '):';
+      document.getElementById('boxListaDuvidas').classList.remove('hidden');
+
+      chamados.forEach(function(c, index) {
+        var card = document.createElement('div');
+        var badgeClass = 'badge-novo';
+        var stLower = (c.status || '').toLowerCase();
+        if (stLower.indexOf('análise') !== -1 || stLower.indexOf('analise') !== -1) badgeClass = 'badge-analise';
+        if (stLower.indexOf('respondido') !== -1 || stLower.indexOf('concluído') !== -1 || stLower.indexOf('concluido') !== -1) badgeClass = 'badge-respondido';
+
+        card.className = 'card-item-duvida' + (index === 0 ? ' selecionado' : '');
+        card.id = 'cardDuvida_' + c.protocolo;
+        card.onclick = function() { selecionarDuvida(c.protocolo); };
+
+        card.innerHTML = 
+          '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:8px;">' +
+            '<span style="font-size:0.78rem; font-weight:700; color:var(--text-muted);">' + c.protocolo + ' • ' + c.dataAbertura + '</span>' +
+            '<span class="badge ' + badgeClass + '">' + c.status + '</span>' +
+          '</div>' +
+          '<div style="font-weight:700; font-size:0.95rem; color:var(--text-main); margin-bottom:4px;">' + c.assunto + '</div>' +
+          '<div style="font-size:0.8rem; color:var(--primary); font-weight:600;">' + c.categoria + ' • Filial ' + c.filialId + '</div>';
+
+        container.appendChild(card);
+      });
+
+      if (chamados.length > 0) {
+        selecionarDuvida(chamados[0].protocolo);
+      }
+    }
+
+    function selecionarDuvida(protocolo) {
+      var achado = null;
+      for (var i = 0; i < LISTA_CHAMADOS_CACHE.length; i++) {
+        if (LISTA_CHAMADOS_CACHE[i].protocolo === protocolo) {
+          achado = LISTA_CHAMADOS_CACHE[i];
+          break;
+        }
+      }
+
+      if (!achado) return;
+      CHAMADO_SELECIONADO_ATUAL = achado;
+
+      var cards = document.querySelectorAll('.card-item-duvida');
+      cards.forEach(function(el) { el.classList.remove('selecionado'); });
+      var cardAtivo = document.getElementById('cardDuvida_' + protocolo);
+      if (cardAtivo) cardAtivo.classList.add('selecionado');
+
+      document.getElementById('detalheProtocolo').textContent = achado.protocolo;
+      document.getElementById('detalheAssunto').textContent = achado.assunto;
+      document.getElementById('detalheCategoria').textContent = 'Categoria: ' + achado.categoria;
+      document.getElementById('detalheFilial').textContent = 'Filial ' + achado.filialId + ' (' + achado.filialNome + ')';
+      document.getElementById('detalheDataAbertura').textContent = 'Aberto em: ' + achado.dataAbertura;
+
+      var badgeEl = document.getElementById('detalheBadgeStatus');
+      badgeEl.textContent = achado.status;
+      var stLower = (achado.status || '').toLowerCase();
+      badgeEl.className = 'badge ' + (stLower.indexOf('respondido') !== -1 || stLower.indexOf('concluído') !== -1 ? 'badge-respondido' : (stLower.indexOf('análise') !== -1 ? 'badge-analise' : 'badge-novo'));
+
+      var chat = document.getElementById('chatMensagens');
+      chat.innerHTML = '';
+
+      // Renderiza a pergunta inicial do colaborador
+      var divOrig = document.createElement('div');
+      divOrig.className = 'chat-bubble bubble-user';
+      divOrig.innerHTML = 
+        '<div class="bubble-header">' +
+          '<span>👤 Você (' + achado.solicitanteNome + ')</span>' +
+          '<span style="color: var(--text-muted);">' + achado.dataAbertura + '</span>' +
+        '</div>' +
+        '<div style="font-size:0.9rem;">' + achado.descricao + '</div>';
+      chat.appendChild(divOrig);
+
+      // Renderiza as orientações do GP e réplicas do histórico
+      if (achado.historico && achado.historico.length > 0) {
+        achado.historico.forEach(function(m) {
+          var div = document.createElement('div');
+          var isCoord = (m.autorPapel || '').indexOf('Solicitante') === -1;
+          div.className = 'chat-bubble ' + (isCoord ? 'bubble-coord' : 'bubble-user');
+          div.innerHTML = 
+            '<div class="bubble-header">' +
+              '<span>' + (isCoord ? '🛡️ Gestão de Pessoas (' + m.autorNome + ')' : '👤 Você (' + m.autorNome + ')') + '</span>' +
+              '<span style="color: var(--text-muted);">' + m.dataHora + '</span>' +
+            '</div>' +
+            '<div style="font-size:0.9rem;">' + m.mensagem + '</div>';
+          chat.appendChild(div);
+        });
+      }
+
+      document.getElementById('boxDetalheDuvida').classList.remove('hidden');
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function enviarMensagemComplementar() {
+      if (!CHAMADO_SELECIONADO_ATUAL) {
+        mostrarToast('Selecione uma dúvida antes de enviar.', 'error');
+        return;
+      }
+
+      var texto = document.getElementById('textoReplica').value.trim();
+      if (!texto) {
+        mostrarToast('Digite sua mensagem antes de enviar.', 'error');
+        return;
+      }
+
+      var btn = document.getElementById('btnEnviarReplica');
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
+
+      var matricula = document.getElementById('consultaMatricula').value.trim();
+
+      google.script.run
+        .withSuccessHandler(function(res) {
+          btn.disabled = false;
+          btn.textContent = '💬 Enviar Mensagem Adicional';
+          if (res && res.sucesso) {
+            mostrarToast("Mensagem enviada com sucesso!", 'success');
+            document.getElementById('textoReplica').value = '';
+            consultarMinhasDuvidas();
+          } else {
+            mostrarToast('Erro ao enviar: ' + (res ? res.mensagem : 'Erro desconhecido'), 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.textContent = '💬 Enviar Mensagem Adicional';
+          mostrarToast('Erro ao enviar: ' + err.message, 'error');
+        })
+        .enviarReplicaColaborador(CHAMADO_SELECIONADO_ATUAL.protocolo, matricula, texto);
+    }
+  </script>
+</body>
+</html>
