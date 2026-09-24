@@ -1,9 +1,24 @@
 // =====================================================================
-// SERVIÇO DE GRAVAÇÃO E VALIDAÇÃO ANTI-DUPLICIDADE (MULTILOCAÇÃO)
+// SERVIÇO DE GRAVAÇÃO E PERSISTÊNCIA DE DADOS - ECOSSISTEMA GP360
+// MÓDULO: FORMULÁRIO DE INSCRIÇÃO (PROJETO: Base Posicionamento estrategico)
+// ALINHAMENTO ESTRITO COM AS 35 COLUNAS (A até AI) DE 'Detalhamento Regional'
 // =====================================================================
 
-// Regra Global GP360: Normalização de Filiais (Middleware Local)
-function normalizarFilialId(val) {
+/**
+ * GATILHO PRINCIPAL DE EXIBIÇÃO WEB (DO-GET SEM TRAVA TEMPORAL)
+ */
+function doGet(e) {
+  return HtmlService.createTemplateFromFile('Index')
+    .evaluate()
+    .setTitle('Inscrição - Posicionamento Estratégico 2026')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+// ---------------------------------------------------------------------
+// REGRA GLOBAL OBRIGATÓRIA GP360: NORMALIZAÇÃO DE FILIAIS (MIDDLEWARE LOCAL)
+// ---------------------------------------------------------------------
+function normalizarFilialIdWrite(val) {
   if (!val && val !== 0) return "";
   var num = parseInt(String(val).replace(/\D/g, ''), 10);
   if (isNaN(num)) return String(val).trim();
@@ -11,124 +26,109 @@ function normalizarFilialId(val) {
   return String(num);
 }
 
+/**
+ * ALIAS DE SEGURANÇA PARA COMPATIBILIDADE COM O FRONTEND
+ */
 function salvarDados(payload) {
+  return gravarInscricaoEmLote(payload);
+}
+
+/**
+ * ROTINA DE GRAVAÇÃO DA INSCRIÇÃO NA PLANILHA DESTINO
+ * Mapeamento de 35 colunas exatas (A até AI) na aba Detalhamento Regional
+ * @param {Object} payload - Objeto contendo os dados do participante e acompanhantes
+ */
+function gravarInscricaoEmLote(payload) {
   try {
-    // BLINDAGEM DE INTEGRIDADE: Zera aeroportos se transporte não for aéreo.
-    if (payload.tipoTransporte !== 'Aéreo') {
-      payload.aeroporto1 = "";
-      payload.aeroporto2 = "";
+    if (!payload) {
+      return { sucesso: false, msg: "Dados de inscrição incompletos ou inválidos." };
     }
 
-    var ss = SpreadsheetApp.openById(SPREADSHEET_DESTINO_ID);
-    var sheet = ss.getSheetByName('Detalhamento Regional');
-    
-    if (!sheet) {
-      return { sucesso: false, msg: "ERRO CRÍTICO: Aba 'Detalhamento Regional' não encontrada." };
+    var idCracha = String(payload.id || (payload.colaborador ? payload.colaborador.id : "")).trim();
+    var nomeCompleto = payload.nomeCompleto || (payload.colaborador ? payload.colaborador.nome : "");
+    var regional = payload.regional || (payload.colaborador ? payload.colaborador.regional : "");
+    var filial = payload.filial || (payload.colaborador ? payload.colaborador.filial : "");
+    var rg = payload.rg || (payload.colaborador ? payload.colaborador.rg : "");
+    var orgao = payload.orgao || (payload.colaborador ? payload.colaborador.orgao : "");
+    var cpf = payload.cpf || (payload.colaborador ? payload.colaborador.cpf : "");
+    var nascimento = payload.nascimento || (payload.colaborador ? payload.colaborador.nascimento : "");
+    var cargo = payload.cargo || (payload.colaborador ? payload.colaborador.cargo : "");
+
+    // 1. CONEXÃO COM A PLANILHA DESTINO
+    var ssDestino = SpreadsheetApp.openById(SPREADSHEET_DESTINO_ID);
+    var sheetDestino = ssDestino.getSheetByName('Detalhamento Regional');
+    if (!sheetDestino) {
+      return { sucesso: false, msg: "Aba 'Detalhamento Regional' não encontrada na planilha de destino." };
     }
-    
-    var dados = sheet.getDataRange().getValues();
-    
-    // Verificação Anti-Duplicidade do Titular (Coluna L - índice 11)
-    for (var i = 1; i < dados.length; i++) {
-      var matriculaExistente = String(dados[i][11]).trim(); 
-      if (matriculaExistente === String(payload.id).trim()) {
+
+    // 2. DOUBLE-LOCK NO SERVIDOR (ANTI-DUPLICIDADE NA COLUNA L - INDEX 11)
+    var dadosDestino = sheetDestino.getDataRange().getValues();
+    for (var k = 1; k < dadosDestino.length; k++) {
+      var matriculaGravada = String(dadosDestino[k][11]).trim(); // Coluna L (Índice 11) - ID (CRACHÁ)
+      if (idCracha !== "" && matriculaGravada === idCracha) {
         return { 
           sucesso: false, 
-          msg: "Você já preencheu este formulário anteriormente. Para alterações de rotas ou dados, envie um e-mail diretamente para a Agência LTN." 
+          msg: "Você já preencheu este formulário anteriormente. Para alterações de rotas e outros detalhes, envie um e-mail para a equipe de organização." 
         };
       }
     }
-    
-    var linhasParaGravar = [];
-    
-    // --------------------------------------------------------------------
-    // LINHA 1: GERENTE / COLABORADOR TITULAR
-    // --------------------------------------------------------------------
-    // Agora usando array de 28 posições para abranger até a Coluna AB (Índice 27)
-    var linhaTitular = new Array(28).fill("");
-    
-    linhaTitular[0] = ""; // Coluna A - VAZIA (Agência)
-    linhaTitular[1] = ""; // Coluna B - VAZIA (Agência)
-    linhaTitular[2] = payload.regional; // Coluna C
-    linhaTitular[3] = normalizarFilialId(payload.filial); // Coluna D
-    linhaTitular[4] = payload.nomeCompleto; // Coluna E (Já validado com RG pelo Front-end)
-    linhaTitular[5] = payload.sexo; // Coluna F
-    linhaTitular[6] = payload.rg; // Coluna G
-    linhaTitular[7] = payload.orgao; // Coluna H
-    linhaTitular[8] = payload.cpf; // Coluna I
-    
-    var dataNasc = payload.nascimento;
-    if (dataNasc && typeof dataNasc.getTime === 'function') {
-      linhaTitular[9] = Utilities.formatDate(dataNasc, Session.getScriptTimeZone(), "dd/MM/yyyy");
-    } else {
-      linhaTitular[9] = dataNasc; // Coluna J
+
+    // 3. MONTAGEM DO ARRAY DE 35 COLUNAS EXATAS (A até AI)
+    var timestampAtual = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+    var filialNormalizada = normalizarFilialIdWrite(filial);
+    var emailUsuario = Session.getActiveUser().getEmail() || "";
+
+    var transporteFinal = payload.tipoTransporte || "Próprio";
+    if (transporteFinal.indexOf('Próprio') !== -1) {
+      transporteFinal = 'Próprio';
     }
-    
-    linhaTitular[10] = payload.cargo; // Coluna K
-    linhaTitular[11] = payload.id; // Coluna L - ID CRACHÁ (Chave Anti-duplicidade)
-    linhaTitular[12] = payload.ddd; // Coluna M
-    linhaTitular[13] = payload.celular; // Coluna N
-    linhaTitular[14] = ""; // Coluna O
-    linhaTitular[15] = ""; // Coluna P
-    linhaTitular[16] = ""; // Coluna Q
-    linhaTitular[17] = payload.restricaoAlimentar; // Coluna R
-    linhaTitular[18] = payload.emailMagalu; // Coluna S
-    linhaTitular[19] = payload.emailPessoal; // Coluna T
-    linhaTitular[20] = payload.tipoTransporte; // Coluna U
-    linhaTitular[21] = payload.observacaoRotas; // Coluna V
-    linhaTitular[22] = payload.aeroporto1; // Coluna W
-    linhaTitular[23] = payload.aeroporto2; // Coluna X
-    linhaTitular[24] = payload.cidadeEmbarque; // Coluna Y
-    linhaTitular[25] = payload.mobilidadeReduzida; // Coluna Z
-    linhaTitular[26] = payload.observacoesGerais; // Coluna AA
-    linhaTitular[27] = payload.contatoEmergencia; // Coluna AB - NOVO CAMPO DE EMERGÊNCIA
-    
-    linhasParaGravar.push(linhaTitular);
-    
-    // --------------------------------------------------------------------
-    // LINHA 2 e 3: GRAVAÇÃO EM LOTE PARA LACTANTES E BEBÊ (Se aplicável)
-    // --------------------------------------------------------------------
-    if (payload.isLactante) {
-      
-      var linhaAcomp = new Array(28).fill("");
-      linhaAcomp[2] = payload.regional; 
-      linhaAcomp[3] = normalizarFilialId(payload.filial); 
-      linhaAcomp[4] = payload.nomeAcomp; // Nome Acompanhante
-      linhaAcomp[6] = payload.rgAcomp; // RG Acompanhante
-      linhaAcomp[8] = payload.cpfAcomp; // CPF Acompanhante
-      linhaAcomp[9] = payload.nascAcomp; // Nasc Acompanhante
-      linhaAcomp[10] = "ACOMPANHANTE LACTANTE"; // Cargo especial
-      linhaAcomp[11] = ""; // ID VAZIO (Exclui contagem no Dashboard)
-      linhaAcomp[20] = payload.tipoTransporte; 
-      linhaAcomp[22] = payload.aeroporto1; 
-      linhaAcomp[23] = payload.aeroporto2; 
-      linhaAcomp[24] = payload.cidadeEmbarque; 
-      linhaAcomp[27] = payload.contatoEmergencia; // Herda o contato de emergência da titular
-      
-      var linhaBebe = new Array(28).fill("");
-      linhaBebe[2] = payload.regional; 
-      linhaBebe[3] = normalizarFilialId(payload.filial); 
-      linhaBebe[4] = payload.nomeBebe; // Nome Bebê
-      linhaBebe[9] = payload.nascBebe; // Nascimento Bebê
-      linhaBebe[10] = "BEBÊ LACTANTE"; // Cargo especial
-      linhaBebe[11] = ""; // ID VAZIO
-      linhaBebe[20] = payload.tipoTransporte; 
-      linhaBebe[22] = payload.aeroporto1; 
-      linhaBebe[23] = payload.aeroporto2; 
-      linhaBebe[24] = payload.cidadeEmbarque;
-      
-      linhasParaGravar.push(linhaAcomp);
-      linhasParaGravar.push(linhaBebe);
-    }
-    
-    // Efetua a escrita em lote (Multi-row append)
-    for (var j = 0; j < linhasParaGravar.length; j++) {
-       sheet.appendRow(linhasParaGravar[j]);
-    }
-    
-    return { sucesso: true, msg: "Dados validados e salvos com sucesso!" };
-    
+
+    var isLactanteTexto = payload.isLactante ? "Sim" : "Não";
+
+    var linhaExata = [
+      timestampAtual,                             // Coluna A (Index 0)  - Timestamp
+      idCracha,                                   // Coluna B (Index 1)  - QT / ID
+      regional,                                   // Coluna C (Index 2)  - REGIONAL
+      filialNormalizada,                          // Coluna D (Index 3)  - FILIAL
+      nomeCompleto,                               // Coluna E (Index 4)  - NOME COMPLETO
+      payload.sexo || "Não Informado",            // Coluna F (Index 5)  - SEXO
+      rg,                                         // Coluna G (Index 6)  - RG
+      orgao,                                      // Coluna H (Index 7)  - ÓRGÃO EXPEDIDOR
+      cpf,                                        // Coluna I (Index 8)  - CPF
+      nascimento,                                 // Coluna J (Index 9)  - DATA NASCIMENTO
+      cargo,                                      // Coluna K (Index 10) - CARGO
+      idCracha,                                   // Coluna L (Index 11) - ID (CRACHÁ) [Double-Lock Key]
+      payload.ddd || "",                          // Coluna M (Index 12) - DDD CELULAR
+      payload.celular || "",                      // Coluna N (Index 13) - Nº CELULAR
+      "Não",                                      // Coluna O (Index 14) - Hospedagem no Evento?
+      "",                                         // Coluna P (Index 15) - Caso positivo, Qual data?
+      "",                                         // Coluna Q (Index 16) - Dupla de quarto
+      payload.restricaoAlimentar || "Nenhuma",    // Coluna R (Index 17) - RESTRIÇÃO ALIMENTAR
+      payload.emailMagalu || emailUsuario,        // Coluna S (Index 18) - E-MAIL MAGALU
+      payload.emailPessoal || "",                 // Coluna T (Index 19) - E-MAIL PESSOAL
+      transporteFinal,                            // Coluna U (Index 20) - TIPO TRANSPORTE
+      payload.observacaoRotas || "",              // Coluna V (Index 21) - OBSERVAÇÃO ROTAS
+      payload.aeroporto1 || "",                   // Coluna W (Index 22) - AEROPORTO PREFERÊNCIA 1
+      payload.aeroporto2 || "",                   // Coluna X (Index 23) - AEROPORTO PREFERÊNCIA 2
+      payload.cidadeEmbarque || "",               // Coluna Y (Index 24) - CIDADE EMBARQUE
+      payload.mobilidadeReduzida || "Não",        // Coluna Z (Index 25) - MOBILIDADE REDUZIDA
+      payload.observacoesGerais || "",            // Coluna AA (Index 26)- OBSERVAÇÕES GERAIS
+      payload.contatoEmergencia || "",            // Coluna AB (Index 27)- Contato de Suporte / Emergência
+      isLactanteTexto,                            // Coluna AC (Index 28)- MÃE LACTANTE? (Sim / Não)
+      payload.nomeAcomp || "",                    // Coluna AD (Index 29)- NOME DO ACOMPANHANTE
+      payload.cpfAcomp || "",                     // Coluna AE (Index 30)- CPF DO ACOMPANHANTE
+      payload.rgAcomp || "",                      // Coluna AF (Index 31)- RG DO ACOMPANHANTE
+      payload.nascAcomp || "",                    // Coluna AG (Index 32)- DATA NASC. ACOMPANHANTE
+      payload.nomeBebe || "",                     // Coluna AH (Index 33)- NOME DO BEBÊ
+      payload.nascBebe || ""                      // Coluna AI (Index 34)- DATA NASC. BEBÊ
+    ];
+
+    // 4. ESCRITA ATÔMICA
+    sheetDestino.appendRow(linhaExata);
+
+    return { sucesso: true, msg: "Inscrição realizada e gravada com sucesso!" };
+
   } catch (e) {
-    return { sucesso: false, msg: "Erro no servidor ao salvar os dados: " + e.message };
+    return { sucesso: false, msg: "Falha técnica ao gravar inscrição: " + e.message };
   }
 }
