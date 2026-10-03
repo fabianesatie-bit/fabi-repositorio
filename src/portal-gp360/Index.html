@@ -211,8 +211,8 @@
                 <ul class="ranking-list" id="lista-ranking"></ul>
              </div>
              
-             <!-- TABELA DE PENDÊNCIAS JURÍDICAS -->
-             <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; border-top: 4px solid #f43f5e;">
+             <!-- TABELA DE PENDÊNCIAS JURÍDICAS (OCULTA DE FORMA SEGURA) -->
+             <div class="card" style="display:none; margin-bottom:0; flex-direction:column; border-top: 4px solid #f43f5e;">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e2e8f0; padding-bottom:10px; margin-bottom:10px;">
                    <h3 style="margin:0; color:#1e293b; font-size:15px;"><i class="fa-solid fa-scale-balanced" style="color:#f43f5e; margin-right:8px;"></i> Pendências de Apuração</h3>
                    <span id="badge-juridico" style="background:#f43f5e; color:white; font-size:11px; font-weight:bold; padding:2px 8px; border-radius:12px; display:none;">0</span>
@@ -339,7 +339,8 @@
                 <label class="check-label"><input type="checkbox" value="Lixo Eletrônico" class="chk-tema"><span class="pill-btn">Lixo Eletrônico</span></label>
                 <label class="check-label"><input type="checkbox" value="Campanha Sazonais" class="chk-tema"><span class="pill-btn">Campanha Sazonais</span></label>
                 <label class="check-label"><input type="checkbox" value="Agente Integrador" class="chk-tema"><span class="pill-btn">Agente Integrador</span></label>
-                           </div>
+              </div>
+            </div>
 
             <div id="sub-treinamento" class="form-group" style="display:none; background:#f3e8ff; padding:15px; border-radius:10px; border:1px solid #d8b4fe;">
               <label style="color:#6b21a8;"><i class="fa-solid fa-chalkboard-user"></i> Tema do Treinamento:</label>
@@ -517,7 +518,7 @@
           <ul class="history-list" id="lista-historico"></ul>
         </div>
 
-       <!-- ABA 5: CONSULTAS GERAIS -->
+        <!-- ABA 5: CONSULTAS GERAIS -->
         <div id="aba-consultas" class="view-aba" style="display:none;">
            <h2 style="margin-top:0; color:#1e293b;">Consultas Gerais</h2>
            <p style="color:#64748b; margin-bottom:20px;">Acesse rapidamente os painéis e recursos corporativos do ecossistema sem sair do portal.</p>
@@ -565,7 +566,7 @@
                  <p style="font-size:12px; color:#64748b;">Acessar painel interno</p>
               </div>
               
-              <!-- CARTÃO APONTAMENTO (OCULTO DE FORMA SEGURA) -->
+              <!-- CARTÃO APONTAMENTO (OCULTO TEMPORARIAMENTE) -->
               <div class="card" style="display:none; text-align:center; cursor:pointer; transition:transform 0.2s;" onclick="abrirPainelInternoEmbutido('https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzfhppTJ_Jxqiq4e9bWemDEAniYnLf5A6R0-vuvEtSkm2uLfECifD1N5IyDYCVb8-u8Qg/exec', 'Apontamento')">
                  <i class="fa-solid fa-clipboard-check" style="font-size:40px; color:#8b5cf6; margin-bottom:15px;"></i>
                  <h3 style="margin:0 0 5px 0; color:#1e293b;">Apontamento</h3>
@@ -1338,84 +1339,6 @@
        let total = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
        let aTotDisp = document.getElementById('avulso-total-display');
        if (aTotDisp) aTotDisp.innerText = total.toFixed(2).replace('.', ',');
-    }
-
-    function abrirModalAvulso() {
-        let mKm = document.getElementById('modal-km-avulso');
-        if (mKm) {
-            mKm.style.display = 'block';
-            mKm.scrollIntoView({ behavior: 'smooth' });
-        }
-        let aData = document.getElementById('avulso-data');
-        if (aData && !aData.value) aData.valueAsDate = new Date();
-        calcularDespesasAvulso();
-    }
-
-    function salvarKMAvulso() {
-        let aData = document.getElementById('avulso-data');
-        const data = aData ? aData.value : ''; 
-        let aDes = document.getElementById('avulso-destino');
-        const destino = aDes ? aDes.value.trim() : ''; 
-        let aVal = document.getElementById('avulso-valor');
-        const valor = aVal ? parseFloat(aVal.value) || 0 : 0; 
-        let aQtd = document.getElementById('avulso-qtd');
-        const qtd = aQtd ? parseFloat(aQtd.value) || 0 : 0;
-        const kmCusto = valor * qtd;
-
-        let aAli = document.getElementById('avulso-alimentacao'); const alimentacao = aAli ? parseFloat(aAli.value) || 0 : 0;
-        let aHos = document.getElementById('avulso-hospedagem'); const hospedagem = aHos ? parseFloat(aHos.value) || 0 : 0;
-        let aAer = document.getElementById('avulso-aereo'); const aereo = aAer ? parseFloat(aAer.value) || 0 : 0;
-        let aPed = document.getElementById('avulso-pedagio'); const pedagio = aPed ? parseFloat(aPed.value) || 0 : 0;
-        let aEst = document.getElementById('avulso-estacionamento'); const estacionamento = aEst ? parseFloat(aEst.value) || 0 : 0;
-
-        const totalFloat = kmCusto + alimentacao + hospedagem + aereo + pedagio + estacionamento;
-        if (!data || !destino || totalFloat <= 0) { 
-            mostrarToast("Preencha data, destino e ao menos um gasto válido!"); 
-            return; 
-        }
-
-        const payload = { 
-            destino: "AVULSO: " + destino, 
-            motivo: "Deslocamento Avulso (Sede/Evento)", 
-            dataViagem: data, 
-            kmValor: valor, 
-            kmQtd: qtd, 
-            kmCusto: kmCusto, 
-            alimentacao: alimentacao,
-            hospedagem: hospedagem,
-            aereo: aereo,
-            pedagio: pedagio,
-            estacionamento: estacionamento,
-            gastoTotal: totalFloat, 
-            moedas: 0,
-            roteiro: "Presencial (KM Avulso)",
-            linkEvidenciaExterna: ""
-        };
-
-        let mKm = document.getElementById('modal-km-avulso'); 
-        if (mKm) mKm.style.display = 'none';
-        mostrarToast("Salvando KM Avulso...");
-
-        google.script.run.withSuccessHandler(function(res){ 
-            if (res.erro) { mostrarToast(res.erro); return; }
-            dispararConfetes();
-            mostrarToast("KM Avulso registrado com sucesso!"); 
-
-            if (aDes) aDes.value = '';
-            if (aQtd) aQtd.value = 0;
-            if (aAli) aAli.value = '';
-            if (aHos) aHos.value = '';
-            if (aAer) aAer.value = '';
-            if (aPed) aPed.value = '';
-            if (aEst) aEst.value = '';
-            calcularDespesasAvulso();
-
-            google.script.run.withSuccessHandler(function(newData){
-                dadosGlobais = newData;
-                renderizarHistoricos();
-                atualizarCardsDashboard();
-            }).obterDadosIniciais(); 
-        }).registrarAtividade(payload, null);
     }
 
     function mostrarIndicadoresLancamento(filialId) {
