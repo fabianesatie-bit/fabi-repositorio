@@ -1,303 +1,337 @@
 /**
- * SISTEMA GP MAGALU - GESTÃO INTEGRADA (ADMISSÃO + FEEDBACKS)
- * Versão 6.4 - Cobranças de feedback agrupadas por filial
- *
- * O QUE MUDOU EM RELAÇÃO À v6.3:
- * 5. [AGRUPAMENTO] rotinaNotificacaoFeedbacks() não envia mais um e-mail por colaborador pendente.
- *    Agora acumula todas as pendências em um objeto agrupado por filial (pendenciasPorFilial) e
- *    dispara UM único e-mail consolidado por filial, listando todos os colaboradores pendentes
- *    ordenados por maior atraso. Isso reduz drasticamente o volume de e-mails para gerentes de
- *    filiais com vários colaboradores pendentes ao mesmo tempo.
- * 6. [FUNÇÕES ATUALIZADAS] enviarAlertaFeedback() e montarEmailFeedback() agora recebem uma lista
- *    de colaboradores em vez de dados de um único colaborador.
- *
- * O QUE MUDOU EM RELAÇÃO À v6.2:
- * 1. [BUG CRÍTICO] Os Sets de controle anti-duplicidade (conjuntoIDs / conjuntoNomesEData) agora são
- *    atualizados DURANTE o próprio loop de leitura. Antes, duas linhas duplicadas na mesma planilha de
- *    origem (mesmo ID ou mesmo Nome+Data) passavam juntas pela validação, pois ela só comparava com o
- *    que já existia no Histórico ANTES da execução começar.
- * 2. [ROBUSTEZ] Adicionado LockService.getScriptLock() em prepararListaModelo() para evitar que duas
- *    execuções simultâneas (ex: gatilho automático + execução manual) leiam o mesmo snapshot do
- *    Histórico e gravem duplicado.
- * 3. [CONSISTÊNCIA] O ID agora é normalizado (removendo zeros à esquerda) antes de entrar no Set,
- *    igual já era feito com o campo Filial - evita falha de correspondência entre "123" e "0123".
- * 4. [VISUAL] Todos os e-mails (admissão, feedback e relatório semanal) foram redesenhados com um
- *    layout mais bonito: cabeçalho colorido, cards, ícones e melhor hierarquia visual.
- *
- * Nenhuma função foi removida. Todas as rotinas e gatilhos já em produção continuam com o mesmo nome
- * e mesmo comportamento funcional (apenas corrigidos/embelezados).
+ * ===================================================================
+ * SISTEMA GP MAGALU - GESTÃO INTEGRADA (ADMISSÃO + FEEDBACKS + DASHBOARD)
+ * Versão 8.0 - Agente Integrador Unificado com Tríplice Regra de Status
+ * ===================================================================
  */
 
-// --- BLOCO 1: ROTINA DE ADMISSÃO ---
+const CONFIG = {
+  CACHE_KEY: 'AGENTE_INTEGRADOR_DASHBOARD_CACHE_V4',
+  CACHE_TTL_SECONDS: 1800,
+  SHEETS: {
+    FEEDBACK: 'REGISTRO_FEEDBACK',
+    ATIVOS: 'DADOS_ATIVOS',
+    FILIAIS: 'Base filiais',
+    HISTORICO_NOVO: 'HISTORICO1',         // Aba de 9 colunas limpa
+    HISTORICO_LEGADO: 'Historico_Legado', // Aba antiga
+    ADMISSAO: 'ADMISSAO'
+  },
+  CARGOS_PILOTO: [
+    "VENDEDOR", 
+    "ASSISTENTE VENDAS SR", 
+    "ASSISTENTE VENDAS JR", 
+    "AUX LIMPEZA", 
+    "LIDER COMERCIAL", 
+    "LIDER DE ESTOQUE"
+  ]
+};
 
-function rotinaMatinalAgenteIntegrador() {
-  console.log("Iniciando rotina de admissão...");
-  // Altere para true se quiser apenas testar os dados sem disparar e-mails para os gerentes reais
-  var modoModoTeste = false;
+// ===================================================================
+// MENU SUPERIOR NA PLANILHA
+// ===================================================================
 
-  var encontrouRegistros = prepararListaModelo();
-  if (encontrouRegistros) {
-    dispararEnvioMensagemAdmissao(modoModoTeste);
-  } else {
-    console.log("Nenhuma admissão válida encontrada para a data alvo.");
+function onOpen() {
+  try {
+    SpreadsheetApp.getUi().createMenu('GP Magalu')
+      .addItem('🧹 Executar Limpeza e Recalcular Atrasos', 'executarLimpezaInicialHistorico')
+      .addSeparator()
+      .addItem('🔄 Sincronizar Feedbacks (REGISTRO_FEEDBACK)', 'sincronizarFeedbacksUniversidade')
+      .addItem('👥 Processar Desligamentos (DADOS_ATIVOS)', 'processarDesligamentos')
+      .addItem('⚡ Limpar Cache do Dashboard', 'limparCacheDashboard')
+      .addToUi();
+  } catch (e) {
+    console.log("Aviso: Menu não carregado.");
   }
 }
 
-function prepararListaModelo() {
-  // Trava de concorrência: impede que duas execuções simultâneas leiam o mesmo
-  // snapshot do Histórico e acabem gravando os mesmos registros duas vezes.
-  var lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(30000); // espera até 30s por uma execução concorrente liberar o lock
-  } catch (e) {
-    console.log("Não foi possível obter o lock (outra execução em andamento). Abortando com segurança.");
-    return false;
+// ===================================================================
+// LIMPEZA INICIAL E RECÁLCULO DOS DIAS EM ATRASO
+// ===================================================================
+
+function executarLimpezaInicialHistorico() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetAtivos = ss.getSheetByName(CONFIG.SHEETS.ATIVOS);
+  var sheetFeedback = ss.getSheetByName(CONFIG.SHEETS.FEEDBACK);
+  var sheetLegado = ss.getSheetByName(CONFIG.SHEETS.HISTORICO_LEGADO) || ss.getSheetByName("Historico");
+  var sheetNovo = ss.getSheetByName(CONFIG.SHEETS.HISTORICO_NOVO);
+
+  if (!sheetAtivos || !sheetLegado || !sheetNovo) {
+    var msgErro = "Erro: Verifique se as abas 'DADOS_ATIVOS', 'Historico_Legado' e 'HISTORICO1' existem.";
+    console.log(msgErro);
+    try { SpreadsheetApp.getUi().alert("Erro", msgErro, SpreadsheetApp.getUi().ButtonSet.OK); } catch(e){}
+    return;
   }
+
+  // Garante os 9 cabeçalhos na Linha 1
+  sheetNovo.getRange(1, 1, 1, 9).setValues([[
+    "ID", "NOME", "FILIAL", "DATA_ADMISSAO", "FEEDBACK_15", "FEEDBACK_30", "FEEDBACK_45", "STATUS_PROCESSO", "DIAS_ATRASO"
+  ]]);
+
+  var dadosAtivos = sheetAtivos.getDataRange().getValues();
+  var headerMap = mapearCabecalhos(dadosAtivos[0]);
+  var colId = encontrarColuna(headerMap, ["id", "matricula", "codigo"]);
+  var colSituacao = encontrarColuna(headerMap, ["situacao", "status", "situacao_colaborador"]);
+
+  if (colId === -1) colId = 1;       // Fallback: Coluna B
+  if (colSituacao === -1) colSituacao = 7; // Fallback: Coluna H
+
+  var ativosSet = new Set();
+  var pausadosSet = new Set();
+
+  for (var i = 1; i < dadosAtivos.length; i++) {
+    var idAtivo = normalizarID(dadosAtivos[i][colId]);
+    var sitAtivo = normalizarTexto(dadosAtivos[i][colSituacao]);
+    if (!idAtivo) continue;
+
+    if (sitAtivo.includes("EM ATIVIDADE NORMAL")) {
+      ativosSet.add(idAtivo);
+    } else if (!sitAtivo.includes("DEMITIDO")) {
+      // Afastados, Férias, Licenças, Aposentadoria, etc.
+      pausadosSet.add(idAtivo);
+    }
+  }
+
+  var mapaFeedbacks = {};
+  if (sheetFeedback) {
+    var dadosFeed = sheetFeedback.getDataRange().getValues();
+    for (var f = 1; f < dadosFeed.length; f++) {
+      var idFeed = normalizarID(dadosFeed[f][0]);
+      if (!idFeed) continue;
+      mapaFeedbacks[idFeed] = {
+        f15: String(dadosFeed[f][8]) === "1" || normalizarTexto(dadosFeed[f][8]) === "OK",
+        f30: String(dadosFeed[f][9]) === "1" || normalizarTexto(dadosFeed[f][9]) === "OK",
+        f45: String(dadosFeed[f][10]) === "1" || normalizarTexto(dadosFeed[f][10]) === "OK"
+      };
+    }
+  }
+
+  var hoje = new Date();
+  hoje.setHours(0,0,0,0);
+
+  var dadosLegado = sheetLegado.getDataRange().getValues();
+  var novasLinhas = [];
+  var idsProcessados = new Set();
+
+  var totalDesligadosRemovidos = 0;
+  var totalAtivosMantidos = 0;
+  var totalPausadosMantidos = 0;
+
+  for (var r = 1; r < dadosLegado.length; r++) {
+    var linha = dadosLegado[r];
+    var idOriginal = String(linha[3] || linha[0] || '').trim();
+    var idLimpo = normalizarID(idOriginal);
+    if (!idLimpo || idsProcessados.has(idLimpo)) continue;
+
+    var isAtivo = ativosSet.has(idLimpo);
+    var isPausado = pausadosSet.has(idLimpo);
+
+    if (!isAtivo && !isPausado) {
+      totalDesligadosRemovidos++;
+      continue;
+    }
+
+    var nome = String(linha[5] || 'Sem Nome').trim();
+    var filial = normalizarFilialId(linha[0]);
+    var dataAdmStr = formatarDataBR(linha[6]);
+    var dtAdm = parseDataBR(linha[6]);
+
+    var fb = mapaFeedbacks[idLimpo] || { f15: false, f30: false, f45: false };
+    var f15Status = (fb.f15 || String(linha[12]).trim().toUpperCase() === "OK") ? "OK" : "PENDENTE";
+    var f30Status = (fb.f30 || String(linha[13]).trim().toUpperCase() === "OK") ? "OK" : "PENDENTE";
+    var f45Status = (fb.f45 || String(linha[14]).trim().toUpperCase() === "OK") ? "OK" : "PENDENTE";
+
+    var statusProc = "EM ACOMPANHAMENTO";
+    if (isPausado) {
+      statusProc = "PAUSADO";
+      totalPausadosMantidos++;
+    } else if (f15Status === "OK" && f30Status === "OK" && f45Status === "OK") {
+      statusProc = "CONCLUIDO";
+      totalAtivosMantidos++;
+    } else {
+      totalAtivosMantidos++;
+    }
+
+    var diasAtraso = 0;
+    if (statusProc === "EM ACOMPANHAMENTO" && dtAdm) {
+      var diasCasa = calcularDiasCasa(dtAdm, hoje);
+      if (diasCasa >= 15 && f15Status !== "OK") {
+        diasAtraso = diasCasa - 15;
+      } else if (diasCasa >= 30 && f30Status !== "OK") {
+        diasAtraso = diasCasa - 30;
+      } else if (diasCasa >= 45 && f45Status !== "OK") {
+        diasAtraso = diasCasa - 45;
+      }
+    }
+
+    novasLinhas.push([
+      idOriginal,
+      nome,
+      filial,
+      dataAdmStr,
+      f15Status,
+      f30Status,
+      f45Status,
+      statusProc,
+      diasAtraso
+    ]);
+
+    idsProcessados.add(idLimpo);
+  }
+
+  if (sheetNovo.getLastRow() > 1) {
+    sheetNovo.getRange(2, 1, sheetNovo.getLastRow() - 1, 9).clearContent();
+  }
+
+  if (novasLinhas.length > 0) {
+    sheetNovo.getRange(2, 1, novasLinhas.length, 9).setValues(novasLinhas);
+  }
+
+  SpreadsheetApp.flush();
+
+  var relatorio = "✅ Higienização e Recálculo Concluídos!\n\n" +
+                  "❌ Desligados removidos: " + totalDesligadosRemovidos + "\n" +
+                  "👥 Ativos em acompanhamento: " + totalAtivosMantidos + "\n" +
+                  "⏸️ Pausados (Férias/Afastados): " + totalPausadosMantidos;
+
+  console.log(relatorio);
+  try {
+    SpreadsheetApp.getUi().alert("Higienização Concluída", relatorio, SpreadsheetApp.getUi().ButtonSet.OK);
+  } catch(e) {}
+}
+
+// ===================================================================
+// ROTINAS DE ADMISSÃO E COBRANÇAS
+// ===================================================================
+
+function rotinaMatinalAgenteIntegrador() {
+  var modoTeste = false;
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(30000); } catch (e) { return; }
 
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheetAdmissao = ss.getSheetByName("Atualizacao_admissao");
-    var sheetModelo = ss.getSheetByName("MODELO_AGENTE_INTEGRADOR");
-    var sheetFiliais = ss.getSheetByName("Base filiais");
-    var sheetHistorico = ss.getSheetByName("Historico");
+    var sheetAdmissao = ss.getSheetByName(CONFIG.SHEETS.ADMISSAO);
+    var sheetHistorico = ss.getSheetByName(CONFIG.SHEETS.HISTORICO_NOVO);
+    var sheetFiliais = ss.getSheetByName(CONFIG.SHEETS.FILIAIS);
 
-    var cargosPiloto = ["VENDEDOR", "ASSISTENTE VENDAS SR", "ASSISTENTE VENDAS JR", "AUX LIMPEZA", "LIDER COMERCIAL", "LIDER DE ESTOQUE"];
+    if (!sheetAdmissao || !sheetHistorico || !sheetFiliais) return;
 
     var hoje = new Date();
     var diasParaAdicionar = (hoje.getDay() === 5) ? 3 : (hoje.getDay() === 6) ? 2 : 1;
     var dataAlvo = new Date();
     dataAlvo.setDate(hoje.getDate() + diasParaAdicionar);
-
     var dataBuscaBR = Utilities.formatDate(dataAlvo, "GMT-3", "dd/MM/yyyy");
 
     var dadosAdmissao = sheetAdmissao.getDataRange().getValues();
     var dadosFiliais = sheetFiliais.getDataRange().getValues();
 
-    // Bloco de validação inteligente anti-duplicidade (ID e Nome+Data)
     var conjuntoIDs = new Set();
     var conjuntoNomesEData = new Set();
 
     if (sheetHistorico.getLastRow() > 1) {
-      var dadosHistoricoCompleto = sheetHistorico.getRange(2, 1, sheetHistorico.getLastRow() - 1, sheetHistorico.getLastColumn()).getValues();
-
-      dadosHistoricoCompleto.forEach(function(linha) {
-        var idHist = normalizarID(linha[3]);
-        var nomeHist = normalizarTexto(linha[5]);
-        var dataHist = String(linha[6]).trim();
-
-        if (idHist) conjuntoIDs.add(idHist);
-        if (nomeHist && dataHist) {
-          conjuntoNomesEData.add(nomeHist + "|" + dataHist);
-        }
+      var dHist = sheetHistorico.getRange(2, 1, sheetHistorico.getLastRow() - 1, 9).getValues();
+      dHist.forEach(function(l) {
+        if (l[0]) conjuntoIDs.add(normalizarID(l[0]));
+        if (l[1] && l[3]) conjuntoNomesEData.add(normalizarTexto(l[1]) + "|" + formatarDataBR(l[3]));
       });
+    }
+
+    var mapaEmails = {};
+    for (var j = 1; j < dadosFiliais.length; j++) {
+      var fil = normalizarFilialId(dadosFiliais[j][0]);
+      if (fil) {
+        var emails = [dadosFiliais[j][3], dadosFiliais[j][4], dadosFiliais[j][5], dadosFiliais[j][6], dadosFiliais[j][7]].filter(Boolean);
+        mapaEmails[fil] = emails.join(",");
+      }
     }
 
     var novasLinhas = [];
     for (var i = 1; i < dadosAdmissao.length; i++) {
-      var idFuncOriginal = String(dadosAdmissao[i][0]).trim();
-      if (!idFuncOriginal) continue;
-      var idFunc = normalizarID(idFuncOriginal);
+      var idOriginal = String(dadosAdmissao[i][0]).trim();
+      if (!idOriginal) continue;
+      var idLimpo = normalizarID(idOriginal);
 
-      var nomeBusca = normalizarTexto(dadosAdmissao[i][1]);
-      var cargoBusca = normalizarTexto(dadosAdmissao[i][2]);
+      var nome = dadosAdmissao[i][1];
+      var cargo = normalizarTexto(dadosAdmissao[i][2]);
+      var filial = normalizarFilialId(dadosAdmissao[i][4]);
+      var dataBR = formatarDataBR(dadosAdmissao[i][7]);
 
-      var valorDataBruto = dadosAdmissao[i][7];
-      var dataFormatadaBR = "";
+      var chave = normalizarTexto(nome) + "|" + dataBR;
+      var cargoValido = CONFIG.CARGOS_PILOTO.some(function(c) { return cargo.includes(normalizarTexto(c)); });
 
-      if (valorDataBruto instanceof Date) {
-        dataFormatadaBR = Utilities.formatDate(valorDataBruto, "GMT-3", "dd/MM/yyyy");
-      } else if (valorDataBruto && valorDataBruto.toString().indexOf("-") > -1) {
-        var partes = valorDataBruto.toString().split("-");
-        dataFormatadaBR = partes[2].substring(0,2) + "/" + partes[1] + "/" + partes[0];
-      } else {
-        dataFormatadaBR = valorDataBruto.toString().trim();
-      }
-
-      var datasCoincidem = (dataFormatadaBR === dataBuscaBR);
-
-      var chaveNomeData = nomeBusca + "|" + dataFormatadaBR;
-      var idJaExiste = conjuntoIDs.has(idFunc);
-      var nomeEDataJaExiste = conjuntoNomesEData.has(chaveNomeData);
-
-      if (cargosPiloto.indexOf(cargoBusca) !== -1 && !idJaExiste && !nomeEDataJaExiste && datasCoincidem) {
-        var filialBusca = String(dadosAdmissao[i][4]).trim().replace(/^0+/, '');
-        var emailsDestino = "";
-
-        for (var j = 1; j < dadosFiliais.length; j++) {
-          if (String(dadosFiliais[j][0]).trim().replace(/^0+/, '') === filialBusca) {
-            var listaEmails = [];
-            if (dadosFiliais[j][3]) listaEmails.push(String(dadosFiliais[j][3]).trim());
-            if (dadosFiliais[j][4]) listaEmails.push(String(dadosFiliais[j][4]).trim());
-            if (dadosFiliais[j][5]) listaEmails.push(String(dadosFiliais[j][5]).trim());
-            if (dadosFiliais[j][6]) listaEmails.push(String(dadosFiliais[j][6]).trim());
-            if (dadosFiliais[j][7]) listaEmails.push(String(dadosFiliais[j][7]).trim());
-
-            // Alterado para vírgula (,), garantindo o padrão do GmailApp
-            emailsDestino = listaEmails.join(",");
-            break;
-          }
+      if (cargoValido && !conjuntoIDs.has(idLimpo) && !conjuntoNomesEData.has(chave) && dataBR === dataBuscaBR) {
+        var emailDest = mapaEmails[filial] || "";
+        if (emailDest) {
+          var dest = modoTeste ? Session.getActiveUser().getEmail() : emailDest;
+          var assunto = (modoTeste ? "[TESTE] " : "") + "🎉 Novo Colaborador (Filial " + filial + "): " + nome;
+          var html = montarEmailAdmissao(nome, dataBR);
+          try { GmailApp.sendEmail(dest, assunto, "", { htmlBody: html }); } catch(e){}
         }
-        novasLinhas.push([dadosAdmissao[i][4], dadosAdmissao[i][6], dadosAdmissao[i][5], idFuncOriginal, "", dadosAdmissao[i][1], dataFormatadaBR, "Nova Admissão", emailsDestino, "SIM", "AGENDADO", "", "", "", "", "0"]);
 
-        // *** CORREÇÃO PRINCIPAL DO BUG DE DUPLICIDADE ***
-        // Assim que a linha é aceita, ela entra imediatamente nos Sets de controle.
-        // Isso garante que, se houver outra linha duplicada mais abaixo na MESMA planilha
-        // de origem (mesmo ID ou mesmo Nome+Data), ela será bloqueada nesta mesma execução.
-        conjuntoIDs.add(idFunc);
-        conjuntoNomesEData.add(chaveNomeData);
+        novasLinhas.push([idOriginal, nome, filial, dataBR, "PENDENTE", "PENDENTE", "PENDENTE", "EM ACOMPANHAMENTO", 0]);
+        conjuntoIDs.add(idLimpo);
+        conjuntoNomesEData.add(chave);
       }
     }
 
     if (novasLinhas.length > 0) {
-      if (sheetModelo.getLastRow() > 1) {
-        sheetModelo.getRange(2, 1, sheetModelo.getLastRow() - 1, sheetModelo.getLastColumn()).clearContent();
-      }
-      sheetModelo.getRange(2, 1, novasLinhas.length, novasLinhas[0].length).setValues(novasLinhas);
-      sheetHistorico.getRange(sheetHistorico.getLastRow() + 1, 1, novasLinhas.length, novasLinhas[0].length).setValues(novasLinhas);
-
+      sheetHistorico.getRange(sheetHistorico.getLastRow() + 1, 1, novasLinhas.length, 9).setValues(novasLinhas);
       SpreadsheetApp.flush();
-      return true;
     }
-    return false;
-
   } finally {
     lock.releaseLock();
   }
 }
-
-function dispararEnvioMensagemAdmissao(modoModoTeste) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("MODELO_AGENTE_INTEGRADOR");
-  var dados = sheet.getDataRange().getValues();
-  var emailSuporteTeste = Session.getActiveUser().getEmail();
-
-  var ultLinha = sheet.getLastRow();
-  if (ultLinha <= 1) return;
-
-  // Carrega a coluna de status (Coluna K - índice 11) para gravação em lote
-  var rangeStatus = sheet.getRange(2, 11, ultLinha - 1, 1);
-  var statusValues = rangeStatus.getValues();
-
-  for (var i = 1; i < dados.length; i++) {
-    var statusAtual = String(dados[i][10]).trim().toUpperCase();
-    var emailDest = String(dados[i][8]).trim();
-
-    // Corrige dinamicamente possíveis ponto e vírgulas remanescentes da base de dados
-    if (emailDest.indexOf(";") > -1) {
-      emailDest = emailDest.replace(/;/g, ",");
-    }
-
-    if (statusAtual === "AGENDADO" && emailDest !== "") {
-      var destinatarioFinal = modoModoTeste ? emailSuporteTeste : emailDest;
-      var assunto = (modoModoTeste ? "[TESTE] " : "") + "🎉 Novo Colaborador (Filial " + dados[i][0] + "): " + dados[i][5];
-
-      var dataAdmFormatada = dados[i][6];
-      if (dataAdmFormatada instanceof Date) {
-        dataAdmFormatada = Utilities.formatDate(dataAdmFormatada, "GMT-3", "dd/MM/yyyy");
-      } else {
-        dataAdmFormatada = String(dataAdmFormatada).trim();
-      }
-
-      var corpoHtml = montarEmailAdmissao(dados[i][5], dataAdmFormatada);
-
-      try {
-        GmailApp.sendEmail(destinatarioFinal, assunto, "", { htmlBody: corpoHtml });
-        statusValues[i - 1][0] = modoModoTeste ? "TESTADO OK" : "ENVIADO";
-      } catch(e) {
-        console.log("Erro ao enviar e-mail para " + destinatarioFinal + ": " + e.message);
-        statusValues[i - 1][0] = "ERRO";
-      }
-    }
-  }
-
-  // Grava todos os status atualizados de uma só vez na planilha (Previne o timeout)
-  rangeStatus.setValues(statusValues);
-  SpreadsheetApp.flush();
-}
-
-// --- BLOCO 2: ROTINA DE FEEDBACKS ---
 
 function rotinaNotificacaoFeedbacks() {
   processarDesligamentos();
   sincronizarFeedbacksUniversidade();
 
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheetHistorico = ss.getSheetByName("Historico");
-  var sheetFiliais = ss.getSheetByName("Base filiais");
-  var dadosH = sheetHistorico.getDataRange().getValues();
-  var dadosF = sheetFiliais.getDataRange().getValues();
+  var sheetH = ss.getSheetByName(CONFIG.SHEETS.HISTORICO_NOVO);
+  var sheetF = ss.getSheetByName(CONFIG.SHEETS.FILIAIS);
+  if (!sheetH || sheetH.getLastRow() <= 1) return;
+
+  var dadosH = sheetH.getRange(2, 1, sheetH.getLastRow() - 1, 9).getValues();
+  var dadosF = sheetF.getDataRange().getValues();
   var hoje = new Date();
   hoje.setHours(0,0,0,0);
 
-  // Agrupador: em vez de disparar um e-mail por colaborador, acumulamos todas as
-  // pendências por filial e enviamos UM único e-mail consolidado por filial no final.
   var pendenciasPorFilial = {};
 
-  for (var i = 1; i < dadosH.length; i++) {
-    var numCols = dadosH[i].length;
+  for (var i = 0; i < dadosH.length; i++) {
+    var statusProc = String(dadosH[i][7] || '').toUpperCase();
 
-    var statusColaborador = (numCols >= 18 && dadosH[i][17]) ? String(dadosH[i][17]).trim().toUpperCase() : "";
-    if (statusColaborador === "DESLIGADO") {
-      sheetHistorico.getRange(i + 1, 16).setValue(0);
-      continue;
-    }
+    // Pula Desligados, Concluídos e Pausados (Férias/Afastados)
+    if (statusProc === "DESLIGADO" || statusProc === "CONCLUIDO" || statusProc === "PAUSADO") continue;
 
-    var dtAdm = parseDataBR(dadosH[i][6]);
-    if (!dtAdm || isNaN(dtAdm.getTime())) continue;
+    var dtAdm = parseDataBR(dadosH[i][3]);
+    if (!dtAdm) continue;
 
     var diasCasa = calcularDiasCasa(dtAdm, hoje);
+    if (diasCasa < 15) continue;
 
-    if (diasCasa < 15) {
-      sheetHistorico.getRange(i + 1, 16).setValue(0);
-      continue;
-    }
+    var f15 = String(dadosH[i][4] || '').toUpperCase();
+    var f30 = String(dadosH[i][5] || '').toUpperCase();
+    var f45 = String(dadosH[i][6] || '').toUpperCase();
 
-    var f15 = (numCols >= 13 && dadosH[i][12]) ? String(dadosH[i][12]).trim().toUpperCase() : "";
-    var f30 = (numCols >= 14 && dadosH[i][13]) ? String(dadosH[i][13]).trim().toUpperCase() : "";
-    var f45 = (numCols >= 15 && dadosH[i][14]) ? String(dadosH[i][14]).trim().toUpperCase() : "";
+    var filial = normalizarFilialId(dadosH[i][2]);
+    var atraso = Number(dadosH[i][8]) || 0;
 
-    var nome = dadosH[i][5];
-    var filial = String(dadosH[i][0]).trim().replace(/^0+/, '');
-
-    var atraso = 0;
-    if (diasCasa >= 15 && f15 !== "OK") {
-      atraso = diasCasa - 15;
-    } else if (diasCasa >= 30 && f30 !== "OK") {
-      atraso = diasCasa - 30;
-    } else if (diasCasa >= 45 && f45 !== "OK") {
-      atraso = diasCasa - 45;
-    }
-
-    sheetHistorico.getRange(i + 1, 16).setValue(atraso);
-
-    var deveEnviar = false;
-    if (diasCasa >= 15 && f15 !== "OK") {
-      deveEnviar = true;
-    } else if (diasCasa >= 30 && f30 !== "OK") {
-      deveEnviar = true;
-    } else if (diasCasa >= 45 && f45 !== "OK") {
-      deveEnviar = true;
-    }
-
-    if (deveEnviar) {
-       var emails = buscarEmailsFilial(filial, dadosF);
-       if (emails) {
-         if (!pendenciasPorFilial[filial]) {
-           pendenciasPorFilial[filial] = { emails: emails, itens: [] };
-         }
-         pendenciasPorFilial[filial].itens.push({
-           nome: nome,
-           diasCasa: diasCasa,
-           f15: f15,
-           f30: f30,
-           f45: f45,
-           atraso: atraso
-         });
-       }
+    if (atraso > 0) {
+      var emails = buscarEmailsFilial(filial, dadosF);
+      if (emails) {
+        if (!pendenciasPorFilial[filial]) pendenciasPorFilial[filial] = { emails: emails, itens: [] };
+        pendenciasPorFilial[filial].itens.push({
+          nome: dadosH[i][1],
+          diasCasa: diasCasa,
+          f15: f15, f30: f30, f45: f45,
+          atraso: atraso
+        });
+      }
     }
   }
 
-  // Envia um único e-mail por filial, com todos os colaboradores pendentes agrupados.
   for (var filialKey in pendenciasPorFilial) {
     var grupo = pendenciasPorFilial[filialKey];
     enviarAlertaFeedback(grupo.emails, filialKey, grupo.itens);
@@ -305,18 +339,14 @@ function rotinaNotificacaoFeedbacks() {
 }
 
 function buscarEmailsFilial(filial, dadosF) {
+  var filNorm = normalizarFilialId(filial);
   for (var j = 1; j < dadosF.length; j++) {
-    if (String(dadosF[j][0]).trim().replace(/^0+/, '') === filial) {
-      var emailGerente = dadosF[j][3] ? String(dadosF[j][3]).trim() : "";
-      var emailLider = dadosF[j][6] ? String(dadosF[j][6]).trim() : "";
-
-      if (emailGerente && emailLider) {
-        return emailGerente + "," + emailLider;
-      } else if (emailGerente) {
-        return emailGerente;
-      } else if (emailLider) {
-        return emailLider;
-      }
+    if (normalizarFilialId(dadosF[j][0]) === filNorm) {
+      var gte = dadosF[j][3] ? String(dadosF[j][3]).trim() : "";
+      var lid = dadosF[j][6] ? String(dadosF[j][6]).trim() : "";
+      if (gte && lid) return gte + "," + lid;
+      if (gte) return gte;
+      if (lid) return lid;
     }
   }
   return null;
@@ -324,377 +354,215 @@ function buscarEmailsFilial(filial, dadosF) {
 
 function enviarAlertaFeedback(email, filial, itensPendentes) {
   var assunto = "⚠️ AÇÃO: " + itensPendentes.length + " Pendência(s) de Feedback - Filial " + filial;
-
   var html = montarEmailFeedback(filial, itensPendentes);
-
-  try {
-    GmailApp.sendEmail(email, assunto, "", { htmlBody: html });
-  } catch(e) {
-    console.log("Erro ao enviar e-mail de feedback: " + e.message);
-  }
+  try { GmailApp.sendEmail(email, assunto, "", { htmlBody: html }); } catch(e){}
 }
 
 function processarDesligamentos() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheetDes = ss.getSheetByName("Atualizacao_desligamento");
-  var sheetHis = ss.getSheetByName("Historico");
-  if (!sheetDes || !sheetHis) return;
+  var sheetAtivos = ss.getSheetByName(CONFIG.SHEETS.ATIVOS);
+  var sheetHis = ss.getSheetByName(CONFIG.SHEETS.HISTORICO_NOVO);
+  if (!sheetAtivos || !sheetHis || sheetHis.getLastRow() <= 1) return;
 
-  var dadosDes = sheetDes.getDataRange().getValues();
-  var idsDesligados = new Set(dadosDes.slice(1).map(function(r){ return String(r[0]).trim(); }));
-  var dadosHis = sheetHis.getRange(2, 4, sheetHis.getLastRow() - 1, 1).getValues().flat().map(String);
+  var dadosAtivos = sheetAtivos.getDataRange().getValues();
+  if (dadosAtivos.length <= 1) return;
 
-  for (var i = 1; i < dadosHis.length + 1; i++) {
-    var idHistorico = String(dadosHis[i-1]).trim();
-    if (idHistorico && idsDesligados.has(idHistorico)) {
-      sheetHis.getRange(i + 1, 18).setValue("DESLIGADO");
+  // Mapeamento dinâmico dos cabeçalhos da aba DADOS_ATIVOS
+  var headerMap = mapearCabecalhos(dadosAtivos[0]);
+  var colId = encontrarColuna(headerMap, ["id", "matricula", "codigo"]);
+  var colSituacao = encontrarColuna(headerMap, ["situacao", "status", "situacao_colaborador"]);
+
+  // Fallback baseado na estrutura verificada (Coluna B = ID [1], Coluna H = Situacao [7])
+  if (colId === -1) colId = 1;
+  if (colSituacao === -1) colSituacao = 7;
+
+  var ativosSet = new Set();
+  var pausadosSet = new Set();
+  var desligadosSet = new Set();
+
+  for (var i = 1; i < dadosAtivos.length; i++) {
+    var id = normalizarID(dadosAtivos[i][colId]);
+    var sit = normalizarTexto(dadosAtivos[i][colSituacao]);
+    if (!id) continue;
+
+    if (sit.includes("EM ATIVIDADE NORMAL")) {
+      ativosSet.add(id);
+    } else if (sit.includes("DEMITIDO")) {
+      desligadosSet.add(id);
+    } else {
+      // Férias, Afastamentos, Licença, Aposentadoria, etc.
+      pausadosSet.add(id);
     }
   }
-  SpreadsheetApp.flush();
+
+  var rangeHis = sheetHis.getRange(2, 1, sheetHis.getLastRow() - 1, 9);
+  var dadosHis = rangeHis.getValues();
+  var alterou = false;
+
+  for (var k = 0; k < dadosHis.length; k++) {
+    var idHist = normalizarID(dadosHis[k][0]);
+    if (!idHist) continue;
+
+    var statusAtual = String(dadosHis[k][7] || '').toUpperCase();
+
+    // Regra 1: Demitido ou Ausente da Planilha -> Marcar como DESLIGADO e zerar atraso
+    if (desligadosSet.has(idHist) || (!ativosSet.has(idHist) && !pausadosSet.has(idHist))) {
+      if (statusAtual !== "DESLIGADO") {
+        dadosHis[k][7] = "DESLIGADO";
+        dadosHis[k][8] = 0;
+        alterou = true;
+      }
+    } 
+    // Regra 2: Férias / Afastamentos -> Marcar como PAUSADO e zerar atraso/cobrança
+    else if (pausadosSet.has(idHist)) {
+      if (statusAtual !== "PAUSADO") {
+        dadosHis[k][7] = "PAUSADO";
+        dadosHis[k][8] = 0;
+        alterou = true;
+      }
+    }
+    // Regra 3: Em Atividade Normal -> Reativar se estava pausado ou desligado indevidamente
+    else if (ativosSet.has(idHist) && (statusAtual === "DESLIGADO" || statusAtual === "PAUSADO")) {
+      dadosHis[k][7] = "EM ACOMPANHAMENTO";
+      alterou = true;
+    }
+  }
+
+  if (alterou) {
+    rangeHis.setValues(dadosHis);
+    SpreadsheetApp.flush();
+  }
 }
 
 function sincronizarFeedbacksUniversidade() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheetFeedback = ss.getSheetByName("REGISTRO_FEEDBACK");
-  var sheetHistorico = ss.getSheetByName("Historico");
-  if (!sheetFeedback || !sheetHistorico) return;
+  var sheetF = ss.getSheetByName(CONFIG.SHEETS.FEEDBACK);
+  var sheetH = ss.getSheetByName(CONFIG.SHEETS.HISTORICO_NOVO);
+  if (!sheetF || !sheetH || sheetH.getLastRow() <= 1) return;
 
-  var dadosF = sheetFeedback.getDataRange().getValues();
-  if (dadosF.length <= 1) return;
-
+  var dadosF = sheetF.getDataRange().getValues();
   var mapaFeedbacks = {};
-  var estaConcluido = function(val) {
-    if (val === undefined || val === null) return false;
-    var str = String(val).trim().toUpperCase();
-    return str === "1" || str === "OK" || str === "SIM";
-  };
-
   for (var i = 1; i < dadosF.length; i++) {
-    var id = String(dadosF[i][0]).trim();
+    var id = normalizarID(dadosF[i][0]);
     if (!id) continue;
-
-    var f15Val = dadosF[i][8];
-    var f30Val = dadosF[i][9];
-    var f45Val = dadosF[i][10];
-
-    if (!mapaFeedbacks[id]) {
-      mapaFeedbacks[id] = { f15: false, f30: false, f45: false };
-    }
-
-    if (estaConcluido(f15Val)) mapaFeedbacks[id].f15 = true;
-    if (estaConcluido(f30Val)) mapaFeedbacks[id].f30 = true;
-    if (estaConcluido(f45Val)) mapaFeedbacks[id].f45 = true;
+    mapaFeedbacks[id] = {
+      f15: String(dadosF[i][8]) === "1" || normalizarTexto(dadosF[i][8]) === "OK",
+      f30: String(dadosF[i][9]) === "1" || normalizarTexto(dadosF[i][9]) === "OK",
+      f45: String(dadosF[i][10]) === "1" || normalizarTexto(dadosF[i][10]) === "OK"
+    };
   }
 
-  var rangeH = sheetHistorico.getRange(2, 1, sheetHistorico.getLastRow() - 1, sheetHistorico.getLastColumn());
+  var rangeH = sheetH.getRange(2, 1, sheetH.getLastRow() - 1, 9);
   var dadosH = rangeH.getValues();
   var hoje = new Date();
   hoje.setHours(0,0,0,0);
 
   for (var k = 0; k < dadosH.length; k++) {
-    var idHistorico = String(dadosH[k][3]).trim();
-    if (!idHistorico) continue;
+    var idHist = normalizarID(dadosH[k][0]);
+    var statusAtual = String(dadosH[k][7] || '').toUpperCase();
 
-    var numCols = dadosH[k].length;
-
-    if (mapaFeedbacks[idHistorico]) {
-      var fComp = mapaFeedbacks[idHistorico];
-      if (fComp.f15) dadosH[k][12] = "OK";
-      if (fComp.f30) dadosH[k][13] = "OK";
-      if (fComp.f45) dadosH[k][14] = "OK";
-    }
-
-    var statusColaborador = (numCols >= 18 && dadosH[k][17]) ? String(dadosH[k][17]).trim().toUpperCase() : "";
-    if (statusColaborador === "DESLIGADO") {
-      dadosH[k][15] = 0;
+    // Se estiver DESLIGADO ou PAUSADO, mantemos o atraso zerado e pulamos recálculo
+    if (statusAtual === "DESLIGADO" || statusAtual === "PAUSADO") {
+      dadosH[k][8] = 0;
       continue;
     }
 
-    var dtAdm = parseDataBR(dadosH[k][6]);
-    if (!dtAdm || isNaN(dtAdm.getTime())) continue;
-
-    var diasCasa = calcularDiasCasa(dtAdm, hoje);
-    if (diasCasa < 15) {
-      dadosH[k][15] = 0;
-      continue;
+    if (mapaFeedbacks[idHist]) {
+      var fb = mapaFeedbacks[idHist];
+      if (fb.f15) dadosH[k][4] = "OK";
+      if (fb.f30) dadosH[k][5] = "OK";
+      if (fb.f45) dadosH[k][6] = "OK";
     }
 
-    var f15Val = (numCols >= 13 && dadosH[k][12]) ? String(dadosH[k][12]).trim().toUpperCase() : "";
-    var f30Val = (numCols >= 14 && dadosH[k][13]) ? String(dadosH[k][13]).trim().toUpperCase() : "";
-    var f45Val = (numCols >= 15 && dadosH[k][14]) ? String(dadosH[k][14]).trim().toUpperCase() : "";
+    var f15 = String(dadosH[k][4] || '').toUpperCase();
+    var f30 = String(dadosH[k][5] || '').toUpperCase();
+    var f45 = String(dadosH[k][6] || '').toUpperCase();
 
-    var atraso = 0;
-    if (diasCasa >= 15 && f15Val !== "OK") {
-      atraso = diasCasa - 15;
-    } else if (diasCasa >= 30 && f30Val !== "OK") {
-      atraso = diasCasa - 30;
-    } else if (diasCasa >= 45 && f45Val !== "OK") {
-      atraso = diasCasa - 45;
+    if (f15 === "OK" && f30 === "OK" && f45 === "OK") {
+      dadosH[k][7] = "CONCLUIDO";
+      dadosH[k][8] = 0;
+    } else {
+      dadosH[k][7] = "EM ACOMPANHAMENTO";
+      var dtAdm = parseDataBR(dadosH[k][3]);
+      var diasAtraso = 0;
+      if (dtAdm) {
+        var diasCasa = calcularDiasCasa(dtAdm, hoje);
+        if (diasCasa >= 15 && f15 !== "OK") {
+          diasAtraso = diasCasa - 15;
+        } else if (diasCasa >= 30 && f30 !== "OK") {
+          diasAtraso = diasCasa - 30;
+        } else if (diasCasa >= 45 && f45 !== "OK") {
+          diasAtraso = diasCasa - 45;
+        }
+      }
+      dadosH[k][8] = diasAtraso;
     }
-
-    dadosH[k][15] = atraso;
   }
-
   rangeH.setValues(dadosH);
   SpreadsheetApp.flush();
-  console.log("Sincronização e recálculo dos contadores em lote finalizados usando REGISTRO_FEEDBACK.");
 }
 
 function enviarRelatorioSemanalCoordenadores() {
   sincronizarFeedbacksUniversidade();
-
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheetH = ss.getSheetByName("Historico");
-  var sheetF = ss.getSheetByName("Base filiais");
-  var dadosH = sheetH.getDataRange().getValues();
+  var sheetH = ss.getSheetByName(CONFIG.SHEETS.HISTORICO_NOVO);
+  var sheetF = ss.getSheetByName(CONFIG.SHEETS.FILIAIS);
+  if (!sheetH || sheetH.getLastRow() <= 1) return;
+
+  var dadosH = sheetH.getRange(2, 1, sheetH.getLastRow() - 1, 9).getValues();
   var dadosF = sheetF.getDataRange().getValues();
   var hoje = new Date();
   hoje.setHours(0,0,0,0);
 
   var coordMap = {};
-  for(var j=1; j<dadosF.length; j++) {
-    coordMap[String(dadosF[j][0]).replace(/^0+/, '')] = {
-      email: dadosF[j][4],
-      regional: dadosF[j][2],
-      gerenteGP: dadosF[j][5],
-      emailRegional: dadosF[j][7]
-    };
+  for(var j = 1; j < dadosF.length; j++) {
+    var fil = normalizarFilialId(dadosF[j][0]);
+    if (fil) {
+      coordMap[fil] = { email: dadosF[j][4], regional: dadosF[j][2], gerenteGP: dadosF[j][5], emailRegional: dadosF[j][7] };
+    }
   }
 
   var relatorios = {};
-  for (var i = 1; i < dadosH.length; i++) {
-    var numCols = dadosH[i].length;
-    var statusColaborador = (numCols >= 18 && dadosH[i][17]) ? String(dadosH[i][17]).trim().toUpperCase() : "";
-    if (statusColaborador === "DESLIGADO") continue;
+  for (var i = 0; i < dadosH.length; i++) {
+    var statusProc = String(dadosH[i][7] || '').toUpperCase();
+    if (statusProc === "DESLIGADO" || statusProc === "CONCLUIDO" || statusProc === "PAUSADO") continue;
 
-    var filial = String(dadosH[i][0]).replace(/^0+/, '');
-    var info = coordMap[filial];
+    var fil = normalizarFilialId(dadosH[i][2]);
+    var info = coordMap[fil];
     if (!info || !info.email) continue;
 
-    var dtAdm = parseDataBR(dadosH[i][6]);
-    if (!dtAdm || isNaN(dtAdm.getTime())) continue;
+    var dtAdm = parseDataBR(dadosH[i][3]);
+    if (!dtAdm) continue;
 
     var diasCasa = calcularDiasCasa(dtAdm, hoje);
     if (diasCasa < 15) continue;
 
-    var f15 = (numCols >= 13 && dadosH[i][12]) ? String(dadosH[i][12]).trim().toUpperCase() : "";
-    var f30 = (numCols >= 14 && dadosH[i][13]) ? String(dadosH[i][13]).trim().toUpperCase() : "";
-    var f45 = (numCols >= 15 && dadosH[i][14]) ? String(dadosH[i][14]).trim().toUpperCase() : "";
+    var pend = [];
+    if (diasCasa >= 15 && dadosH[i][4] !== "OK") pend.push("Feedback 15 dias");
+    if (diasCasa >= 30 && dadosH[i][5] !== "OK") pend.push("Feedback 30 dias");
+    if (diasCasa >= 45 && dadosH[i][6] !== "OK") pend.push("Feedback 45 dias");
 
-    var temPendenciaReal = false;
-    var listaPendencias = [];
-
-    if (diasCasa >= 15 && f15 !== "OK") {
-      temPendenciaReal = true;
-      listaPendencias.push("Feedback 15 dias");
-    }
-    if (diasCasa >= 30 && f30 !== "OK") {
-      temPendenciaReal = true;
-      listaPendencias.push("Feedback 30 dias");
-    }
-    if (diasCasa >= 45 && f45 !== "OK") {
-      temPendenciaReal = true;
-      listaPendencias.push("Feedback 45 dias");
-    }
-
-    if (temPendenciaReal) {
-      var emailDest = info.email.trim();
-      if (!relatorios[emailDest]) {
-        relatorios[emailDest] = [];
-      }
-      relatorios[emailDest].push({
-        filial: parseInt(filial) || filial,
-        regional: info.regional || "Sem Regional",
-        nome: dadosH[i][5],
-        detalhe: listaPendencias.join(", "),
-        gerenteGP: info.gerenteGP,
-        emailRegional: info.emailRegional
-      });
+    if (pend.length > 0) {
+      var dest = info.email.trim();
+      if (!relatorios[dest]) relatorios[dest] = [];
+      relatorios[dest].push({ filial: fil, regional: info.regional || "Sem Regional", nome: dadosH[i][1], detalhe: pend.join(", "), gerenteGP: info.gerenteGP, emailRegional: info.emailRegional });
     }
   }
 
   for (var email in relatorios) {
-    relatorios[email].sort(function(a, b){
-      var regA = String(a.regional).toUpperCase();
-      var regB = String(b.regional).toUpperCase();
-      if (regA < regB) return -1;
-      if (regA > regB) return 1;
-      return a.filial - b.filial;
-    });
-
-    var gruposPorRegional = {};
-    relatorios[email].forEach(function(r) {
-      var reg = r.regional;
-      if (!gruposPorRegional[reg]) {
-        gruposPorRegional[reg] = [];
-      }
-      gruposPorRegional[reg].push(r);
-    });
-
-    var totalPendencias = relatorios[email].length;
-    var htmlBody = montarEmailRelatorioSemanal(gruposPorRegional, totalPendencias);
-
-    var ccEmails = new Set();
-    relatorios[email].forEach(function(item) {
-      if (item.gerenteGP) ccEmails.add(String(item.gerenteGP).trim());
-      if (item.emailRegional) ccEmails.add(String(item.emailRegional).trim());
-    });
-
-    var ccString = Array.from(ccEmails).filter(Boolean).join(",");
-
-    var options = { htmlBody: htmlBody };
-    if (ccString) {
-      options.cc = ccString;
-    }
-
-    try {
-      GmailApp.sendEmail(email, "📊 Relatório Semanal de Pendências de Feedback", "", options);
-    } catch(e) {
-      console.log("Erro ao enviar relatório semanal para " + email + ": " + e.message);
-    }
+    var grupos = {};
+    relatorios[email].forEach(function(r) { (grupos[r.regional] = grupos[r.regional] || []).push(r); });
+    var html = montarEmailRelatorioSemanal(grupos, relatorios[email].length);
+    var cc = Array.from(new Set(relatorios[email].map(function(x){ return x.gerenteGP || x.emailRegional; }))).filter(Boolean).join(",");
+    var opt = { htmlBody: html };
+    if (cc) opt.cc = cc;
+    try { GmailApp.sendEmail(email, "📊 Relatório Semanal de Pendências de Feedback", "", opt); } catch(e){}
   }
 }
 
-// --- BLOCO 3: AUXILIARES E GATILHOS ---
-
-function parseDataBR(s) {
-  if (!s) return null;
-
-  var str = "";
-  if (s instanceof Date) {
-    str = Utilities.formatDate(s, "GMT-3", "dd/MM/yyyy");
-  } else {
-    str = s.toString().trim();
-  }
-
-  var p = str.split("/");
-  if (p.length === 3) {
-    var dia = parseInt(p[0], 10);
-    var mes = parseInt(p[1], 10) - 1;
-    var ano = parseInt(p[2], 10);
-    if (ano < 100) ano += 2000;
-    return new Date(ano, mes, dia);
-  }
-
-  var p2 = str.split("-");
-  if (p2.length === 3) {
-    var ano = parseInt(p2[0], 10);
-    if (ano < 100) ano += 2000;
-    var mes = parseInt(p2[1], 10) - 1;
-    var dia = parseInt(p2[2], 10);
-    return new Date(ano, mes, dia);
-  }
-
-  return null;
-}
-
-function calcularDiasCasa(dataAdmissao, hoje) {
-  if (!dataAdmissao) return -1;
-  var dAdm = new Date(dataAdmissao.getFullYear(), dataAdmissao.getMonth(), dataAdmissao.getDate());
-  var dHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-  var diffTime = dHoje.getTime() - dAdm.getTime();
-  return Math.round(diffTime / (1000 * 60 * 60 * 24));
-}
-
-function normalizarTexto(t) {
-  return t ? t.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim() : "";
-}
-
-// NOVO: normaliza IDs removendo zeros à esquerda e espaços, para evitar que "123" e "0123"
-// sejam tratados como registros diferentes na checagem de duplicidade.
-function normalizarID(id) {
-  if (id === undefined || id === null) return "";
-  var str = String(id).trim();
-  var semZeros = str.replace(/^0+/, '');
-  return semZeros === "" ? "0" : semZeros;
-}
-
-function configurarTodosGatilhos() {
-  var ts = ScriptApp.getProjectTriggers();
-  for (var i = 0; i < ts.length; i++) ScriptApp.deleteTrigger(ts[i]);
-
-  // Gatilho Matinal de Admissão configurado às 10:00 AM para garantir que a planilha já tenha sido alimentada
-  ScriptApp.newTrigger('rotinaMatinalAgenteIntegrador').timeBased().atHour(10).nearMinute(0).everyDays(1).create();
-
-  // Sincronização automática às 12:00 PM
-  ScriptApp.newTrigger('sincronizarFeedbacksUniversidade').timeBased().atHour(12).everyDays(1).create();
-
-  // Cobranças diárias às 13h00 PM
-  ScriptApp.newTrigger('rotinaNotificacaoFeedbacks').timeBased().atHour(13).everyDays(1).create();
-
-  // Relatório semanal na segunda-feira às 08h00 AM
-  ScriptApp.newTrigger('enviarRelatorioSemanalCoordenadores').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(8).create();
-}
-
-function onOpen() {
-  try {
-    var ui = SpreadsheetApp.getUi();
-    ui.createMenu('GP Magalu')
-        .addItem('🔄 Sincronizar Feedbacks (REGISTRO_FEEDBACK)', 'sincronizarFeedbacksUniversidade')
-        .addToUi();
-  } catch (e) {
-    console.log("Aviso: Não foi possível carregar o menu.");
-  }
-}
-
-function onEdit(e) {
-  if (!e) return;
-  var range = e.range;
-  var sheet = range.getSheet();
-
-  if (sheet.getName() !== "Historico") return;
-
-  var col = range.getColumn();
-  var row = range.getRow();
-  if (row === 1) return;
-
-  if (col === 13 || col === 14 || col === 15) {
-    var hoje = new Date();
-    hoje.setHours(0,0,0,0);
-
-    var lastCol = sheet.getLastColumn();
-    var dadosLinha = sheet.getRange(row, 1, 1, lastCol).getValues()[0];
-
-    var statusColaborador = "";
-    if (lastCol >= 18 && dadosLinha[17]) {
-      statusColaborador = String(dadosLinha[17]).trim().toUpperCase();
-    }
-
-    if (statusColaborador === "DESLIGADO") {
-      sheet.getRange(row, 16).setValue(0);
-      return;
-    }
-
-    var dtAdm = parseDataBR(dadosLinha[6]);
-    if (!dtAdm || isNaN(dtAdm.getTime())) return;
-
-    var diasCasa = calcularDiasCasa(dtAdm, hoje);
-
-    if (diasCasa < 15) {
-      sheet.getRange(row, 16).setValue(0);
-      return;
-    }
-
-    var f15 = (lastCol >= 13 && dadosLinha[12]) ? String(dadosLinha[12]).trim().toUpperCase() : "";
-    var f30 = (lastCol >= 14 && dadosLinha[13]) ? String(dadosLinha[13]).trim().toUpperCase() : "";
-    var f45 = (lastCol >= 15 && dadosLinha[14]) ? String(dadosLinha[14]).trim().toUpperCase() : "";
-
-    var atraso = 0;
-    if (diasCasa >= 15 && f15 !== "OK") {
-      atraso = diasCasa - 15;
-    } else if (diasCasa >= 30 && f30 !== "OK") {
-      atraso = diasCasa - 30;
-    } else if (diasCasa >= 45 && f45 !== "OK") {
-      atraso = diasCasa - 45;
-    }
-
-    sheet.getRange(row, 16).setValue(atraso);
-  }
-}
-
-// --- BLOCO 4: TEMPLATES DE E-MAIL (VISUAL) ---
-// Todo o HTML de e-mail foi centralizado aqui para ficar mais fácil de manter e ajustar o design
-// sem mexer na lógica de negócio das funções acima.
+// ===================================================================
+// TEMPLATES HTML DE E-MAIL
+// ===================================================================
 
 function montarEmailAdmissao(nomeColaborador, dataAdmFormatada) {
   return '' +
@@ -724,7 +592,6 @@ function montarEmailAdmissao(nomeColaborador, dataAdmFormatada) {
 }
 
 function montarEmailFeedback(filial, itensPendentes) {
-  // Monta os badges de etapas (15/30/45 dias) para UM colaborador específico.
   var montarBadges = function(diasCasa, f15, f30, f45) {
     var etapas = [
       { label: "15 dias", limite: 15, statusOk: f15 === "OK" },
@@ -743,7 +610,6 @@ function montarEmailFeedback(filial, itensPendentes) {
     }).join("");
   };
 
-  // Ordena os colaboradores pelo maior atraso primeiro, para priorizar visualmente os mais urgentes.
   var itensOrdenados = itensPendentes.slice().sort(function(a, b) { return b.atraso - a.atraso; });
 
   var cardsHtml = itensOrdenados.map(function(item) {
@@ -822,4 +688,94 @@ function montarEmailRelatorioSemanal(gruposPorRegional, totalPendencias) {
     '<p style="color:#999999; font-size:12px; margin-top:20px; border-top:1px solid #eeeeee; padding-top:14px; text-align:center;">Este é um e-mail automático do Sistema de GP Lojas Magalu.<br><strong>Gestão de Pessoas</strong></p>' +
   '</div>' +
 '</div>';
+}
+
+// ===================================================================
+// UTILITÁRIOS E MIDDLEWARE DE FILIAL
+// ===================================================================
+
+/**
+ * Middleware Global Obrigatório para Higienização e Normalização de Filiais
+ * Regra: Converte para número e subtrai 3000 caso seja maior que 3000 (Séries 3000/4000)
+ */
+function normalizarFilialId(val) {
+  if (val === undefined || val === null || val === "") return "";
+  var strLimpa = String(val).replace(/\D/g, '');
+  if (!strLimpa) return String(val).trim();
+  var num = parseInt(strLimpa, 10);
+  if (isNaN(num)) return String(val).trim();
+  if (num > 3000) {
+    num -= 3000;
+  }
+  return String(num);
+}
+
+function normalizarTexto(t) {
+  return t ? t.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim() : "";
+}
+
+function normalizarID(id) {
+  if (id === undefined || id === null) return "";
+  var str = String(id).trim().replace(/^0+/, '');
+  return str === "" ? "0" : str;
+}
+
+function formatarDataBR(valor) {
+  if (!valor) return "";
+  if (valor instanceof Date) return Utilities.formatDate(valor, "GMT-3", "dd/MM/yyyy");
+  var str = valor.toString().trim();
+  if (str.indexOf("-") > -1) {
+    var p = str.split("-");
+    if (p.length === 3) return p[2].substring(0,2) + "/" + p[1] + "/" + p[0];
+  }
+  return str;
+}
+
+function parseDataBR(s) {
+  if (!s) return null;
+  if (s instanceof Date) return new Date(s.getFullYear(), s.getMonth(), s.getDate());
+  var str = s.toString().trim();
+  var p = str.split("/");
+  if (p.length === 3) return new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
+  var p2 = str.split("-");
+  if (p2.length === 3) return new Date(parseInt(p2[0], 10), parseInt(p2[1], 10) - 1, parseInt(p2[2], 10));
+  return null;
+}
+
+function calcularDiasCasa(dataAdmissao, hoje) {
+  if (!dataAdmissao) return -1;
+  var dAdm = new Date(dataAdmissao.getFullYear(), dataAdmissao.getMonth(), dataAdmissao.getDate());
+  var dHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  return Math.round((dHoje.getTime() - dAdm.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function mapearCabecalhos(headerRow) {
+  const map = {};
+  headerRow.forEach((col, idx) => { map[normalizarTexto(col).replace(/[\s_]+/g, '')] = idx; });
+  return map;
+}
+
+function encontrarColuna(headerMap, candidatos) {
+  for (let cand of candidatos) {
+    const clean = normalizarTexto(cand).replace(/[\s_]+/g, '');
+    for (let key in headerMap) {
+      if (key.includes(clean)) return headerMap[key];
+    }
+  }
+  return -1;
+}
+
+function limparCacheDashboard() {
+  CacheService.getScriptCache().remove(CONFIG.CACHE_KEY);
+  console.log("Cache limpo.");
+}
+
+function configurarTodosGatilhos() {
+  var ts = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < ts.length; i++) ScriptApp.deleteTrigger(ts[i]);
+
+  ScriptApp.newTrigger('rotinaMatinalAgenteIntegrador').timeBased().atHour(10).nearMinute(0).everyDays(1).create();
+  ScriptApp.newTrigger('sincronizarFeedbacksUniversidade').timeBased().atHour(12).everyDays(1).create();
+  ScriptApp.newTrigger('rotinaNotificacaoFeedbacks').timeBased().atHour(13).everyDays(1).create();
+  ScriptApp.newTrigger('enviarRelatorioSemanalCoordenadores').timeBased().onWeekDay(ScriptApp.WeekDay.MONDAY).atHour(8).create();
 }

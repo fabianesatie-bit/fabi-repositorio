@@ -1,6 +1,19 @@
 /**
- * Inicializa a aplicacao Web App renderizando o arquivo Index.html.
+ * ===================================================================
+ * SISTEMA GP MAGALU - DASHBOARD DE PERFORMANCE & FEEDBACK
+ * Arquivo: Code.gs (Versão com Proteção de Tamanho de Carga)
+ * ===================================================================
  */
+
+var DASHBOARD_CONFIG = {
+  DB_MASTER_ID: "1Nk0F5_tzevdbfmOTnpmhePdum6N22Ctf7g1N_ojuSjA",
+  SHEETS: {
+    FEEDBACK: 'REGISTRO_FEEDBACK',
+    HISTORICO: 'HISTORICO1',
+    FILIAIS: 'Base filiais'
+  }
+};
+
 function doGet() {
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
@@ -8,207 +21,59 @@ function doGet() {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-/**
- * Middleware obrigatório para normalizar o ID da filial (Remove zeros à esquerda e caracteres não numéricos).
- * @param {string|number} filialId
- * @return {string}
- */
-function normalizarFilialId(filialId) {
-  if (filialId === null || filialId === undefined) return "";
-  const limpo = String(filialId).trim().replace(/^0+/, "");
-  return limpo;
-}
-
-/**
- * ID da Planilha Mestre de Dados de Lojas
- */
-const DB_MASTER_ID = "1Nk0F5_tzevdbfmOTnpmhePdum6N22Ctf7g1N_ojuSjA";
-
-/**
- * Leitura resiliente dos telefones gravados na aba DADOS_LOJAS da DB_MASTER.
- * @return {Object} Mapa de filialIdNormalizado -> Telefone
- */
-function obterMapaTelefonesGerentes() {
-  const mapa = {};
-  try {
-    const ss = SpreadsheetApp.openById(DB_MASTER_ID);
-    const sheet = ss.getSheetByName("DADOS_LOJAS");
-    if (!sheet) return mapa;
-
-    const data = sheet.getDataRange().getValues();
-    if (data.length <= 1) return mapa;
-
-    const headers = data[0].map(h => String(h || '').toUpperCase().trim());
-    
-    // Tenta localizar as colunas por nome ou assume padrões (Col A = Filial, Col H = Telefone)
-    let idxFilial = headers.indexOf("FILIAL_ID");
-    if (idxFilial === -1) idxFilial = headers.indexOf("FILIAL");
-    if (idxFilial === -1) idxFilial = 0; // Padrão Coluna A
-
-    let idxTel = headers.indexOf("TELEFONE_GERENTE");
-    if (idxTel === -1) idxTel = headers.indexOf("TELEFONE");
-    if (idxTel === -1) idxTel = 7; // Padrão Coluna H (índice 7)
-
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      const filialRaw = row[idxFilial];
-      const telRaw = row[idxTel];
-
-      if (filialRaw !== "" && filialRaw !== null && filialRaw !== undefined) {
-        const filialKey = normalizarFilialId(filialRaw);
-        const telLimpo = String(telRaw || "").replace(/\D/g, "");
-        if (filialKey) {
-          mapa[filialKey] = telLimpo;
-        }
-      }
-    }
-  } catch (err) {
-    Logger.log("Aviso/Erro ao ler mapa de telefones: " + err.toString());
-  }
-  return mapa;
-}
-
-/**
- * Salva assincronamente o telefone do gerente na aba DADOS_LOJAS da DB_MASTER.
- * Resiliente contra linhas em branco e colunas inexistentes.
- */
-function salvarTelefoneGerente(filialId, telefone) {
-  try {
-    const idNormalizado = normalizarFilialId(filialId);
-    if (!idNormalizado) {
-      return { sucesso: false, mensagem: "ID de Filial inválido ou vazio." };
-    }
-
-    const ss = SpreadsheetApp.openById(DB_MASTER_ID);
-    let sheet = ss.getSheetByName("DADOS_LOJAS");
-    
-    if (!sheet) {
-      sheet = ss.insertSheet("DADOS_LOJAS");
-      sheet.appendRow(["FILIAL_ID", "NOME_LOJA", "REGIONAL", "DIRETORIA", "GERENTE", "EMAIL", "UF", "TELEFONE_GERENTE"]);
-    }
-
-    const data = sheet.getDataRange().getValues();
-    const telefoneLimpo = String(telefone || "").replace(/\D/g, "");
-
-    let idxFilial = 0;
-    let idxTel = 7;
-
-    if (data.length > 0) {
-      const headers = data[0].map(h => String(h || '').toUpperCase().trim());
-      const fIdx = headers.indexOf("FILIAL_ID");
-      if (fIdx !== -1) idxFilial = fIdx;
-      const tIdx = headers.indexOf("TELEFONE_GERENTE");
-      if (tIdx !== -1) idxTel = tIdx;
-    }
-
-    let linhaEncontrada = -1;
-    for (let i = 1; i < data.length; i++) {
-      const cellFilial = data[i][idxFilial];
-      if (cellFilial !== "" && cellFilial !== null && cellFilial !== undefined) {
-        if (normalizarFilialId(cellFilial) === idNormalizado) {
-          linhaEncontrada = i + 1; // 1-indexed no Sheets
-          break;
-        }
-      }
-    }
-
-    if (linhaEncontrada !== -1) {
-      sheet.getRange(linhaEncontrada, idxTel + 1).setValue(telefoneLimpo);
-    } else {
-      // Monta linha preservando posições se adicionar nova
-      const novaLinha = new Array(Math.max(idxTel + 1, 8)).fill("");
-      novaLinha[idxFilial] = idNormalizado;
-      novaLinha[idxTel] = telefoneLimpo;
-      sheet.appendRow(novaLinha);
-    }
-
-    return { sucesso: true, mensagem: "Telefone salvo com sucesso!" };
-  } catch (error) {
-    Logger.log("Erro em salvarTelefoneGerente: " + error.toString());
-    return { sucesso: false, mensagem: error.toString() };
-  }
-}
-
-/**
- * VERSÃO DEFINITIVA COM SUPORTE COMPLETO A FILTROS E AGRUPAMENTO
- */
 function getDashboardData() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const feedbackSheet = ss.getSheetByName('REGISTRO_FEEDBACK');
-    const baseFiliaisSheet = ss.getSheetByName('Base filiais');
-    const desligamentoSheet = ss.getSheetByName('Atualizacao_desligamento');
-    
-    if (!feedbackSheet) {
-      throw new Error('Aba "REGISTRO_FEEDBACK" não foi encontrada.');
-    }
-    
-    const allData = feedbackSheet.getDataRange().getValues();
-    if (allData.length <= 1) return JSON.stringify({}); 
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetH = ss.getSheetByName(DASHBOARD_CONFIG.SHEETS.HISTORICO);
+    var sheetF = ss.getSheetByName(DASHBOARD_CONFIG.SHEETS.FEEDBACK);
 
-    const rawHeaders = allData.shift();
-    
-    const normalize = (str) => String(str || '')
-      .toUpperCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim();
+    if (!sheetH) throw new Error("Aba '" + DASHBOARD_CONFIG.SHEETS.HISTORICO + "' não encontrada.");
 
-    const findColumnIndex = (headersList, candidates) => {
-      for (let cand of candidates) {
-        const normCand = cand.toUpperCase().replace(/[\s_]+/g, '');
-        for (let i = 0; i < headersList.length; i++) {
-          const normHeader = String(headersList[i] || '').toUpperCase().replace(/[\s_]+/g, '');
-          if (normHeader.includes(normCand)) return i;
+    var dadosH = sheetH.getDataRange().getValues();
+    if (dadosH.length <= 1) return JSON.stringify({});
+
+    // 1. Mapeia Vendas e Metas de REGISTRO_FEEDBACK
+    var mapaVendasMetas = {};
+    var mapaRegionaisFiliais = {};
+    var mapaDiretorias = {};
+
+    if (sheetF) {
+      var dadosF = sheetF.getDataRange().getValues();
+      var rawHeadersF = dadosF.shift();
+      var hMapF = mapearCabecalhos(rawHeadersF);
+
+      var idxF = {
+        id: encontrarColuna(hMapF, ['ID', 'CPF', 'MATRICULA']),
+        venda: encontrarColuna(hMapF, ['VENDA1P', 'VENDA']),
+        meta: encontrarColuna(hMapF, ['META1P', 'META']),
+        regional: encontrarColuna(hMapF, ['REGIONAL']),
+        diretoria: encontrarColuna(hMapF, ['DIRETORIA']),
+        filial: encontrarColuna(hMapF, ['FILIAL'])
+      };
+
+      dadosF.forEach(function(r) {
+        var id = normalizarID(r[idxF.id]);
+        var fil = normalizarFilialId(r[idxF.filial]);
+        var reg = String(r[idxF.regional] || 'Sem Regional').trim();
+        var dir = idxF.diretoria !== -1 ? String(r[idxF.diretoria] || 'Sem Diretoria').trim() : 'Geral';
+
+        if (id) {
+          mapaVendasMetas[id] = {
+            venda: Number(r[idxF.venda]) || 0,
+            meta: Number(r[idxF.meta]) || 0
+          };
         }
-      }
-      return -1;
-    };
-
-    const idx = {
-      id: findColumnIndex(rawHeaders, ['ID', 'CPF', 'MATRICULA']),
-      nome: findColumnIndex(rawHeaders, ['NOME']),
-      diretoria: findColumnIndex(rawHeaders, ['DIRETORIA', 'DIRETOR']),
-      regional: findColumnIndex(rawHeaders, ['REGIONAL']),
-      familiaCargo: findColumnIndex(rawHeaders, ['FAMILIA_CARGO', 'FAMILIA', 'CARGO']),
-      diasContratados: findColumnIndex(rawHeaders, ['DIAS_CONTRATADOS', 'DIAS']),
-      f15: findColumnIndex(rawHeaders, ['FEEDBACK_15_DIAS', 'FEEDBACK_15', '15']),
-      f30: findColumnIndex(rawHeaders, ['FEEDBACK_30_DIAS', 'FEEDBACK_30', '30']),
-      f45: findColumnIndex(rawHeaders, ['FEEDBACK_45_DIAS', 'FEEDBACK_45', '45']),
-      venda1P: findColumnIndex(rawHeaders, ['VENDA 1P', 'VENDA 1', 'VENDA']),
-      meta1P: findColumnIndex(rawHeaders, ['META 1P', 'META 1', 'META']),
-      filial: findColumnIndex(rawHeaders, ['FILIAL', 'FILIA']),
-      desligamentoCol: findColumnIndex(rawHeaders, ['DESLIGAMENTO', 'STATUS', 'SITUACAO'])
-    };
-
-    // 1. FILTRAGEM DE DESLIGADOS
-    const idsDesligados = new Set();
-    const nomesDesligados = new Set();
-
-    if (desligamentoSheet) {
-      const desData = desligamentoSheet.getDataRange().getValues();
-      if (desData.length > 1) {
-        const desHeaders = desData.shift();
-        const idxDesId = findColumnIndex(desHeaders, ['ID', 'CPF', 'MATRICULA']);
-        const idxDesNome = findColumnIndex(desHeaders, ['NOME', 'COLABORADOR']);
-        const idxDesStatus = findColumnIndex(desHeaders, ['DESLIGAMENTO', 'STATUS', 'SITUACAO']);
-
-        desData.forEach(r => {
-          const statusVal = idxDesStatus !== -1 ? normalize(r[idxDesStatus]) : 'DESLIGADO';
-          const idVal = idxDesId !== -1 ? normalize(r[idxDesId]) : '';
-          const nomeVal = idxDesNome !== -1 ? normalize(r[idxDesNome]) : '';
-
-          if (statusVal.includes('DESLIGADO')) {
-            if (idVal) idsDesligados.add(idVal);
-            if (nomeVal) nomesDesligados.add(nomeVal);
-          }
-        });
-      }
+        if (fil) {
+          mapaRegionaisFiliais[fil] = reg;
+          mapaDiretorias[fil] = dir;
+        }
+      });
     }
 
-    const mapaTelefonesGerentes = obterMapaTelefonesGerentes();
+    // 2. Carrega telefones dos gerentes da DB_MASTER
+    var mapaTelefones = obterMapaTelefonesGerentes();
 
-    const dadosBrutos = {
+    var dadosBrutos = {
       global: [],
       diretorias: {},
       regionais: {},
@@ -217,127 +82,122 @@ function getDashboardData() {
       mapaRegionalFilial: {}
     };
 
-    // 2. SEPARAÇÃO DE LINHAS COM RELACIONAMENTO
-    allData.forEach(row => {
-      const idColab = idx.id !== -1 ? normalize(row[idx.id]) : '';
-      const nomeColab = idx.nome !== -1 ? normalize(row[idx.nome]) : '';
-      const statusColab = idx.desligamentoCol !== -1 ? normalize(row[idx.desligamentoCol]) : '';
+    var hoje = new Date();
+    hoje.setHours(0,0,0,0);
 
-      const isDesligado = statusColab.includes('DESLIGADO') || 
-                          (idColab && idsDesligados.has(idColab)) || 
-                          (nomeColab && nomesDesligados.has(nomeColab));
+    for (var i = 1; i < dadosH.length; i++) {
+      var row = dadosH[i];
+      var id = normalizarID(row[0]);
+      var nome = String(row[1] || 'Sem Nome').trim();
+      var filial = normalizarFilialId(row[2]);
+      var dtAdmStr = row[3];
+      var f15 = String(row[4] || '').toUpperCase();
+      var f30 = String(row[5] || '').toUpperCase();
+      var f45 = String(row[6] || '').toUpperCase();
+      var statusProc = String(row[7] || '').toUpperCase();
+      var diasAtrasoRegistrado = Number(row[8]) || 0;
 
-      if (isDesligado) return;
+      // Lê diretamente da aba limpa HISTORICO1 (Ignora quem está desligado)
+      if (!id || statusProc === "DESLIGADO" || !filial) continue;
 
-      const dias = Number(row[idx.diasContratados]) || 0;
-      const cargo = String(row[idx.familiaCargo] || '').trim();
-      const isVendedor = cargo.toUpperCase().includes('VENDEDOR');
-      
-      if (isVendedor && dias >= 15) {
-        let regional = String(row[idx.regional] || 'Sem Regional').trim();
-        const diretoria = idx.diretoria !== -1 ? String(row[idx.diretoria] || 'Sem Diretoria').trim() : 'Geral';
-        const filial = normalizarFilialId(row[idx.filial]);
-        
-        if (!filial) return;
+      var dtAdm = parseDataBR(dtAdmStr);
+      var diasCasa = dtAdm ? calcularDiasCasa(dtAdm, hoje) : 0;
+      if (diasCasa < 15) continue;
 
-        if (!dadosBrutos.mapa[diretoria]) dadosBrutos.mapa[diretoria] = new Set();
-        dadosBrutos.mapa[diretoria].add(regional);
+      var regional = mapaRegionaisFiliais[filial] || "Sem Regional";
+      var diretoria = mapaDiretorias[filial] || "Geral";
+      var financeiro = mapaVendasMetas[id] || { venda: 0, meta: 0 };
+      var isPendente = (diasCasa >= 15 && f15 !== "OK") || (diasCasa >= 30 && f30 !== "OK") || (diasCasa >= 45 && f45 !== "OK");
 
-        if (!dadosBrutos.mapaRegionalFilial[regional]) dadosBrutos.mapaRegionalFilial[regional] = new Set();
-        dadosBrutos.mapaRegionalFilial[regional].add(filial);
+      var item = {
+        id: id,
+        nome: nome,
+        filial: filial,
+        diasCasa: diasCasa,
+        f15: f15,
+        f30: f30,
+        f45: f45,
+        isPendente: isPendente,
+        diasAtraso: diasAtrasoRegistrado,
+        venda: financeiro.venda,
+        meta: financeiro.meta
+      };
 
-        dadosBrutos.global.push(row);
-        
-        if (!dadosBrutos.diretorias[diretoria]) dadosBrutos.diretorias[diretoria] = [];
-        dadosBrutos.diretorias[diretoria].push(row);
-        
-        if (!dadosBrutos.regionais[regional]) dadosBrutos.regionais[regional] = [];
-        dadosBrutos.regionais[regional].push(row);
+      if (!dadosBrutos.mapa[diretoria]) dadosBrutos.mapa[diretoria] = new Set();
+      dadosBrutos.mapa[diretoria].add(regional);
 
-        if (!dadosBrutos.filiais[filial]) dadosBrutos.filiais[filial] = [];
-        dadosBrutos.filiais[filial].push(row);
-      }
-    });
+      if (!dadosBrutos.mapaRegionalFilial[regional]) dadosBrutos.mapaRegionalFilial[regional] = new Set();
+      dadosBrutos.mapaRegionalFilial[regional].add(filial);
 
-    // 3. CÁLCULO E MONTAGEM DA HIERARQUIA
-    const processarMetricas = (rows) => {
-      let somaVendasEmDia = 0, somaMetasEmDia = 0;
-      let somaVendasPendentes = 0, somaMetasPendentes = 0;
-      let colaboradoresPendentes = [];
-      let totalConcluidos = 0;
+      dadosBrutos.global.push(item);
+      (dadosBrutos.diretorias[diretoria] = dadosBrutos.diretorias[diretoria] || []).push(item);
+      (dadosBrutos.regionais[regional] = dadosBrutos.regionais[regional] || []).push(item);
+      (dadosBrutos.filiais[filial] = dadosBrutos.filiais[filial] || []).push(item);
+    }
 
-      rows.forEach(row => {
-        const dias = Number(row[idx.diasContratados]) || 0;
-        const f15 = Number(row[idx.f15]) === 1;
-        const f30 = Number(row[idx.f30]) === 1;
-        const f45 = Number(row[idx.f45]) === 1;
-        const isPendente = (dias >= 15 && !f15) || (dias >= 30 && !f30) || (dias >= 45 && !f45);
-        const venda = Number(row[idx.venda1P]) || 0;
-        const meta = Number(row[idx.meta1P]) || 0;
-        
-        const filialKey = normalizarFilialId(row[idx.filial]);
+    // 3. Processamento de Métricas
+    var processarMetricas = function(itens) {
+      var somaVendasEmDia = 0, somaMetasEmDia = 0;
+      var somaVendasPendentes = 0, somaMetasPendentes = 0;
+      var pendentesList = [];
+      var totalConcluidos = 0;
 
-        if (!isPendente) {
+      itens.forEach(function(it) {
+        if (!it.isPendente) {
           totalConcluidos++;
-          somaVendasEmDia += venda;
-          somaMetasEmDia += meta;
+          somaVendasEmDia += it.venda;
+          somaMetasEmDia += it.meta;
         } else {
-          somaVendasPendentes += venda;
-          somaMetasPendentes += meta;
-          
-          let pendenciasStr = [];
-          let diasAtraso = 0;
-          if (dias >= 15 && !f15) { pendenciasStr.push('FB 15 Dias'); diasAtraso = Math.max(diasAtraso, dias - 15); }
-          if (dias >= 30 && !f30) { pendenciasStr.push('FB 30 Dias'); diasAtraso = Math.max(diasAtraso, dias - 30); }
-          if (dias >= 45 && !f45) { pendenciasStr.push('FB 45 Dias'); diasAtraso = Math.max(diasAtraso, dias - 45); }
-          
-          colaboradoresPendentes.push({
-            nome: String(row[idx.nome] || 'Colaborador Sem Nome').trim(),
-            filial: filialKey,
-            diasContratados: dias,
-            quaisPendentes: pendenciasStr.join(', '),
-            diasAtraso: diasAtraso,
-            atingimento: meta > 0 ? (venda / meta) * 100 : 0
+          somaVendasPendentes += it.venda;
+          somaMetasPendentes += it.meta;
+
+          var tags = [];
+          if (it.diasCasa >= 15 && it.f15 !== "OK") tags.push('FB 15 Dias');
+          if (it.diasCasa >= 30 && it.f30 !== "OK") tags.push('FB 30 Dias');
+          if (it.diasCasa >= 45 && it.f45 !== "OK") tags.push('FB 45 Dias');
+
+          pendentesList.push({
+            nome: it.nome,
+            filial: it.filial,
+            diasContratados: it.diasCasa,
+            quaisPendentes: tags.join(', '),
+            diasAtraso: it.diasAtraso,
+            atingimento: it.meta > 0 ? (it.venda / it.meta) * 100 : 0
           });
         }
       });
 
-      const totalVendedores = rows.length;
-      const mediaAtingimentoEmDia = somaMetasEmDia > 0 ? (somaVendasEmDia / somaMetasEmDia) * 100 : 0;
-      const mediaAtingimentoPendente = somaMetasPendentes > 0 ? (somaVendasPendentes / somaMetasPendentes) * 100 : 0;
-      const pctEmDia = totalVendedores > 0 ? (totalConcluidos / totalVendedores) * 100 : 0;
-      
-      const faturamentoPotencialPendentes = somaMetasPendentes * (mediaAtingimentoEmDia / 100);
-      let faturamentoPerdido = faturamentoPotencialPendentes - somaVendasPendentes;
-      if (faturamentoPerdido < 0) faturamentoPerdido = 0; 
+      var totalVendedores = itens.length;
+      var mediaAtingimentoEmDia = somaMetasEmDia > 0 ? (somaVendasEmDia / somaMetasEmDia) * 100 : 0;
+      var mediaAtingimentoPendente = somaMetasPendentes > 0 ? (somaVendasPendentes / somaMetasPendentes) * 100 : 0;
+      var pctEmDia = totalVendedores > 0 ? (totalConcluidos / totalVendedores) * 100 : 0;
 
-      const somaVendasAtual = somaVendasEmDia + somaVendasPendentes;
-      let incrementoPotencialPercentual = 0;
-      if (somaVendasAtual > 0 && faturamentoPerdido > 0) {
-          incrementoPotencialPercentual = (faturamentoPerdido / somaVendasAtual) * 100;
-      }
+      var faturamentoPotencialPendentes = somaMetasPendentes * (mediaAtingimentoEmDia / 100);
+      var faturamentoPerdido = Math.max(0, faturamentoPotencialPendentes - somaVendasPendentes);
+      var somaVendasAtual = somaVendasEmDia + somaVendasPendentes;
+      var incrementoPct = (somaVendasAtual > 0 && faturamentoPerdido > 0) ? (faturamentoPerdido / somaVendasAtual) * 100 : 0;
 
       return {
         mediaAtingimentoEmDia: mediaAtingimentoEmDia,
         mediaAtingimentoPendente: mediaAtingimentoPendente,
         somaVendasAtual: somaVendasAtual,
         faturamentoPerdido: faturamentoPerdido,
-        incrementoPotencialPercentual: incrementoPotencialPercentual,
+        incrementoPotencialPercentual: incrementoPct,
         totalVendedores: totalVendedores,
-        totalPendentes: colaboradoresPendentes.length,
+        totalPendentes: pendentesList.length,
         totalConcluidos: totalConcluidos,
         pctEmDia: pctEmDia,
-        colaboradoresPendentes: colaboradoresPendentes.sort((a,b) => b.diasAtraso - a.diasAtraso)
+        colaboradoresPendentes: pendentesList.sort(function(a, b) { return b.diasAtraso - a.diasAtraso; })
       };
     };
 
-    const mapToObjectArray = (map) => {
-      const obj = {};
-      for (const key in map) obj[key] = Array.from(map[key]);
+    var mapToObjectArray = function(m) {
+      var obj = {};
+      for (var k in m) obj[k] = Array.from(m[k]);
       return obj;
     };
 
-    const finalResult = {
+    var finalResult = {
       global: processarMetricas(dadosBrutos.global),
       diretorias: {},
       regionais: {},
@@ -346,37 +206,35 @@ function getDashboardData() {
       mapaRegionalFilial: mapToObjectArray(dadosBrutos.mapaRegionalFilial)
     };
 
-    for (const dir in dadosBrutos.diretorias) {
-      finalResult.diretorias[dir] = processarMetricas(dadosBrutos.diretorias[dir]);
-    }
-    
-    for (const reg in dadosBrutos.regionais) {
-      const metricasReg = processarMetricas(dadosBrutos.regionais[reg]);
-      let dirPai = "Geral";
-      for (let d in dadosBrutos.mapa) {
-        if (dadosBrutos.mapa[d].has(reg)) { dirPai = d; break; }
-      }
-      metricasReg.diretoria = dirPai;
-      finalResult.regionais[reg] = metricasReg;
+    for (var d in dadosBrutos.diretorias) {
+      finalResult.diretorias[d] = processarMetricas(dadosBrutos.diretorias[d]);
     }
 
-    for (const fil in dadosBrutos.filiais) {
-      const metricasFil = processarMetricas(dadosBrutos.filiais[fil]);
-      metricasFil.telefoneGerente = mapaTelefonesGerentes[fil] || "";
-      
-      let regPai = "Sem Regional";
-      for (let r in dadosBrutos.mapaRegionalFilial) {
-        if (dadosBrutos.mapaRegionalFilial[r].has(fil)) { regPai = r; break; }
+    for (var r in dadosBrutos.regionais) {
+      var metReg = processarMetricas(dadosBrutos.regionais[r]);
+      var dirPai = "Geral";
+      for (var dirKey in dadosBrutos.mapa) {
+        if (dadosBrutos.mapa[dirKey].has(r)) { dirPai = dirKey; break; }
       }
-      metricasFil.regional = regPai;
+      metReg.diretoria = dirPai;
+      finalResult.regionais[r] = metReg;
+    }
 
-      let dirPai = "Geral";
-      for (let d in dadosBrutos.mapa) {
-        if (dadosBrutos.mapa[d].has(regPai)) { dirPai = d; break; }
+    for (var f in dadosBrutos.filiais) {
+      var metFil = processarMetricas(dadosBrutos.filiais[f]);
+      metFil.telefoneGerente = mapaTelefones[f] || "";
+      var regPai = "Sem Regional";
+      for (var regKey in dadosBrutos.mapaRegionalFilial) {
+        if (dadosBrutos.mapaRegionalFilial[regKey].has(f)) { regPai = regKey; break; }
       }
-      metricasFil.diretoria = dirPai;
+      metFil.regional = regPai;
 
-      finalResult.filiais[fil] = metricasFil;
+      var dirFil = "Geral";
+      for (var dKey in dadosBrutos.mapa) {
+        if (dadosBrutos.mapa[dKey].has(regPai)) { dirFil = dKey; break; }
+      }
+      metFil.diretoria = dirFil;
+      finalResult.filiais[f] = metFil;
     }
 
     return JSON.stringify(finalResult);
@@ -384,4 +242,133 @@ function getDashboardData() {
   } catch (error) {
     return JSON.stringify({ _error: true, message: error.message });
   }
+}
+
+function obterMapaTelefonesGerentes() {
+  var mapa = {};
+  try {
+    var ss = SpreadsheetApp.openById(DASHBOARD_CONFIG.DB_MASTER_ID);
+    var sheet = ss.getSheetByName("DADOS_LOJAS");
+    if (!sheet) return mapa;
+
+    var data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return mapa;
+
+    var headers = data[0].map(function(h) { return String(h || '').toUpperCase().trim(); });
+    var idxFilial = headers.indexOf("FILIAL_ID");
+    if (idxFilial === -1) idxFilial = headers.indexOf("FILIAL");
+    if (idxFilial === -1) idxFilial = 0;
+
+    var idxTel = headers.indexOf("TELEFONE_GERENTE");
+    if (idxTel === -1) idxTel = headers.indexOf("TELEFONE");
+    if (idxTel === -1) idxTel = 7;
+
+    for (var i = 1; i < data.length; i++) {
+      var filRaw = data[i][idxFilial];
+      var telRaw = data[i][idxTel];
+      if (filRaw !== "" && filRaw !== null && filRaw !== undefined) {
+        var fKey = normalizarFilialId(filRaw);
+        var tLimp = String(telRaw || "").replace(/\D/g, "");
+        if (fKey) mapa[fKey] = tLimp;
+      }
+    }
+  } catch (err) {}
+  return mapa;
+}
+
+function salvarTelefoneGerente(filialId, telefone) {
+  try {
+    var idNormalizado = normalizarFilialId(filialId);
+    if (!idNormalizado) return { sucesso: false, mensagem: "ID de Filial inválido." };
+
+    var ss = SpreadsheetApp.openById(DASHBOARD_CONFIG.DB_MASTER_ID);
+    var sheet = ss.getSheetByName("DADOS_LOJAS");
+    if (!sheet) {
+      sheet = ss.insertSheet("DADOS_LOJAS");
+      sheet.appendRow(["FILIAL_ID", "NOME_LOJA", "REGIONAL", "DIRETORIA", "GERENTE", "EMAIL", "UF", "TELEFONE_GERENTE"]);
+    }
+
+    var data = sheet.getDataRange().getValues();
+    var telefoneLimpo = String(telefone || "").replace(/\D/g, "");
+
+    var idxFilial = 0;
+    var idxTel = 7;
+    if (data.length > 0) {
+      var headers = data[0].map(function(h) { return String(h || '').toUpperCase().trim(); });
+      var fIdx = headers.indexOf("FILIAL_ID");
+      if (fIdx !== -1) idxFilial = fIdx;
+      var tIdx = headers.indexOf("TELEFONE_GERENTE");
+      if (tIdx !== -1) idxTel = tIdx;
+    }
+
+    var linhaEncontrada = -1;
+    for (var i = 1; i < data.length; i++) {
+      if (normalizarFilialId(data[i][idxFilial]) === idNormalizado) {
+        linhaEncontrada = i + 1;
+        break;
+      }
+    }
+
+    if (linhaEncontrada !== -1) {
+      sheet.getRange(linhaEncontrada, idxTel + 1).setValue(telefoneLimpo);
+    } else {
+      var novaLinha = new Array(Math.max(idxTel + 1, 8)).fill("");
+      novaLinha[idxFilial] = idNormalizado;
+      novaLinha[idxTel] = telefoneLimpo;
+      sheet.appendRow(novaLinha);
+    }
+
+    return { sucesso: true, mensagem: "Telefone salvo com sucesso!" };
+  } catch (error) {
+    return { sucesso: false, mensagem: error.toString() };
+  }
+}
+
+function normalizarTexto(t) {
+  return t ? t.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim() : "";
+}
+
+function normalizarID(id) {
+  if (id === undefined || id === null) return "";
+  var str = String(id).trim().replace(/^0+/, '');
+  return str === "" ? "0" : str;
+}
+
+function normalizarFilialId(filialId) {
+  if (filialId === null || filialId === undefined) return "";
+  return String(filialId).trim().replace(/^0+/, "");
+}
+
+function parseDataBR(s) {
+  if (!s) return null;
+  if (s instanceof Date) return new Date(s.getFullYear(), s.getMonth(), s.getDate());
+  var str = s.toString().trim();
+  var p = str.split("/");
+  if (p.length === 3) return new Date(parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10));
+  var p2 = str.split("-");
+  if (p2.length === 3) return new Date(parseInt(p2[0], 10), parseInt(p2[1], 10) - 1, parseInt(p2[2], 10));
+  return null;
+}
+
+function calcularDiasCasa(dataAdmissao, hoje) {
+  if (!dataAdmissao) return -1;
+  var dAdm = new Date(dataAdmissao.getFullYear(), dataAdmissao.getMonth(), dataAdmissao.getDate());
+  var dHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  return Math.round((dHoje.getTime() - dAdm.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function mapearCabecalhos(headerRow) {
+  var map = {};
+  headerRow.forEach(function(col, idx) { map[normalizarTexto(col).replace(/[\s_]+/g, '')] = idx; });
+  return map;
+}
+
+function encontrarColuna(headerMap, candidatos) {
+  for (var i = 0; i < candidatos.length; i++) {
+    var clean = normalizarTexto(candidatos[i]).replace(/[\s_]+/g, '');
+    for (var key in headerMap) {
+      if (key.includes(clean)) return headerMap[key];
+    }
+  }
+  return -1;
 }
