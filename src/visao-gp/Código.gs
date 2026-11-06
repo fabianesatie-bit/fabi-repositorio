@@ -103,7 +103,7 @@ function normalizarTempoHoras(val) {
 }
 
 /**
- * BLINDAGEM ANTI-FUSO HORÁRIO (Timezone Shift)
+ * BLINDAGEM ANTI-FUSO HORÁRIO (Timezone Shift) E TIMESTAMPS
  */
 function dataParaStringISO(dataVal, fallbackIsoData = null) {
     if (!dataVal || String(dataVal).trim() === "") return fallbackIsoData;
@@ -114,15 +114,22 @@ function dataParaStringISO(dataVal, fallbackIsoData = null) {
 
         let str = String(dataVal).trim();
         
+        // Remove hora se houver (espaço ou T)
+        if (str.includes("T")) str = str.split("T")[0].trim();
+        if (str.includes(" ")) str = str.split(" ")[0].trim();
+
         if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
             return str.substring(0, 10);
         }
 
         let cleanStr = str.replace(/Horário Padrão de Brasília/gi, '').replace(/GMT.*/, '').trim();
         
-        let matchBR = cleanStr.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+        let matchBR = cleanStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
         if (matchBR) {
-            return `${matchBR[3]}-${matchBR[2]}-${matchBR[1]}`;
+            let dia = matchBR[1].padStart(2, '0');
+            let mes = matchBR[2].padStart(2, '0');
+            let ano = matchBR[3];
+            return `${ano}-${mes}-${dia}`;
         }
 
         let dt = new Date(cleanStr);
@@ -169,17 +176,111 @@ function buscarAbaNoMapa(mapaAbas, names) {
     for (let i = 0; i < targetNames.length; i++) {
         if (mapaAbas[targetNames[i]]) return mapaAbas[targetNames[i]];
     }
+    // Fallback flexível ignorando pontuações e espaços
+    let keys = Object.keys(mapaAbas);
+    let targetCleans = names.map(n => normalizeName(n).replace(/[^a-z0-9]/g, ''));
+    for (let i = 0; i < targetCleans.length; i++) {
+        let tc = targetCleans[i];
+        for (let j = 0; j < keys.length; j++) {
+            let kClean = keys[j].replace(/[^a-z0-9]/g, '');
+            if (kClean === tc || kClean.includes(tc) || tc.includes(kClean)) {
+                return mapaAbas[keys[j]];
+            }
+        }
+    }
     return null;
 }
 
-function getSheetSafe(ss, names) {
+/**
+ * Localização de aba de alta performance: tenta getSheetByName primeiro (10ms)
+ * antes de listar todas as abas com getSheets() (3000ms).
+ */
+function getSheetFast(ss, names) {
+    if (!ss) return null;
+    for (let i = 0; i < names.length; i++) {
+        let sh = ss.getSheetByName(names[i]);
+        if (sh) return sh;
+    }
     let sheets = ss.getSheets();
-    let targetNames = names.map(normalizeName);
-    for (let sh of sheets) {
-        let currentName = normalizeName(sh.getName());
-        if (targetNames.includes(currentName)) return sh;
+    let cleanTargets = names.map(n => normalizeName(n).replace(/[^a-z0-9]/g, ''));
+    for (let i = 0; i < sheets.length; i++) {
+        let sClean = normalizeName(sheets[i].getName()).replace(/[^a-z0-9]/g, '');
+        for (let j = 0; j < cleanTargets.length; j++) {
+            if (sClean === cleanTargets[j] || sClean.includes(cleanTargets[j]) || cleanTargets[j].includes(sClean)) {
+                return sheets[i];
+            }
+        }
     }
     return null;
+}
+
+function obterValoresSeguros(sh) {
+    if (!sh) return [];
+    let lr = sh.getLastRow();
+    let lc = sh.getLastColumn();
+    if (lr < 1 || lc < 1) return [];
+    return sh.getRange(1, 1, lr, lc).getValues();
+}
+
+function getSheetSafe(ss, names) {
+    return getSheetFast(ss, names);
+}
+
+// ============================================================================
+// DIAGNÓSTICO RÁPIDO DE CONECTIVIDADE (Execute direto no editor se houver lentidão)
+// ============================================================================
+
+function testarConexoesBases() {
+    const bases = [
+        { nome: 'DB_MASTER (GP360)', id: DB_MASTER },
+        { nome: 'DB_DASH (Indicadores Novos)', id: DB_DASH },
+        { nome: 'DB_APUR (Apurações)', id: DB_APUR },
+        { nome: 'DB_SOC (Social)', id: DB_SOC },
+        { nome: 'DB_AGENTE (Agente)', id: DB_AGENTE }
+    ];
+    
+    console.log("=== INICIANDO DIAGNÓSTICO DE CONEXÃO DAS BASES ===");
+    bases.forEach(b => {
+        let t0 = new Date().getTime();
+        try {
+            let ss = SpreadsheetApp.openById(b.id);
+            let tOpen = new Date().getTime() - t0;
+            let sheets = ss.getSheets().map(s => `${s.getName()} (${s.getLastRow()} lin x ${s.getLastColumn()} col)`);
+            console.log(`✅ [${b.nome}] Acessada em ${tOpen}ms | Abas: ${sheets.join(' | ')}`);
+        } catch(e) {
+            let tFail = new Date().getTime() - t0;
+            console.error(`❌ [${b.nome}] FALHA após ${tFail}ms: ${e.message}`);
+        }
+    });
+    console.log("=== DIAGNÓSTICO FINALIZADO ===");
+}
+
+function testarAbaDesligamentos() {
+    console.log("=== TESTE ESPECÍFICO: ABA DESLIGAMENTOS ===");
+    try {
+        let ssApur = SpreadsheetApp.openById(DB_APUR);
+        let sh = getSheetFast(ssApur, [
+            'HISTORICO_DESLIGAMENTO_F', 'Historico_Desligamento_F', 'historico_desligamento_f',
+            'Historico_Desligamentos', 'HISTORICO_DESLIGAMENTOS', 
+            'Historico Desligamentos', 'Histórico de Desligamentos', 
+            'Desligamentos', 'DESLIGAMENTOS'
+        ]);
+        if (!sh) {
+            console.error("❌ Nenhuma aba de Desligamentos encontrada em DB_APUR!");
+            console.log("Abas existentes: " + ssApur.getSheets().map(s => s.getName()).join(', '));
+            return;
+        }
+        console.log(`✅ Aba de Desligamentos encontrada: "${sh.getName()}" (${sh.getLastRow()} linhas x ${sh.getLastColumn()} colunas)`);
+        let d = obterValoresSeguros(sh);
+        if (d.length > 0) {
+            console.log("Cabeçalho (colunas):", d[0].map((c, i) => `[Col ${i}] ${c}`).join(' | '));
+            if (d.length > 1) {
+                console.log("Exemplo Linha 1:", d[1].map((c, i) => `[Col ${i}] ${c}`).join(' | '));
+            }
+        }
+    } catch(e) {
+        console.error("❌ Erro ao inspecionar aba desligamentos:", e.message);
+    }
 }
 
 // ============================================================================
@@ -265,6 +366,7 @@ function obterCargaMestreDashboard() {
         let injetarAcaoVirtual = (idFilial, dataRaw, motivo, obs, peso, origem = 'VIRTUAL', autorEspecifico = null) => {
             if(!idFilial || !masterData[idFilial]) return;
             let m = extrairMesAno(dataRaw);
+            if (m < '2023-01' && m !== "0000-00") return; // Ignora registros antigos no mural
             let autor = autorEspecifico || masterData[idFilial].coordenadores[0] || 'Sistema';
             acoesMuralGlobais.push({
                 idFilial: idFilial, destinoBruto: idFilial, mes: m, dataStr: extrairDataBR(dataRaw), dataIso: dataParaStringISO(dataRaw),
@@ -279,7 +381,7 @@ function obterCargaMestreDashboard() {
         let coordMap = {}; 
 
         if (shUsu) {
-            const dadosUsu = shUsu.getDataRange().getValues();
+            const dadosUsu = obterValoresSeguros(shUsu);
             for (let i = 1; i < dadosUsu.length; i++) {
                 let em = String(dadosUsu[i][0] || '').toLowerCase().trim();
                 let nome = String(dadosUsu[i][1] || '').trim();
@@ -328,7 +430,7 @@ function obterCargaMestreDashboard() {
         const shLojas = ssMaster.getSheetByName('DADOS_LOJAS');
         if (!shLojas) return JSON.stringify({ sucesso: false, erro: "Aba DADOS_LOJAS não encontrada." });
         
-        const dadosLojas = shLojas.getDataRange().getValues();
+        const dadosLojas = obterValoresSeguros(shLojas);
         for (let i = 1; i < dadosLojas.length; i++) {
             let id = normalizarFilialId(dadosLojas[i][0]);
             let nome = String(dadosLojas[i][1] || '').trim();
@@ -358,7 +460,8 @@ function obterCargaMestreDashboard() {
 
         const shLanc = ssMaster.getSheetByName('DADOS_LANCAMENTOS');
         if (shLanc) {
-            const dadosLanc = shLanc.getDataRange().getValues();
+            const dadosLanc = obterValoresSeguros(shLanc);
+            console.log("DADOS_LANCAMENTOS carregados:", dadosLanc.length, "linhas.");
 
             for(let i = 1; i < dadosLanc.length; i++) {
                 let dataAcao = dadosLanc[i][12]; 
@@ -370,15 +473,16 @@ function obterCargaMestreDashboard() {
                 let motivoVal = String(dadosLanc[i][4] || '').trim(); 
                 let tipoRoteiro = String(dadosLanc[i][17] || ''); 
                 
-                let isVisita = tipoRoteiro.toUpperCase().includes("PRESENCIAL") || tipoRoteiro.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().includes("visitainloco");
-                let roteiroLimpo = tipoRoteiro.toUpperCase();
+                let rotUpper = String(tipoRoteiro || '').toUpperCase();
                 let motivoUpper = motivoVal.toUpperCase();
+                let isVisita = rotUpper.includes("PRESENCIAL") || rotUpper.includes("IN LOCO") || rotUpper.includes("INLOCO") || rotUpper.includes("VISITA");
 
                 // BARREIRA FINANCEIRA AVULSO
                 let isAvulso = destinoFilialBruto.toUpperCase().startsWith('AVULSO') || motivoUpper.includes('AVULSO') || motivoUpper.includes('SEDE/EVENTO');
-                let isSocial = motivoUpper.includes('SOCIAL') || motivoUpper.includes('ASSIST') || roteiroLimpo.includes('SOCIAL') || roteiroLimpo.includes('ASSIST');
+                let isSocial = motivoUpper.includes('SOCIAL') || motivoUpper.includes('ASSIST') || rotUpper.includes('SOCIAL') || rotUpper.includes('ASSIST');
 
                 let mesStr = extrairMesAno(dataAcao);
+                if (mesStr < '2023-01' && mesStr !== "0000-00") continue; // Pula lançamentos muito antigos para otimizar velocidade
                 let isoAcao = dataParaStringISO(dataAcao);
                 
                 let emA = String(dadosLanc[i][2] || '').toLowerCase().trim();
@@ -433,130 +537,102 @@ function obterCargaMestreDashboard() {
                     };
 
                     acoesMuralGlobais.push(acaoObj);
-
-                    if (idL && masterData[idL]) {
-                        masterData[idL].historicoGP.push(acaoObj);
-                    }
                 }
             }
         }
         console.timeEnd("Leitura_DB_MASTER");
 
-        let roiEstatico = {};
+        // CONFIGURAÇÃO DB_DASH: Desativada temporariamente (dados não alimentados / Visão Geral removida)
+        const ATIVAR_DB_DASH = false;
 
-        try {
-            console.time("Leitura_DB_DASH");
-            const ssDash = SpreadsheetApp.openById(DB_DASH);
-            const mapaDash = obterMapaAbas(ssDash);
-            
-            // LEITURA ULTRALEVE DE ROI
-            let shROI = buscarAbaNoMapa(mapaDash, ['HISTORICO_ROI_VISITAS']);
-            if(shROI) {
-                let dR = shROI.getDataRange().getValues();
-                for(let i=1; i<dR.length; i++) {
-                    let dtIso = dataParaStringISO(dR[i][0]); let idL = normalizarFilialId(dR[i][1]);
-                    if(dtIso && idL) { 
-                        roiEstatico[idL + "_" + dtIso] = { vPre: dR[i][5], vPos: dR[i][6], nPre: dR[i][8], nPos: dR[i][9] }; 
+        if (ATIVAR_DB_DASH) {
+            try {
+                console.time("Leitura_DB_DASH");
+                const ssDash = SpreadsheetApp.openById(DB_DASH);
+                const mapaDash = obterMapaAbas(ssDash);
+                
+                let mapDash = (shNames, parser) => {
+                    let sh = buscarAbaNoMapa(mapaDash, shNames);
+                    if(sh) {
+                        let d = obterValoresSeguros(sh);
+                        for(let i=1; i<d.length; i++) parser(d[i]);
                     }
-                }
+                };
+                
+                mapDash(['HISTORICO_QUADRO'], d => {
+                    let idL = normalizarFilialId(d[0]);
+                    let cargo = String(d[7] || '').trim();
+                    let cargoUpper = cargo.toUpperCase();
+                    if(idL && masterData[idL] && !cargoUpper.includes('INTERMITENTE') && !cargoUpper.includes('MONTAGEM') && !cargoUpper.includes('MONTADOR')) {
+                        let v = parseFloat(d[12]);
+                        if(!isNaN(v) && v > 0) { masterData[idL].pendencias.vagasInfo.push({ cargo: cargo, qtd: v }); }
+                    }
+                });
+                
+                let mapBHAux = {};
+                mapDash(['HISTORICO_BH_ACUMULADO'], d => {
+                    let idL = normalizarFilialId(d[1]);
+                    let dtIso = dataParaStringISO(d[0], hojeIsoDia);
+                    if(idL && masterData[idL] && dtIso <= hojeIsoDia) { 
+                        let hrs = parseFloat(String(d[9]).replace(',','.'));
+                        if(!isNaN(hrs)) {
+                            if(!mapBHAux[idL]) mapBHAux[idL] = { maxDate: dtIso, total: 0, criticos: [] };
+                            if(dtIso > mapBHAux[idL].maxDate) { mapBHAux[idL].maxDate = dtIso; mapBHAux[idL].total = 0; mapBHAux[idL].criticos = []; }
+                            if(dtIso === mapBHAux[idL].maxDate) {
+                                mapBHAux[idL].total += hrs;
+                                if(hrs >= 5) mapBHAux[idL].criticos.push({ nome: String(d[6]).trim(), id: String(d[5]).trim(), horas: hrs });
+                            }
+                        }
+                    }
+                });
+                Object.keys(mapBHAux).forEach(idL => {
+                    masterData[idL].indicadores.bancoHoras = mapBHAux[idL].total;
+                    masterData[idL].pendencias.bancoHoras = mapBHAux[idL].criticos;
+                });
+
+                let registrosNPSV = {}; 
+                mapDash(['HISTORICO_NPS_VENDEDORES'], d => {
+                    let nome = String(d[1]).trim();
+                    let idL = normalizarFilialId(d[2]);
+                    let dtIso = dataParaStringISO(d[0], hojeIsoDia);
+                    let npsV = parseFloat(String(d[7]).replace(',','.'));
+                    if(idL && nome && masterData[idL] && !isNaN(npsV) && dtIso <= hojeIsoDia) {
+                        if(!registrosNPSV[idL]) registrosNPSV[idL] = { maxDate: dtIso, records: [] };
+                        if(dtIso > registrosNPSV[idL].maxDate) { registrosNPSV[idL].maxDate = dtIso; registrosNPSV[idL].records = []; }
+                        if(dtIso === registrosNPSV[idL].maxDate) { registrosNPSV[idL].records.push({ nome: nome, nota: npsV }); }
+                    }
+                });
+                Object.keys(registrosNPSV).forEach(idL => {
+                    registrosNPSV[idL].records.forEach(r => {
+                        if(r.nota < 70) masterData[idL].pendencias.npsVendedores.push({ nome: r.nome, nota: r.nota });
+                    });
+                });
+
+                console.timeEnd("Leitura_DB_DASH");
+
+            } catch(e) {
+                avisos.push("Base Dash inacessível: " + e.message);
+                console.warn("Aviso DB_DASH:", e.message);
             }
-
-            let mapDash = (shNames, parser) => {
-                let sh = buscarAbaNoMapa(mapaDash, shNames);
-                if(sh) {
-                    let d = sh.getDataRange().getValues();
-                    for(let i=1; i<d.length; i++) parser(d[i]);
-                }
-            };
-            
-            mapDash(['HISTORICO_QUADRO'], d => {
-                let idL = normalizarFilialId(d[0]);
-                let cargo = String(d[7] || '').trim();
-                let cargoUpper = cargo.toUpperCase();
-                if(idL && masterData[idL] && !cargoUpper.includes('INTERMITENTE') && !cargoUpper.includes('MONTAGEM') && !cargoUpper.includes('MONTADOR')) {
-                    let v = parseFloat(d[12]);
-                    if(!isNaN(v) && v > 0) { masterData[idL].pendencias.vagasInfo.push({ cargo: cargo, qtd: v }); }
-                }
-            });
-            
-            let mapBHAux = {};
-            mapDash(['HISTORICO_BH_ACUMULADO'], d => {
-                let idL = normalizarFilialId(d[1]);
-                let dtIso = dataParaStringISO(d[0], hojeIsoDia);
-                if(idL && masterData[idL] && dtIso <= hojeIsoDia) { 
-                    let hrs = parseFloat(String(d[9]).replace(',','.'));
-                    if(!isNaN(hrs)) {
-                        if(!mapBHAux[idL]) mapBHAux[idL] = { maxDate: dtIso, total: 0, criticos: [] };
-                        if(dtIso > mapBHAux[idL].maxDate) { mapBHAux[idL].maxDate = dtIso; mapBHAux[idL].total = 0; mapBHAux[idL].criticos = []; }
-                        if(dtIso === mapBHAux[idL].maxDate) {
-                            mapBHAux[idL].total += hrs;
-                            if(hrs >= 5) mapBHAux[idL].criticos.push({ nome: String(d[6]).trim(), id: String(d[5]).trim(), horas: hrs });
-                        }
-                    }
-                }
-            });
-            Object.keys(mapBHAux).forEach(idL => {
-                masterData[idL].indicadores.bancoHoras = mapBHAux[idL].total;
-                masterData[idL].pendencias.bancoHoras = mapBHAux[idL].criticos;
-            });
-
-            let registrosNPSV = {}; 
-            mapDash(['HISTORICO_NPS_VENDEDORES'], d => {
-                let nome = String(d[1]).trim();
-                let idL = normalizarFilialId(d[2]);
-                let dtIso = dataParaStringISO(d[0], hojeIsoDia);
-                let npsV = parseFloat(String(d[7]).replace(',','.'));
-                if(idL && nome && masterData[idL] && !isNaN(npsV) && dtIso <= hojeIsoDia) {
-                    if(!registrosNPSV[idL]) registrosNPSV[idL] = { maxDate: dtIso, records: [] };
-                    if(dtIso > registrosNPSV[idL].maxDate) { registrosNPSV[idL].maxDate = dtIso; registrosNPSV[idL].records = []; }
-                    if(dtIso === registrosNPSV[idL].maxDate) { registrosNPSV[idL].records.push({ nome: nome, nota: npsV }); }
-                }
-            });
-            Object.keys(registrosNPSV).forEach(idL => {
-                registrosNPSV[idL].records.forEach(r => {
-                    if(r.nota < 70) masterData[idL].pendencias.npsVendedores.push({ nome: r.nome, nota: r.nota });
-                });
-            });
-
-            // INJEÇÃO DOS DADOS DO ROI NO HISTÓRICO
-            Object.keys(masterData).forEach(idL => {
-                masterData[idL].historicoGP.forEach(h => {
-                    if(h.isVisita && h.isVisitaUnica && h.dataIso) {
-                        let chaveMatriz = idL + "_" + h.dataIso;
-                        if(roiEstatico[chaveMatriz]) {
-                            let rE = roiEstatico[chaveMatriz];
-                            h.vendaPre = rE.vPre; h.vendaPos = rE.vPos; 
-                            h.npsPre = rE.nPre; h.npsPos = rE.nPos; 
-                        } else {
-                            h.vendaPre = null; h.vendaPos = null; 
-                            h.npsPre = null; h.npsPos = null; 
-                        }
-                    }
-                });
-            });
-            console.timeEnd("Leitura_DB_DASH");
-
-        } catch(e) {
-            avisos.push("Base Dash inacessível: " + e.message);
-            console.warn("Aviso DB_DASH:", e.message);
+        } else {
+            console.log("DB_DASH ignorada (Visão Geral Desativada / Dados não alimentados)");
         }
 
         try {
             console.time("Leitura_DB_APUR");
             const ssApur = SpreadsheetApp.openById(DB_APUR);
-            const mapaApur = obterMapaAbas(ssApur);
             
             let mapApur = (shNames, parser) => {
-                let sh = buscarAbaNoMapa(mapaApur, shNames);
+                let sh = getSheetFast(ssApur, shNames);
                 if(sh) {
-                    let d = sh.getDataRange().getValues();
+                    let d = obterValoresSeguros(sh);
                     for(let i=1; i<d.length; i++) {
                         try { parser(d[i]); } catch(e){}
                     }
                 }
             };
 
-            mapApur(['HISTORICO_APURACAO'], r => {
+            mapApur(['HISTORICO_APURACAO', 'historico_apuracao'], r => {
                 let idL = normalizarFilialId(r[3]); 
                 let concl = String(r[7] || '').toUpperCase();
                 if(idL && masterData[idL] && !concl.includes('CANCELADO') && !concl.includes('LANÇADO INCORRETAMENTE')) {
@@ -572,7 +648,8 @@ function obterCargaMestreDashboard() {
                     injetarAcaoVirtual(idL, r[1], origemApur, 'Processo de Apuração de Denúncia', 1, 'APURACAO');
                 }
             });
-            mapApur(['Rascunhos_Apuracoes'], r => {
+
+            mapApur(['Rascunhos_Apuracoes', 'rascunhos_apuracoes'], r => {
                 let idL = normalizarFilialId(r[3]); 
                 let concl = String(r[7] || '').toUpperCase();
                 if(idL && masterData[idL] && !concl.includes('CANCELADO') && !concl.includes('LANÇADO INCORRETAMENTE')) {
@@ -584,22 +661,98 @@ function obterCargaMestreDashboard() {
                     else { masterData[idL].pendencias.rascunhos.push(obj); }
                 }
             });
-            mapApur(['Intervencoes_Feedback'], r => {
+
+            mapApur(['Intervencoes_Feedback', 'intervencoes_feedback'], r => {
                 let idL = normalizarFilialId(r[1]); let concl = String(r[3] || '').toUpperCase();
                 if(idL && masterData[idL] && !concl.includes('CANCELADO') && !concl.includes('LANÇADO INCORRETAMENTE')) {
                     masterData[idL].pendencias.intervencoes.push({ data: extrairDataBR(r[0]), linkDoc: String(r[2]||''), status: String(r[3]||''), detalhe: String(r[4]||''), nHumor: String(r[5]||'-'), nData: extrairDataBR(r[6]) });
                     injetarAcaoVirtual(idL, r[0], 'Acompanhamento Feedbacks', 'Intervenção PAI', 1, 'INTERVENCAO');
                 }
             });
-            mapApur(['Historico_Desligamentos'], r => {
-                let idL = normalizarFilialId(r[2]); let concl = String(r[11] || '').toUpperCase();
-                if(idL && masterData[idL] && !concl.includes('CANCELADO') && !concl.includes('LANÇADO INCORRETAMENTE')) {
-                    let m = extrairMesAno(r[1]); if(m!=="0000-00") filtrosGlobais.meses.add(m);
-                    masterData[idL].pendencias.desligamentos.push({ mes: m, data: extrairDataBR(r[1]), colab: String(r[3]||''), reg: String(r[8]||''), dir: String(r[11]||''), dossieLink: String(r[6]||'') });
-                    injetarAcaoVirtual(idL, r[1], 'Relatório de Desligamento', 'Dossiê de Desligamento', 1, 'DESLIGAMENTO');
+
+            mapApur([
+                'HISTORICO_DESLIGAMENTO_F', 'Historico_Desligamento_F', 'historico_desligamento_f',
+                'HISTORICO_DESLIGAMENTOS', 'Historico_Desligamentos', 'Historico Desligamentos', 
+                'Histórico de Desligamentos', 'Desligamentos', 'DESLIGAMENTOS'
+            ], r => {
+                let idL = normalizarFilialId(r[2]); // Coluna C: Filial
+                if (!idL) return;
+
+                let dataRaw = r[1]; // Coluna B: Data Registro
+                let m = extrairMesAno(dataRaw);
+                if (m !== "0000-00") filtrosGlobais.meses.add(m);
+
+                let idDeslig = String(r[0] || '').trim(); // Coluna A: ID Desligamento (ex: DES-7F7892A0)
+                let colabNome = String(r[3] || '').trim(); // Coluna D: Colaborador
+                let matricula = String(r[4] || '').trim(); // Coluna E: ID / Matrícula
+                let tempoEmp = String(r[5] || '').trim();  // Coluna F: Tempo Empresa
+                let cargo = String(r[6] || '').trim();     // Coluna G: Cargo
+                let resultados = String(r[7] || '').trim(); // Coluna H: Resultados
+                let justificativa = String(r[8] || '').trim(); // Coluna I: Justificativa
+                let evidenciasLink = String(r[9] || '').trim(); // Coluna J: Evidencias (Drive)
+                let parecerCoord = String(r[10] || '').trim(); // Coluna K: Parecer Coordenador
+                let stReg = String(r[12] || '').trim();   // Coluna M: Status Regional
+                let parecerReg = String(r[13] || '').trim(); // Coluna N: Parecer Regional
+                let stDir = String(r[15] || '').trim();   // Coluna P: Status Diretor Op
+                let parecerDir = String(r[16] || '').trim(); // Coluna Q: Parecer Diretor Op
+                let coordNome = String(r[18] || '').trim(); // Coluna S: Coordenador Nome
+                let linkApuracao = String(r[20] || '').trim(); // Coluna U: Link Apuração (Google Docs)
+
+                let parecerGeral = `${stReg} ${stDir} ${parecerReg} ${parecerDir}`.toUpperCase();
+                if (parecerGeral.includes('CANCELADO') || parecerGeral.includes('LANÇADO INCORRETAMENTE') || parecerGeral.includes('LANCADO INCORRETAMENTE')) {
+                    return;
                 }
+
+                // Identifica se o processo está em aberto (pendente de aprovação regional ou do diretor)
+                let sRegU = stReg.toUpperCase();
+                let sDirU = stDir.toUpperCase();
+                let regConcluido = sRegU.includes('CONCLU') || sRegU.includes('APROV') || sRegU.includes('FINALIZ');
+                let dirConcluido = sDirU.includes('CONCLU') || sDirU.includes('APROV') || sDirU.includes('FINALIZ');
+                let isAberto = !(regConcluido && dirConcluido);
+
+                // Dossiê principal: Coluna U (Link Apuração Docs), com fallback para Coluna J (Evidências Drive)
+                let linkDoc = linkApuracao || evidenciasLink;
+
+                // Normaliza link para garantir clique direto
+                if (linkDoc && !linkDoc.startsWith('http')) {
+                    if (linkDoc.includes('docs.google') || linkDoc.includes('drive.google')) {
+                        linkDoc = 'https://' + linkDoc;
+                    } else if (linkDoc.length >= 25 && !linkDoc.includes(' ')) {
+                        linkDoc = 'https://docs.google.com/document/d/' + linkDoc + '/view';
+                    }
+                }
+
+                if (!masterData[idL]) {
+                    masterData[idL] = {
+                        id: idL, nome: 'Filial ' + idL, regional: 'OUTROS', diretoria: 'OUTROS', coordenadores: [],
+                        historicoGP: [], social: [], agente: { elegiveis: 0, concluidos: 0 },
+                        indicadores: { venda: '-', nps: '-', bancoHoras: 0, txSaida: '-' },
+                        pendencias: { apuracoes: [], rascunhos: [], comite: [], feedbacksSLA: [], desligamentos: [], intervencoes: [], agenteFeedbacks: [], bancoHoras: [], socialTodos: [], vagasInfo: [], npsVendedores: [] }
+                    };
+                    filtrosGlobais.filiais.add(idL.toString());
+                }
+
+                masterData[idL].pendencias.desligamentos.push({ 
+                    idDeslig: idDeslig,
+                    mes: m, 
+                    data: extrairDataBR(dataRaw), 
+                    colab: colabNome || 'Colaborador', 
+                    matricula: matricula,
+                    tempoEmp: tempoEmp,
+                    cargo: cargo,
+                    reg: stReg || 'Pendente Regional', 
+                    dir: stDir || 'Pendente Diretor Op', 
+                    coord: coordNome,
+                    justificativa: justificativa,
+                    dossieLink: linkDoc,
+                    evidenciasLink: evidenciasLink,
+                    isAberto: isAberto
+                });
+                
+                injetarAcaoVirtual(idL, dataRaw, 'Relatório de Desligamento', 'Dossiê de Desligamento: ' + colabNome, 1, 'DESLIGAMENTO', coordNome);
             });
-            mapApur(['Feedbacks_Gerentes'], r => {
+
+            mapApur(['Feedbacks_Gerentes', 'feedbacks_gerentes'], r => {
                 let idL = normalizarFilialId(r[1]); let concl = String(r[5] || '').toUpperCase();
                 if(idL && masterData[idL] && !concl.includes('CANCELADO') && !concl.includes('LANÇADO INCORRETAMENTE')) {
                     let m = extrairMesAno(r[2]); if(m!=="0000-00") filtrosGlobais.meses.add(m);
@@ -615,28 +768,31 @@ function obterCargaMestreDashboard() {
         try {
             console.time("Leitura_DB_AGENTE");
             const ssAgente = SpreadsheetApp.openById(DB_AGENTE);
-            const mapaAgente = obterMapaAbas(ssAgente);
             
             let dSet = new Set();
             try {
-                let shDesl = buscarAbaNoMapa(mapaAgente, ['atualizacao_desligamento', 'desligamentos']);
-                if (shDesl) { let d = shDesl.getDataRange().getValues(); for(let i=1; i<d.length; i++) if(d[i][0]) dSet.add(String(d[i][0]).trim()); }
+                let shDesl = getSheetFast(ssAgente, ['atualizacao_desligamento', 'desligamentos', 'DESLIGAMENTOS']);
+                if (shDesl) { 
+                    let d = obterValoresSeguros(shDesl); 
+                    for(let i=1; i<d.length; i++) if(d[i][0]) dSet.add(String(d[i][0]).trim()); 
+                }
             } catch(e){}
 
             try {
-                let shAgenteHis = buscarAbaNoMapa(mapaAgente, ['REGISTRO_FEEDBACK']);
+                let shAgenteHis = getSheetFast(ssAgente, ['REGISTRO_FEEDBACK', 'registro_feedback']);
                 if (shAgenteHis) {
-                    let d = shAgenteHis.getDataRange().getValues();
+                    let d = obterValoresSeguros(shAgenteHis);
                     for (let i = 1; i < d.length; i++) {
                         let idColab = String(d[i][0] || '').trim();
+                        let nomeColab = String(d[i][1] || '').trim();
+                        if (!idColab && !nomeColab) continue;
+
                         let idL = normalizarFilialId(d[i][2]);
-                        
                         let statusDesl = String(d[i][17] || '').toUpperCase();
                         if (statusDesl.includes('DESLIGADO') || (idColab && dSet.has(idColab))) continue;
                         
                         if (idL && masterData[idL]) {
                             masterData[idL].agente.elegiveis++;
-                            let nomeColab = String(d[i][1] || '').trim(); 
                             let dataAdm = extrairDataBR(d[i][5]); 
                             let diasC = parseInt(d[i][6]) || 0; 
                             let f15 = String(d[i][8]).trim() === "1"; 
@@ -663,12 +819,11 @@ function obterCargaMestreDashboard() {
         try {
             console.time("Leitura_DB_SOC");
             const ssSoc = SpreadsheetApp.openById(DB_SOC);
-            const mapaSoc = obterMapaAbas(ssSoc);
             
             const procSoc = (n, tipo) => {
-                let sh = buscarAbaNoMapa(mapaSoc, n);
+                let sh = getSheetFast(ssSoc, n);
                 if(sh) {
-                    let d = sh.getDataRange().getValues();
+                    let d = obterValoresSeguros(sh);
                     for(let i=1; i<d.length; i++) {
                         let idL = normalizarFilialId(d[i][2]);
                         let statusSit = String(d[i][6] || '').toUpperCase();
