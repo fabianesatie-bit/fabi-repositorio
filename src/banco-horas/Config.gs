@@ -10,7 +10,7 @@ const CONFIG = {
   nomeAbaFolgas: 'Folgas Agendadas',
   nomeAbaDadosAtivos: 'DADOS_ATIVOS',
   urlPortal: 'https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbzWpN0-LZa_Lvd6VugBL5k3tWbHa5jdwKhJyD4UCH4Ml00BeNzved493zspKCgZAmz5Vg/exec',
-  emailRemetente: 'gplojas@magazineluiza.com.br'
+  emailRemetente: 'gestaodepessoasvarejo@magazineluiza.com.br'
 };
 
 function onOpen() {
