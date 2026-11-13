@@ -1,29 +1,14 @@
 <script>
   if (typeof google === 'undefined') {
-      console.warn("Ambiente Google Apps Script não detectado. Iniciando modo Mock para Preview.");
+      console.warn("Ambiente Google Apps Script não detectado. Iniciando modo Mock.");
       window.google = {
           script: {
               run: {
-                  registrarAuditoria: function(evt, det) { console.log("Auditoria Mock:", evt, det); return this; },
-                  withSuccessHandler: function(callback) {
+                  registrarAuditoria: function() { return this; },
+                  withSuccessHandler: function(cb) {
                       return {
-                          obterDadosIniciais: function() {
-                              setTimeout(() => callback({
-                                  bloqueado: false,
-                                  usuario: { nome: "Usuário Preview", cargo: "Administrador", infoLinha2: "Visão Preview", regionais: ["Regional Teste"], diretoriasAtendidas: ["Diretoria Teste"], isAdmin: true, isSuperAdmin: true, isConfigAdmin: true, isGerenteGP: true, foto: "" },
-                                  lojas: [{id: 1001, nome: "Loja Preview 1", regional: "Regional Teste"}],
-                                  qtdLojasCarteira: 1, qtdVisitas: 5, moedas: 125, moedasMes: 85, moedasMesAnterior: 40, faseMontanha: 3, gastos: 120.00, gastosMesAnterior: 95.00, historico: [], avisos: [], ranking: [], naturezas: ["Integração Preview"], diretorias: ["Diretoria Teste"],
-                                  mesAtualNum: 7, anoAtualNum: 2026, mesAnteriorNum: 6, anoAnteriorNum: 2026
-                              }), 400);
-                          },
-                          buscarIndicadoresLoja: function() {
-                              setTimeout(() => callback({sucesso: true, venda: "110%", nps: "95", bancoHoras: "10 h", quadro: "0", txdes: "1.5%"}), 400);
-                          },
-                          registrarAtividade: function() { setTimeout(() => callback({sucesso: true}), 400); },
-                          publicarAviso: function() { setTimeout(() => callback({sucesso: true}), 400); },
-                          adicionarNatureza: function() { setTimeout(() => callback({sucesso: true, naturezas: ["Nova Natureza Mock"]}), 400); },
-                          excluirNatureza: function() { setTimeout(() => callback({sucesso: true, naturezas: []}), 400); },
-                          excluirLancamento: function() { setTimeout(() => callback({sucesso: true}), 400); }
+                          obterDadosIniciais: function() { setTimeout(() => cb({ bloqueado: false, usuario: { nome: "Coordenador", cargo: "Coordenador GP", infoLinha2: "Regional SP" }, lojas: [], moedas: 100, historico: [], avisos: [], ranking: [] }), 400); },
+                          buscarIndicadoresLoja: function() { setTimeout(() => cb({ sucesso: true, venda: "105%", nps: "90", bancoHoras: "8 h", lixo: "2", quadro: "0", txdes: "1.2%" }), 400); }
                       };
                   }
               }
@@ -31,39 +16,46 @@
       };
   }
 
-  let dadosGlobais = null; 
-  let modoCicloDash = 'atual';
+  var dadosGlobais = typeof dadosGlobais !== 'undefined' ? dadosGlobais : null; 
+  var modoCicloDash = 'atual';
+  var arquivoColadoMemoria = null;
 
-  const nomesMesesMap = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-
-  const urlsRedirecionamento = {
+  var urlsRedirecionamento = {
       "Relatorios/Feedback/Acompanhamento": "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec",
       "Relatórios/Feedback/Acompanhamento": "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycbw4tWtEFsyTKrvE1cxGWcXz2X7WYUzT-rSEUvbrBkyKtcWQB_KicKnzJ7wLpDjU_kH0kQ/exec",
-      "Atendimento Social": "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec",
-      "Atendimento social": "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec"
+      "Atendimento Social": "https://script.google.com/a/macros/magazineluiza.com.br/s/AKfycby5uSTGw249dLHn7sTa2Ar7k0g3VZTXallI2C3h2jRcR8g8bvO2xdPprrgXsRVZKegQaQ/exec"
   };
-  const motivosRedirecionamento = Object.keys(urlsRedirecionamento);
+  var motivosRedirecionamento = Object.keys(urlsRedirecionamento);
+
+  function normalizarFilialId(val) {
+      if (!val && val !== 0) return "";
+      let num = parseInt(String(val).replace(/\D/g, ''), 10);
+      if (isNaN(num)) return String(val).trim();
+      if (num > 3000) { num -= 3000; }
+      return String(num);
+  }
 
   function usarIniciaisComoFallback(imgElement) {
-      let nome = imgElement.getAttribute('data-nome');
-      if(!nome) nome = 'Usuario GP';
+      let nome = imgElement.getAttribute('data-nome') || 'Usuario GP';
       imgElement.outerHTML = usarIniciais(nome);
   }
 
   function usarIniciais(nome) {
-      let iniciais = nome.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-      return '<div style="width:100%;height:100%;border-radius:50%;background:#7C3AED;color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:24px;border:3px solid #7C3AED;">' + iniciais + '</div>';
+      let iniciais = (nome || 'GP').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+      return '<div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(135deg, #005bb1, #0086ff);color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:24px;border:3px solid #0086ff;box-shadow:0 4px 12px rgba(0,134,255,0.2);">' + iniciais + '</div>';
   }
 
   function mostrarToast(msg) {
     const toast = document.getElementById('toast');
+    if (!toast) return;
     toast.innerText = msg;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3000);
   }
 
   function toggleMenu() {
-    document.getElementById('sidebar').classList.toggle('open');
+    let sb = document.getElementById('sidebar');
+    if (sb) sb.classList.toggle('open');
   }
 
   function customConfirm(message, onConfirm) {
@@ -86,21 +78,6 @@
       };
   }
 
-  function abrirPainelExterno(titulo, icone, cor, url) {
-     document.getElementById('iframe-title').innerText = titulo;
-     document.getElementById('iframe-icon').className = 'fa-solid ' + icone;
-     document.getElementById('iframe-icon').style.color = cor;
-     document.getElementById('iframe-externo').src = url;
-     document.getElementById('container-iframe-externo').style.display = 'block';
-     setTimeout(() => { document.getElementById('container-iframe-externo').scrollIntoView({ behavior: 'smooth' }); }, 100);
-     google.script.run.registrarAuditoria("Painel Externo", titulo);
-  }
-
-  function fecharPainelExterno() {
-     document.getElementById('container-iframe-externo').style.display = 'none';
-     document.getElementById('iframe-externo').src = '';
-  }
-
   function abrirPainelInternoEmbutido(url, titulo) {
      const container = document.getElementById('container-embutido-painel');
      const iframe = document.getElementById('iframe-painel-embutido-src');
@@ -121,17 +98,7 @@
      if (iframe) iframe.src = 'about:blank';
   }
 
-  function mudarAba(abaId, element) {
-    document.querySelectorAll('.view-aba').forEach(el => el.style.display = 'none');
-    document.getElementById('aba-' + abaId).style.display = 'block';
-    if (element) {
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-      element.classList.add('active');
-    }
-    if(window.innerWidth <= 768) { document.getElementById('sidebar').classList.remove('open'); }
-  }
-
-  function dispararConfetes() {
-     try { if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, zIndex: 9999 }); } catch(e) {}
+  function mostrarInstrucoesPWA() {
+    alert("📱 Para instalar o Portal GP 360º no seu celular:\n\n1. No Chrome (Android): toque nos três pontinhos (⋮) e selecione 'Adicionar à tela inicial'.\n2. No Safari (iPhone/iOS): toque no ícone de Compartilhar (quadrado com seta para cima) e escolha 'Adicionar à Tela de Início'.");
   }
 </script>

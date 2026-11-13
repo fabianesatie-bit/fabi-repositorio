@@ -127,6 +127,68 @@
      try { if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, zIndex: 9999 }); } catch(e) {}
   }
 
+  function normalizarFilialId(val) {
+    if (!val && val !== 0) return "";
+    var num = parseInt(String(val).replace(/\D/g, ''), 10);
+    if (isNaN(num)) return String(val).trim();
+    if (num > 3000) { num -= 3000; }
+    return String(num);
+  }
+
+  function mostrarPopupFase(novaFase) {
+      let emoji = '🥾';
+      let nomeFase = 'Fase 1: Acampamento Base';
+      
+      if (novaFase === 2) { emoji = '🧗'; nomeFase = 'Fase 2: Subida da Montanha'; }
+      else if (novaFase === 3) { emoji = '🏔️'; nomeFase = 'Fase 3: Cume Alcançado'; }
+      else if (novaFase >= 4) { emoji = '🏔️⚡'; nomeFase = 'Fase Final: Bandeira no Everest'; }
+
+      let eIcon = document.getElementById('icone-fase-nova');
+      if(eIcon) eIcon.innerText = emoji;
+      let eName = document.getElementById('nome-fase-nova');
+      if(eName) eName.innerText = nomeFase;
+      
+      let modFase = document.getElementById('modal-fase-conquista');
+      if(modFase) modFase.style.display = 'flex';
+      dispararConfetes();
+  }
+
+  function renderizarPendenciasJuridico(pendencias) {
+      const tbody = document.getElementById('lista-pendencias-juridico');
+      const badge = document.getElementById('badge-juridico');
+      if (!tbody) return;
+
+      if (!pendencias || pendencias.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#10b981; background:#f0fdf4; border-radius:8px;"><i class="fa-solid fa-circle-check"></i> Sem pendências jurídicas!</td></tr>';
+          if (badge) badge.style.display = 'none';
+          return;
+      }
+
+      if (badge) {
+          badge.innerText = pendencias.length;
+          badge.style.display = 'inline-block';
+      }
+
+      tbody.innerHTML = '';
+      pendencias.forEach(p => {
+          let txtSeguro = p.classificacao.replace(/"/g, '&quot;');
+          
+          tbody.innerHTML += `
+             <tr style="border-bottom:1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor='transparent'">
+                <td style="padding:8px 5px; font-weight:bold; color:#1e293b;">${p.filial}</td>
+                <td style="padding:8px 5px; color:#475569;">${p.regional}</td>
+                <td style="padding:8px 5px; color:#1e293b;">${p.reclamante}</td>
+                <td style="padding:8px 5px; color:#f43f5e; font-weight:bold;">${p.dataDisparo}</td>
+                <td style="padding:8px 5px; text-align:center;">
+                   <button data-motivo="${txtSeguro}" onclick="alert('Motivo da Apuração:\\n\\n' + this.getAttribute('data-motivo'))" title="Ver Classificação" style="background:none; border:none; cursor:pointer; color:var(--main-color); font-size:16px;">
+                      <i class="fa-solid fa-eye"></i>
+                   </button>
+                </td>
+             </tr>
+          `;
+      });
+  }
+
   /* ACTIVATION AND CLIPBOARD PASTE LISTENER FOR ATTACHMENTS */
   function activarDropzoneClipboard(elem) {
     elem.focus();
@@ -634,6 +696,7 @@
       let eNps = document.getElementById('ind-nps-val'); if (eNps) eNps.innerText = '-';
       let eRec = document.getElementById('ind-rec-val'); if (eRec) eRec.innerText = '-';
       let eBh = document.getElementById('ind-bh-val'); if (eBh) eBh.innerText = '-';
+      let eLixo = document.getElementById('ind-lixo-val'); if (eLixo) eLixo.innerText = '-';
       let eQua = document.getElementById('ind-quadro-val'); if (eQua) eQua.innerText = '-';
       let eTx = document.getElementById('ind-txdes-val'); if (eTx) eTx.innerText = '-';
 
@@ -643,11 +706,43 @@
           if(res.erro || !res.sucesso) return mostrarToast("Erro ao buscar: " + (res.erro || "Falha nos dados"));
 
           if (eNps) eNps.innerText = res.nps || '-';
-          if (eRec) eRec.innerText = res.venda || '-';
+          if (eRec) eRec.innerText = formatarIndicadorVendaUI(res.venda);
           if (eBh) eBh.innerText = (res.bancoHoras && res.bancoHoras !== "-") ? res.bancoHoras + " h" : "-";
+          if (eLixo) eLixo.innerText = res.lixo || '-';
           if (eQua) eQua.innerText = res.quadro || '-';
           if (eTx) eTx.innerText = res.txdes || '-';
       }).buscarIndicadoresLoja(filialId);
+  }
+
+  function formatarIndicadorVendaUI(val) {
+    if (!val || val === "-") return "-";
+    let str = String(val).trim();
+    let tinhaPerc = str.includes('%');
+    let cleanStr = str.replace('%', '').replace(/\s/g, '');
+    if (cleanStr.includes(',') && cleanStr.includes('.')) {
+      cleanStr = cleanStr.replace(/\./g, '').replace(',', '.');
+    } else if (cleanStr.includes(',')) {
+      cleanStr = cleanStr.replace(',', '.');
+    }
+    let num = parseFloat(cleanStr);
+    if (isNaN(num)) return str.substring(0, 4);
+
+    if (tinhaPerc) {
+      if (num >= 100) return Math.round(num) + "%";
+      return (num % 1 === 0 ? num.toFixed(0) : num.toFixed(1)).replace('.', ',') + "%";
+    }
+    if (num > 0 && num <= 5) {
+      return Math.round(num * 100) + "%";
+    }
+    if (num > 5 && num <= 500) {
+      return Math.round(num) + "%";
+    }
+    if (num >= 100000000) return Math.round(num / 1000000) + "M";
+    if (num >= 10000000) return (num / 1000000).toFixed(1).replace('.', ',') + "M";
+    if (num >= 1000000) return (num / 1000000).toFixed(2).replace('.', ',') + "M";
+    if (num >= 10000) return Math.round(num / 1000) + "k";
+    if (num >= 1000) return String(Math.round(num));
+    return String(Math.round(num));
   }
 
   function salvarAtividade() {

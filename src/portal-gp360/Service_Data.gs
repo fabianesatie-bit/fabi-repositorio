@@ -348,7 +348,7 @@ function buscarIndicadoresLoja(filialId) {
     }
     let targetFilial = parseInt(normalizarFilialId(filialId), 10);
     const cache = CacheService.getScriptCache();
-    const cacheKey = 'IND_LOJA_' + targetFilial;
+    const cacheKey = 'IND_LOJA_V3_' + targetFilial;
     const cachedData = cache.get(cacheKey);
     if (cachedData) return JSON.parse(cachedData);
 
@@ -371,18 +371,33 @@ function buscarIndicadoresLoja(filialId) {
       blocosDeDados[nomeAba] = sheet ? sheet.getDataRange().getValues() : [];
     });
 
-    // 1. VENDAS
+    // 1. VENDAS (Limitado a no máximo 4 dígitos para não estourar o card)
     const dVendas = blocosDeDados['HISTORICO_VENDA_ANO'];
-    for(let i = 1; i < dVendas.length; i++) {
-      let rowF = parseInt(normalizarFilialId(dVendas[i][0]), 10);
-      if (rowF === targetFilial) {
-        let v = dVendas[i][7];
-        if (typeof v === 'number') venda = (v * 100).toFixed(2);
-        else { 
-          let num = parseFloat(String(v).replace('%', '').replace(',', '.')); 
-          if (!isNaN(num)) venda = (num < 10 ? num * 100 : num).toFixed(2); 
+    if (dVendas && dVendas.length > 1) {
+      let colVenda = 7;
+      let colFilial = 0;
+      if (dVendas[0]) {
+        const headers = dVendas[0].map(h => String(h || '').trim().toUpperCase());
+        let idxFilial = headers.findIndex(h => h === 'FILIAL' || h === 'COD_FILIAL' || h === 'FILIAL_ID');
+        if (idxFilial !== -1) colFilial = idxFilial;
+
+        // Se houver coluna de atingimento percentual da meta
+        let idxAting = headers.findIndex(h => h.includes('ATING') || h.includes('% VENDA') || h.includes('% META') || h.includes('PERC'));
+        if (idxAting !== -1) {
+          colVenda = idxAting;
+        } else {
+          let idxReal = headers.findIndex(h => h.includes('REALIZ') || h.includes('VENDA') || h.includes('RECEITA'));
+          if (idxReal !== -1 && idxReal !== colFilial) colVenda = idxReal;
         }
-        break;
+      }
+
+      for (let i = 1; i < dVendas.length; i++) {
+        let rowF = parseInt(normalizarFilialId(dVendas[i][colFilial]), 10);
+        if (rowF === targetFilial) {
+          let rawVal = dVendas[i][colVenda];
+          venda = formatarIndicadorVenda(rawVal);
+          break;
+        }
       }
     }
 
@@ -493,7 +508,7 @@ function buscarIndicadoresLoja(filialId) {
 
     let payload = {
       sucesso: true,
-      venda: venda !== "-" ? String(venda).replace('.', ',') + "%" : "-",
+      venda: venda !== "-" ? String(venda) : "-",
       nps: nps !== "-" ? String(nps).replace('.', ',') : "-",
       bancoHoras: bh !== "-" ? String(bh).replace('.', ',') : "-",
       lixo: lixo !== "-" ? String(lixo) : "-",
@@ -503,6 +518,71 @@ function buscarIndicadoresLoja(filialId) {
     cache.put(cacheKey, JSON.stringify(payload), 300);
     return payload;
   } catch(e) { return { erro: e.message }; }
+}
+
+/**
+ * Formata o indicador de Venda para ter NO MÁXIMO 4 DÍGITOS numéricos,
+ * garantindo que nunca estoure o card do painel rápido.
+ * Exemplos:
+ *  - 105% (3 dígitos)
+ *  - 98% (2 dígitos)
+ *  - 1,99M (3 dígitos)
+ *  - 199M (3 dígitos)
+ *  - 1990 (4 dígitos)
+ */
+function formatarIndicadorVenda(val) {
+  if (val === null || val === undefined || val === "" || val === "-") return "-";
+  if (val instanceof Date) return "-";
+
+  let str = String(val).trim();
+  let tinhaPerc = str.includes('%');
+  
+  let cleanStr = str.replace('%', '').replace(/\s/g, '');
+  if (cleanStr.includes(',') && cleanStr.includes('.')) {
+    cleanStr = cleanStr.replace(/\./g, '').replace(',', '.');
+  } else if (cleanStr.includes(',')) {
+    cleanStr = cleanStr.replace(',', '.');
+  }
+  
+  let num = parseFloat(cleanStr);
+  if (isNaN(num)) return str.substring(0, 4);
+
+  // 1. Caso de percentual com símbolo explícito (%)
+  if (tinhaPerc) {
+    if (num >= 100) return Math.round(num) + "%";
+    return (num % 1 === 0 ? num.toFixed(0) : num.toFixed(1)).replace('.', ',') + "%";
+  }
+
+  // 2. Caso de razão decimal (ex: 0.98 -> 98% | 1.05 -> 105%)
+  if (num > 0 && num <= 5) {
+    let p = num * 100;
+    return Math.round(p) + "%";
+  }
+
+  // 3. Caso de percentual de 5 a 500 sem símbolo (ex: 98 ou 112)
+  if (num > 5 && num <= 500) {
+    return Math.round(num) + "%";
+  }
+
+  // 4. Caso de valor financeiro ou contagem grande (ex: 1.990.228 ou 199.022.863):
+  // Garantir no máximo 4 dígitos numéricos
+  if (num >= 100000000) {
+    return Math.round(num / 1000000) + "M"; // ex: 199M (3 dígitos)
+  }
+  if (num >= 10000000) {
+    return (num / 1000000).toFixed(1).replace('.', ',') + "M"; // ex: 19,9M (3 dígitos)
+  }
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(2).replace('.', ',') + "M"; // ex: 1,99M (3 dígitos)
+  }
+  if (num >= 10000) {
+    return Math.round(num / 1000) + "k"; // ex: 950k (3 dígitos)
+  }
+  if (num >= 1000) {
+    return String(Math.round(num)); // ex: 1990 (4 dígitos)
+  }
+
+  return String(Math.round(num));
 }
 
 function carregarNaturezasSeguras(ss) {
